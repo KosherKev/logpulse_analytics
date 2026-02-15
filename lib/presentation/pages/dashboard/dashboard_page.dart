@@ -3,10 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/api_config_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/errors_provider.dart';
 import '../../../data/models/dashboard_stats.dart';
-import '../../../core/utils/format_utils.dart';
-import '../../widgets/cards/stat_card.dart';
-import '../../widgets/cards/service_health_card.dart';
+import '../../../data/models/error_group.dart';
+import '../../widgets/dashboard/time_range_selector.dart';
+import '../../widgets/dashboard/stats_grid.dart';
+import '../../widgets/dashboard/error_rate_chart.dart';
+import '../../widgets/dashboard/service_health_list.dart';
+import '../../widgets/dashboard/recent_errors_list.dart';
 /// Dashboard Page
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -19,9 +23,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // Load dashboard data on init
     Future.microtask(() {
       ref.read(dashboardProvider.notifier).loadStats();
+      ref.read(errorsProvider.notifier).loadErrors();
     });
   }
 
@@ -126,30 +130,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildDashboard(DashboardState state) {
     final stats = state.stats!;
+    final errorsState = ref.watch(errorsProvider);
+    final errorGroups = errorsState.errorGroups
+        .where((g) => g.severity == ErrorSeverity.critical || g.severity == ErrorSeverity.high)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Time Range',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildTimeRangeChip('last_hour', 'Last Hour', state.timeRange),
-                _buildTimeRangeChip('last_24h', 'Last 24h', state.timeRange),
-                _buildTimeRangeChip('last_7d', 'Last 7 Days', state.timeRange),
-                _buildTimeRangeChip('last_30d', 'Last 30 Days', state.timeRange),
-              ],
-            ),
+          TimeRangeSelector(
+            selectedRange: state.timeRange,
+            onRangeChanged: (value) {
+              ref.read(dashboardProvider.notifier).setTimeRange(value);
+            },
           ),
           const SizedBox(height: 24),
           Text(
@@ -157,67 +152,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              StatCard(
-                title: 'Total Logs',
-                value: FormatUtils.formatNumber(stats.totalLogs),
-                icon: Icons.insert_chart,
-              ),
-              StatCard(
-                title: 'Error Rate',
-                value: stats.formattedErrorRate,
-                icon: Icons.error_outline,
-                color: Colors.red,
-              ),
-              StatCard(
-                title: 'Avg Latency',
-                value: stats.formattedAvgLatency,
-                icon: Icons.speed,
-              ),
-              StatCard(
-                title: 'Requests/Hour',
-                value: FormatUtils.formatNumber(stats.requestsPerHour),
-                icon: Icons.trending_up,
-              ),
-            ],
-          ),
+          StatsGrid(stats: stats),
           const SizedBox(height: 24),
-          if (stats.serviceStats != null && stats.serviceStats!.isNotEmpty) ...[
-            Text(
-              'Services',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            ...stats.serviceStats!.entries.map((entry) {
-              return ServiceHealthCard(
-                serviceName: entry.key,
-                stats: entry.value,
-              );
-            }).toList(),
-          ],
+          ErrorRateChart(points: const []),
+          const SizedBox(height: 24),
+          ServiceHealthList(serviceStats: stats.serviceStats),
+          const SizedBox(height: 24),
+          RecentErrorsList(errorGroups: errorGroups),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTimeRangeChip(String value, String label, String current) {
-    final selected = value == current;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (isSelected) {
-          if (isSelected) {
-            ref.read(dashboardProvider.notifier).setTimeRange(value);
-          }
-        },
       ),
     );
   }
