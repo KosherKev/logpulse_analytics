@@ -4,6 +4,7 @@ import '../providers/logs_provider.dart';
 import '../../data/models/log_filter.dart';
 import '../../core/utils/date_utils.dart' as date_utils;
 import '../../core/utils/format_utils.dart';
+import '../log_details/log_details_page.dart';
 
 /// Logs Page
 class LogsPage extends ConsumerStatefulWidget {
@@ -142,7 +143,13 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
-          // Navigate to log details - will implement in next phase
+          // Navigate to log details
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LogDetailsPage(logId: log.id ?? ''),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
