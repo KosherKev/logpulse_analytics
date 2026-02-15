@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/api_config_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../../data/models/dashboard_stats.dart';
+import '../../../core/utils/format_utils.dart';
+import '../../widgets/cards/stat_card.dart';
+import '../../widgets/cards/service_health_card.dart';
 /// Dashboard Page
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -36,6 +40,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ref.read(dashboardProvider.notifier).refresh();
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              ref.read(navigationProvider.notifier).setIndex(3);
+            },
+          ),
         ],
       ),
       body: _buildBody(dashboardState, apiConfig),
@@ -59,7 +69,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       return const Center(child: Text('No data available'));
     }
 
-    return _buildDashboard(state.stats!);
+    return _buildDashboard(state);
   }
 
   Widget _buildNotConfigured() {
@@ -114,62 +124,80 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildDashboard(DashboardStats stats) {
+  Widget _buildDashboard(DashboardState state) {
+    final stats = state.stats!;
+
     return RefreshIndicator(
       onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Stats overview
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Time Range',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTimeRangeChip('last_hour', 'Last Hour', state.timeRange),
+                _buildTimeRangeChip('last_24h', 'Last 24h', state.timeRange),
+                _buildTimeRangeChip('last_7d', 'Last 7 Days', state.timeRange),
+                _buildTimeRangeChip('last_30d', 'Last 30 Days', state.timeRange),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           Text(
             'System Overview',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
-          
-          // Placeholder for stats cards - will add UI in later phase
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Total Logs: ${stats.totalLogs}'),
-                  const SizedBox(height: 8),
-                  Text('Error Rate: ${stats.formattedErrorRate}'),
-                  const SizedBox(height: 8),
-                  Text('Avg Latency: ${stats.formattedAvgLatency}'),
-                  const SizedBox(height: 8),
-                  Text('Requests/Hour: ${stats.requestsPerHour}'),
-                ],
+          GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              StatCard(
+                title: 'Total Logs',
+                value: FormatUtils.formatNumber(stats.totalLogs),
+                icon: Icons.insert_chart,
               ),
-            ),
+              StatCard(
+                title: 'Error Rate',
+                value: stats.formattedErrorRate,
+                icon: Icons.error_outline,
+                color: Colors.red,
+              ),
+              StatCard(
+                title: 'Avg Latency',
+                value: stats.formattedAvgLatency,
+                icon: Icons.speed,
+              ),
+              StatCard(
+                title: 'Requests/Hour',
+                value: FormatUtils.formatNumber(stats.requestsPerHour),
+                icon: Icons.trending_up,
+              ),
+            ],
           ),
-          
           const SizedBox(height: 24),
-          
-          // Services section
-          if (stats.serviceStats != null) ...[
+          if (stats.serviceStats != null && stats.serviceStats!.isNotEmpty) ...[
             Text(
               'Services',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             ...stats.serviceStats!.entries.map((entry) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  title: Text(entry.key),
-                  subtitle: Text(
-                    'Error Rate: ${entry.value.errorRate.toStringAsFixed(1)}% | '
-                    'Uptime: ${entry.value.formattedUptime}',
-                  ),
-                  trailing: Icon(
-                    Icons.circle,
-                    color: _getHealthColor(entry.value.healthStatus),
-                    size: 12,
-                  ),
-                ),
+              return ServiceHealthCard(
+                serviceName: entry.key,
+                stats: entry.value,
               );
             }).toList(),
           ],
@@ -178,16 +206,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Color _getHealthColor(HealthStatus status) {
-    switch (status) {
-      case HealthStatus.healthy:
-        return Colors.green;
-      case HealthStatus.degraded:
-        return Colors.orange;
-      case HealthStatus.unhealthy:
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+  Widget _buildTimeRangeChip(String value, String label, String current) {
+    final selected = value == current;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (isSelected) {
+          if (isSelected) {
+            ref.read(dashboardProvider.notifier).setTimeRange(value);
+          }
+        },
+      ),
+    );
   }
 }
