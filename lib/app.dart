@@ -1,11 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'presentation/pages/home_page.dart';
+import 'presentation/providers/settings_provider.dart';
+import 'presentation/providers/service_providers.dart';
 
-/// Main app widget (UI will be added in next phase)
-class LogPulseApp extends StatelessWidget {
+/// Main app widget
+class LogPulseApp extends ConsumerStatefulWidget {
   const LogPulseApp({super.key});
 
   @override
+  ConsumerState<LogPulseApp> createState() => _LogPulseAppState();
+}
+
+class _LogPulseAppState extends ConsumerState<LogPulseApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize app on startup
+    Future.microtask(() {
+      ref.read(apiConfigProvider.notifier).loadConfig();
+      ref.read(settingsProvider.notifier).loadSettings();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'LogPulse Analytics',
       debugShowCheckedModeBanner: false,
@@ -20,26 +41,20 @@ class LogPulseApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.analytics, size: 64, color: Colors.blue),
-              SizedBox(height: 16),
-              Text(
-                'LogPulse Analytics',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('Phase 1: Foundation Complete'),
-              SizedBox(height: 4),
-              Text('UI components coming in next phase'),
-            ],
-          ),
-        ),
-      ),
+      themeMode: _getThemeMode(themeMode),
+      home: const HomePage(),
     );
+  }
+
+  ThemeMode _getThemeMode(String mode) {
+    switch (mode) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+      default:
+        return ThemeMode.system;
+    }
   }
 }
