@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_dimensions.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/dashboard_stats.dart';
 
 /// Service Health Card - Shows service status with health indicator
@@ -20,15 +24,14 @@ class ServiceHealthCard extends StatelessWidget {
     final healthColor = _getHealthColor(healthStatus);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.md),
           child: Row(
             children: [
-              // Health indicator dot
               Container(
                 width: 12,
                 height: 12,
@@ -37,28 +40,23 @@ class ServiceHealthCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 12),
-
-              // Service info
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       serviceName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Error Rate: ${stats.errorRate.toStringAsFixed(1)}% • '
                       'Uptime: ${stats.formattedUptime}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: AppTextStyles.caption,
                     ),
                   ],
                 ),
@@ -70,26 +68,20 @@ class ServiceHealthCard extends StatelessWidget {
                 children: [
                   Text(
                     '${stats.totalRequests}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppTextStyles.h4,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'requests',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: AppTextStyles.caption,
                   ),
                 ],
               ),
 
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey[400],
+                color: AppColors.border,
               ),
             ],
           ),
@@ -101,13 +93,13 @@ class ServiceHealthCard extends StatelessWidget {
   Color _getHealthColor(HealthStatus status) {
     switch (status) {
       case HealthStatus.healthy:
-        return Colors.green;
+        return AppColors.success;
       case HealthStatus.degraded:
-        return Colors.orange;
+        return AppColors.warning;
       case HealthStatus.unhealthy:
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.border;
     }
   }
 }
