@@ -19,16 +19,6 @@ class LogsRepository {
     }
   }
   
-  /// Fetch single log by ID
-  Future<LogEntry> getLogById(String id) async {
-    try {
-      return await _apiService.getLogById(id);
-    } catch (e) {
-      if (e is AppException) rethrow;
-      throw AppException('Failed to fetch log: ${e.toString()}');
-    }
-  }
-  
   /// Fetch logs by trace ID
   Future<List<LogEntry>> getLogsByTraceId(String traceId) async {
     try {

@@ -31,4 +31,5 @@ class AppColors {
   static const Color darkBorder = Color(0xFF475569);
   static const Color darkTextPrimary = Color(0xFFF1F5F9);
   static const Color darkTextSecondary = Color(0xFFCBD5E1);
+  static const Color darkInfo = Color(0xFF60A5FA);
 }

@@ -123,7 +123,7 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => LogDetailsPage(logId: log.id ?? ''),
+                        builder: (context) => LogDetailsPage(log: log),
                       ),
                     );
                   },
@@ -153,18 +153,30 @@ class _LogsPageState extends ConsumerState<LogsPage> {
               )
             : null,
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkSurface
+            : AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: BorderSide(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkBorder
+                : AppColors.border,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: BorderSide(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkBorder
+                : AppColors.border,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primary),
+          borderSide: BorderSide(
+            color: AppColors.primary,
+          ),
         ),
       ),
       onSubmitted: (value) {

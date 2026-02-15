@@ -75,7 +75,9 @@ class EnhancedLogCard extends StatelessWidget {
                       log.service,
                       style: AppTextStyles.bodyLarge.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -126,7 +128,9 @@ class EnhancedLogCard extends StatelessWidget {
                         child: Text(
                           log.path!,
                           style: AppTextStyles.codeSmall.copyWith(
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.textPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

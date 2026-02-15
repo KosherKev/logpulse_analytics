@@ -5,7 +5,6 @@ class ApiEndpoints {
   static const String stats = '/logs/stats/summary';
   
   // Logs
-  static String logById(String id) => '/logs/$id';
   static String logsByTraceId(String traceId) => '/logs?traceId=$traceId';
   
   // Health
@@ -17,8 +16,8 @@ class ApiEndpoints {
     String? service,
     String? level,
     int? statusCode,
-    String? after,
-    String? before,
+    String? from,
+    String? to,
     int? limit,
     int? offset,
     String? search,
@@ -28,10 +27,10 @@ class ApiEndpoints {
     if (service != null) params['service'] = service;
     if (level != null) params['level'] = level;
     if (statusCode != null) params['statusCode'] = statusCode.toString();
-    if (after != null) params['after'] = after;
-    if (before != null) params['before'] = before;
+    if (from != null) params['from'] = from;
+    if (to != null) params['to'] = to;
     if (limit != null) params['limit'] = limit.toString();
-    if (offset != null) params['offset'] = offset.toString();
+    if (offset != null) params['skip'] = offset.toString();
     if (search != null) params['search'] = search;
     
     if (params.isEmpty) return logs;

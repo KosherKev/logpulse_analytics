@@ -123,7 +123,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   title: Text(
                     'Theme',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   subtitle: Text(_getThemeLabel(settings.themeMode)),
@@ -145,7 +147,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   title: Text(
                     'Enable Auto Refresh',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   subtitle: Text(
@@ -165,7 +169,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     title: Text(
                       'Refresh Interval',
                       style: AppTextStyles.body.copyWith(
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                     subtitle: Text('${settings.refreshInterval} seconds'),
@@ -187,7 +193,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   title: Text(
                     'Version',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   subtitle: Text(
@@ -202,7 +210,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   title: Text(
                     'Documentation',
                     style: AppTextStyles.body.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   trailing: const Icon(Icons.open_in_new),
@@ -271,7 +281,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       child: Text(
         title.toUpperCase(),
         style: AppTextStyles.overline.copyWith(
-          color: AppColors.textSecondary,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkTextSecondary
+              : AppColors.textSecondary,
         ),
       ),
     );

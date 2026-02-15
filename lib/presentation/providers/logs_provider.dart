@@ -138,12 +138,6 @@ class LogsNotifier extends StateNotifier<LogsState> {
   }
 }
 
-/// Single Log Provider (by ID)
-final logByIdProvider = FutureProvider.family<LogEntry, String>((ref, id) async {
-  final repository = ref.watch(logsRepositoryProvider);
-  return await repository.getLogById(id);
-});
-
 /// Logs by Trace ID Provider
 final logsByTraceIdProvider = FutureProvider.family<List<LogEntry>, String>((ref, traceId) async {
   final repository = ref.watch(logsRepositoryProvider);

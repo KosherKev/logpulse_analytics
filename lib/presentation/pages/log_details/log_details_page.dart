@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/logs_provider.dart';
 import '../../../data/models/log_entry.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -14,19 +12,19 @@ import 'tabs/error_tab.dart';
 import 'tabs/timeline_tab.dart';
 
 /// Log Details Page with 5 tabs
-class LogDetailsPage extends ConsumerStatefulWidget {
-  final String logId;
+class LogDetailsPage extends StatefulWidget {
+  final LogEntry log;
 
   const LogDetailsPage({
     super.key,
-    required this.logId,
+    required this.log,
   });
 
   @override
-  ConsumerState<LogDetailsPage> createState() => _LogDetailsPageState();
+  State<LogDetailsPage> createState() => _LogDetailsPageState();
 }
 
-class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
+class _LogDetailsPageState extends State<LogDetailsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -44,7 +42,7 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
 
   @override
   Widget build(BuildContext context) {
-    final logAsync = ref.watch(logByIdProvider(widget.logId));
+    final log = widget.log;
 
     return Scaffold(
       appBar: AppBar(
@@ -58,11 +56,7 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
           ),
         ],
       ),
-      body: logAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildError(error.toString()),
-        data: (log) => _buildContent(log),
-      ),
+      body: _buildContent(log),
     );
   }
 
@@ -142,7 +136,9 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
                   child: Text(
                     log.service,
                     style: AppTextStyles.h3.copyWith(
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                 ),
@@ -191,7 +187,9 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
                       child: Text(
                         log.path!,
                         style: AppTextStyles.codeSmall.copyWith(
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -272,7 +270,11 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
           const SizedBox(height: AppSpacing.md),
           Text(
             'Failed to Load Log',
-            style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.h3.copyWith(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Padding(

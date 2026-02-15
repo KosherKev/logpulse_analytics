@@ -68,8 +68,8 @@ class ApiService {
         service: filter.service,
         level: filter.level,
         statusCode: filter.statusCode,
-        after: filter.startDate?.toIso8601String(),
-        before: filter.endDate?.toIso8601String(),
+        from: filter.startDate?.toIso8601String(),
+        to: filter.endDate?.toIso8601String(),
         limit: filter.limit,
         offset: filter.offset,
         search: filter.searchQuery,
@@ -94,33 +94,6 @@ class ApiService {
         map['id'] ??= map['_id']?.toString();
         return LogEntry.fromJson(map);
       }).toList();
-    } on DioException catch (e) {
-      throw _handleDioError(e);
-    }
-  }
-  
-  /// Fetch log by ID
-  Future<LogEntry> getLogById(String id) async {
-    try {
-      _ensureConfigured();
-
-      final endpoint = ApiEndpoints.logById(id);
-      final response = await _dio.get('$_apiRoot$endpoint');
-      final body = response.data;
-
-      Map<String, dynamic>? log;
-      if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
-        log = Map<String, dynamic>.from(body['data'] as Map<String, dynamic>);
-      } else if (body is Map<String, dynamic>) {
-        log = Map<String, dynamic>.from(body);
-      }
-
-      if (log == null) {
-        throw ParseException('Invalid response format for log');
-      }
-
-      log['id'] ??= log['_id']?.toString();
-      return LogEntry.fromJson(log);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
