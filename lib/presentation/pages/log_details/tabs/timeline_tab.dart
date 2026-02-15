@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/log_entry.dart';
 import '../../../../core/utils/format_utils.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Timeline Tab - Shows request processing timeline
 class TimelineTab extends StatelessWidget {
@@ -20,32 +23,33 @@ class TimelineTab extends StatelessWidget {
     final events = _generateTimelineEvents();
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        // Duration Summary Card
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Request Duration',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyles.h4.copyWith(
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    const Icon(Icons.timer, size: 32, color: Colors.blue),
-                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.timer,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
                     Text(
                       FormatUtils.formatDuration(log.duration!),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -54,25 +58,24 @@ class TimelineTab extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.lg),
 
         // Timeline Visualization
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
           child: Text(
             'Timeline',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+            style: AppTextStyles.h4.copyWith(
+              color: AppColors.textPrimary,
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
 
         // Timeline Events
         ...events.map((event) => _buildTimelineEvent(event)),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.lg),
 
         // Performance Breakdown (if available)
         if (log.duration != null) _buildPerformanceBreakdown(),
@@ -82,7 +85,7 @@ class TimelineTab extends StatelessWidget {
 
   Widget _buildTimelineEvent(TimelineEvent event) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 16),
+      padding: const EdgeInsets.only(left: AppSpacing.sm, bottom: AppSpacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -93,7 +96,7 @@ class TimelineTab extends StatelessWidget {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: event.isError ? Colors.red : Colors.blue,
+                  color: event.isError ? AppColors.error : AppColors.primary,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -101,7 +104,7 @@ class TimelineTab extends StatelessWidget {
                 Container(
                   width: 2,
                   height: 40,
-                  color: Colors.grey[300],
+                  color: AppColors.border,
                 ),
             ],
           ),
@@ -116,29 +119,26 @@ class TimelineTab extends StatelessWidget {
                   children: [
                     Text(
                       event.timestamp,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        fontFamily: 'monospace',
+                      style: AppTextStyles.codeSmall.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(width: 8),
                     if (event.isError)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
+                          horizontal: AppSpacing.xs,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.2),
+                          color: AppColors.error.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
+                        child: Text(
                           'ERROR',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -147,18 +147,17 @@ class TimelineTab extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   event.title,
-                  style: TextStyle(
+                  style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: event.isError ? Colors.red : null,
+                    color: event.isError ? AppColors.error : AppColors.textPrimary,
                   ),
                 ),
                 if (event.description != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     event.description!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ],
@@ -173,15 +172,14 @@ class TimelineTab extends StatelessWidget {
   Widget _buildPerformanceBreakdown() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Performance Breakdown',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+              style: AppTextStyles.h4.copyWith(
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -198,7 +196,7 @@ class TimelineTab extends StatelessWidget {
   Widget _buildBreakdownItem(String label, double percentage, Color color) {
     final duration = (log.duration! * percentage).round();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -208,10 +206,8 @@ class TimelineTab extends StatelessWidget {
               Text(label),
               Text(
                 '${FormatUtils.formatDuration(duration)} (${(percentage * 100).toStringAsFixed(1)}%)',
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: Colors.grey,
+                style: AppTextStyles.codeSmall.copyWith(
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -221,7 +217,7 @@ class TimelineTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: percentage,
-              backgroundColor: Colors.grey[200],
+              backgroundColor: AppColors.surfaceVariant,
               valueColor: AlwaysStoppedAnimation<Color>(color),
               minHeight: 8,
             ),

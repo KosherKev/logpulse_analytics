@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../data/models/log_entry.dart';
 import '../../../../core/utils/format_utils.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import 'dart:convert';
 
 /// Response Tab - Shows response headers and body
@@ -26,23 +29,22 @@ class _ResponseTabState extends State<ResponseTab> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         // Status Card
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Status',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyles.h4.copyWith(
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     Container(
@@ -52,7 +54,7 @@ class _ResponseTabState extends State<ResponseTab> {
                       ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(widget.log.statusCode)
-                            .withOpacity(0.2),
+                            .withOpacity(0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -60,9 +62,9 @@ class _ResponseTabState extends State<ResponseTab> {
                             ? FormatUtils.formatStatusCode(
                                 widget.log.statusCode!)
                             : 'Unknown',
-                        style: TextStyle(
+                        style: AppTextStyles.bodySmall.copyWith(
                           color: _getStatusColor(widget.log.statusCode),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -72,7 +74,7 @@ class _ResponseTabState extends State<ResponseTab> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
 
         // Headers Section
         _buildExpandableSection(
@@ -110,8 +112,13 @@ class _ResponseTabState extends State<ResponseTab> {
     if (content == null || content.isEmpty) {
       return Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text('No $title'),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Text(
+            'No $title',
+            style: AppTextStyles.body.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
         ),
       );
     }
@@ -120,17 +127,20 @@ class _ResponseTabState extends State<ResponseTab> {
       child: ExpansionTile(
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: AppTextStyles.body.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
         ),
         initiallyExpanded: defaultExpanded,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: content.entries.map((entry) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -138,16 +148,18 @@ class _ResponseTabState extends State<ResponseTab> {
                         width: 120,
                         child: Text(
                           entry.key,
-                          style: const TextStyle(
+                          style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: Colors.grey,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ),
                       Expanded(
                         child: SelectableText(
                           entry.value.toString(),
-                          style: const TextStyle(fontFamily: 'monospace'),
+                          style: AppTextStyles.codeSmall.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                     ],
@@ -180,14 +192,13 @@ class _ResponseTabState extends State<ResponseTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyles.h4.copyWith(
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const Spacer(),
@@ -212,12 +223,11 @@ class _ResponseTabState extends State<ResponseTab> {
           const Divider(height: 1),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: SelectableText(
               bodyText,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
+              style: AppTextStyles.codeSmall.copyWith(
+                color: AppColors.textPrimary,
               ),
             ),
           ),
@@ -237,10 +247,10 @@ class _ResponseTabState extends State<ResponseTab> {
   }
 
   Color _getStatusColor(int? statusCode) {
-    if (statusCode == null) return Colors.grey;
-    if (statusCode >= 500) return Colors.red;
-    if (statusCode >= 400) return Colors.orange;
-    if (statusCode >= 200 && statusCode < 300) return Colors.green;
-    return Colors.grey;
+    if (statusCode == null) return AppColors.border;
+    if (statusCode >= 500) return AppColors.error;
+    if (statusCode >= 400) return AppColors.warning;
+    if (statusCode >= 200 && statusCode < 300) return AppColors.success;
+    return AppColors.border;
   }
 }

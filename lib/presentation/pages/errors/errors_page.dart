@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/errors_provider.dart';
 import '../../../data/models/error_group.dart';
 import '../../../core/utils/date_utils.dart' as date_utils;
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../widgets/errors/summary_card.dart';
+import '../../widgets/errors/error_group_card.dart';
 
 /// Errors Page - Error tracking and grouping
 class ErrorsPage extends ConsumerStatefulWidget {
@@ -60,182 +65,77 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
       return _buildEmpty();
     }
 
+    final totalGroups = state.errorGroups.length;
+    final serverGroups = state.errorGroups
+        .where(
+          (g) =>
+              g.instances?.any(
+                (i) => i.statusCode != null && i.statusCode! >= 500,
+              ) ??
+              false,
+        )
+        .length;
+    final clientGroups = state.errorGroups
+        .where(
+          (g) =>
+              g.instances?.any(
+                (i) =>
+                    i.statusCode != null &&
+                    i.statusCode! >= 400 &&
+                    i.statusCode! < 500,
+              ) ??
+              false,
+        )
+        .length;
+
     return RefreshIndicator(
       onRefresh: () => ref.read(errorsProvider.notifier).loadErrors(),
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          // Summary Cards
           Row(
             children: [
               Expanded(
-                child: _buildSummaryCard(
-                  'Total',
-                  state.errorGroups.length.toString(),
-                  Colors.blue,
+                child: ErrorSummaryCard(
+                  label: 'Total Error Groups',
+                  value: totalGroups.toString(),
+                  icon: Icons.error_outline,
+                  color: AppColors.error,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: _buildSummaryCard(
-                  '5xx',
-                  state.errorGroups
-                      .where((g) => g.instances?.any((i) => 
-                          i.statusCode != null && i.statusCode! >= 500) ?? false)
-                      .length
-                      .toString(),
-                  Colors.red,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildSummaryCard(
-                  '4xx',
-                  state.errorGroups
-                      .where((g) => g.instances?.any((i) => 
-                          i.statusCode != null && i.statusCode! >= 400 && i.statusCode! < 500) ?? false)
-                      .length
-                      .toString(),
-                  Colors.orange,
+                child: ErrorSummaryCard(
+                  label: '5xx Groups',
+                  value: serverGroups.toString(),
+                  icon: Icons.cloud_off,
+                  color: AppColors.error,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Error Groups List
-          const Text(
+          const SizedBox(height: AppSpacing.sm),
+          ErrorSummaryCard(
+            label: '4xx Groups',
+            value: clientGroups.toString(),
+            icon: Icons.report_problem,
+            color: AppColors.warning,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
             'Error Groups',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            style: AppTextStyles.h3.copyWith(
+              color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
-          ...state.errorGroups.map((group) => _buildErrorGroupCard(group)),
+          const SizedBox(height: AppSpacing.sm),
+          ...state.errorGroups.map(
+            (group) => ErrorGroupCard(
+              group: group,
+              onTap: () => _showErrorDetails(group),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(String label, String value, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorGroupCard(ErrorGroup group) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () {
-          _showErrorDetails(group);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _getSeverityColor(group.severity),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      group.message,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${group.count}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Services: ${group.formattedServices}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.access_time,
-                    size: 12,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Last: ${date_utils.DateUtils.formatRelative(group.lastSeen)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  if (group.trend != TrendDirection.stable)
-                    Icon(
-                      group.trend == TrendDirection.increasing
-                          ? Icons.trending_up
-                          : Icons.trending_down,
-                      size: 12,
-                      color: group.trend == TrendDirection.increasing
-                          ? Colors.red
-                          : Colors.green,
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -244,24 +144,56 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Error Details',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: AppTextStyles.h3.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(group.message),
-            const SizedBox(height: 8),
-            Text('Occurrences: ${group.count}'),
-            Text('First seen: ${date_utils.DateUtils.formatRelative(group.firstSeen)}'),
-            Text('Last seen: ${date_utils.DateUtils.formatRelative(group.lastSeen)}'),
-            const SizedBox(height: 16),
-            Text('Affected Services:', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ...group.services.map((s) => Text('• $s')),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              group.message,
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Occurrences: ${group.count}',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              'First seen: ${date_utils.DateUtils.formatRelative(group.firstSeen)}',
+              style: AppTextStyles.caption,
+            ),
+            Text(
+              'Last seen: ${date_utils.DateUtils.formatRelative(group.lastSeen)}',
+              style: AppTextStyles.caption,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Affected Services',
+              style: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            ...group.services.map(
+              (s) => Text(
+                '• $s',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -273,14 +205,25 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: 16),
-          const Text(
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const SizedBox(height: AppSpacing.md),
+          Text(
             'Error Loading Errors',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h3.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(error, textAlign: TextAlign.center),
+          const SizedBox(height: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Text(
+              error,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -294,30 +237,24 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
           Icon(
             Icons.check_circle_outline,
             size: 64,
-            color: Colors.green[400],
+            color: AppColors.success,
           ),
-          const SizedBox(height: 16),
-          const Text(
+          const SizedBox(height: AppSpacing.md),
+          Text(
             'No Errors Found',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h3.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
-          const SizedBox(height: 8),
-          const Text('All systems running smoothly!'),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'All systems running smoothly!',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  Color _getSeverityColor(ErrorSeverity severity) {
-    switch (severity) {
-      case ErrorSeverity.critical:
-        return Colors.red;
-      case ErrorSeverity.high:
-        return Colors.orange;
-      case ErrorSeverity.medium:
-        return Colors.yellow[700]!;
-      case ErrorSeverity.low:
-        return Colors.blue;
-    }
   }
 }

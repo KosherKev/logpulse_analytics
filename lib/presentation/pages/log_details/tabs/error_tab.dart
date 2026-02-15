@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../data/models/log_entry.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Error Tab - Shows error details and stack trace
 class ErrorTab extends StatelessWidget {
@@ -15,13 +18,17 @@ class ErrorTab extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
-            SizedBox(height: 16),
+            Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
+            SizedBox(height: AppSpacing.md),
             Text(
               'No Errors',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: AppSpacing.sm),
             Text('This log entry has no error information'),
           ],
         ),
@@ -29,23 +36,21 @@ class ErrorTab extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        // Error Details Card
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Error Details',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyles.h4.copyWith(
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 if (log.error!.message != null) ...[
                   _buildInfoRow('Message', log.error!.message!),
                   const SizedBox(height: 8),
@@ -59,23 +64,21 @@ class ErrorTab extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
 
-        // Stack Trace Card
         if (log.error!.stack != null) ...[
           Card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Row(
                     children: [
-                      const Text(
+                      Text(
                         'Stack Trace',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       const Spacer(),
@@ -93,14 +96,12 @@ class ErrorTab extends StatelessWidget {
                 const Divider(height: 1),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.grey[900],
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  color: AppColors.darkSurface,
                   child: SelectableText(
                     log.error!.stack!,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      color: Colors.white,
+                    style: AppTextStyles.codeSmall.copyWith(
+                      color: AppColors.darkTextPrimary,
                     ),
                   ),
                 ),
@@ -110,18 +111,16 @@ class ErrorTab extends StatelessWidget {
           const SizedBox(height: 16),
         ],
 
-        // Actions Card
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Actions',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  style: AppTextStyles.h4.copyWith(
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -157,16 +156,18 @@ class ErrorTab extends StatelessWidget {
           width: 80,
           child: Text(
             label,
-            style: const TextStyle(
+            style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w500,
-              color: Colors.grey,
+              color: AppColors.textSecondary,
             ),
           ),
         ),
         Expanded(
           child: SelectableText(
             value,
-            style: const TextStyle(fontFamily: 'monospace'),
+            style: AppTextStyles.codeSmall.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/log_entry.dart';
 import '../../../../core/utils/date_utils.dart' as date_utils;
 import '../../../../core/utils/format_utils.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_text_styles.dart';
 
 /// Overview Tab - Summary of the log entry
 class OverviewTab extends StatelessWidget {
@@ -12,7 +15,7 @@ class OverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         _buildSection(
           context,
@@ -89,17 +92,17 @@ class OverviewTab extends StatelessWidget {
   }) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: AppTextStyles.h4.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             ...children,
           ],
         ),
@@ -109,7 +112,7 @@ class OverviewTab extends StatelessWidget {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -117,16 +120,18 @@ class OverviewTab extends StatelessWidget {
             width: 120,
             child: Text(
               label,
-              style: const TextStyle(
+              style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w500,
-                color: Colors.grey,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
           Expanded(
             child: SelectableText(
               value,
-              style: const TextStyle(fontFamily: 'monospace'),
+              style: AppTextStyles.codeSmall.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],

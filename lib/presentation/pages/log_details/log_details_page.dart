@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/logs_provider.dart';
 import '../../../data/models/log_entry.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/date_utils.dart' as date_utils;
+import '../../../core/utils/format_utils.dart';
 import 'tabs/overview_tab.dart';
 import 'tabs/request_tab.dart';
 import 'tabs/response_tab.dart';
@@ -64,23 +69,28 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
   Widget _buildContent(LogEntry log) {
     return Column(
       children: [
-        // Header Card
         _buildHeader(log),
-        
-        // Tab Bar
-        TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Request'),
-            Tab(text: 'Response'),
-            Tab(text: 'Error'),
-            Tab(text: 'Timeline'),
-          ],
+        Material(
+          color: AppColors.surface,
+          elevation: 2,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: AppColors.textSecondary,
+            indicatorColor: AppColors.primary,
+            labelStyle: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            tabs: const [
+              Tab(text: 'Overview'),
+              Tab(text: 'Request'),
+              Tab(text: 'Response'),
+              Tab(text: 'Error'),
+              Tab(text: 'Timeline'),
+            ],
+          ),
         ),
-        
-        // Tab Content
         Expanded(
           child: TabBarView(
             controller: _tabController,
@@ -102,9 +112,9 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
     final statusColor = _getStatusColor(log.statusCode);
 
     return Card(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(AppSpacing.md),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -112,74 +122,127 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 10,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: levelColor.withOpacity(0.2),
+                    color: levelColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     log.level.toUpperCase(),
-                    style: TextStyle(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: levelColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     log.service,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                    style: AppTextStyles.h3.copyWith(
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ),
                 if (log.statusCode != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                      horizontal: 10,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.2),
+                      color: statusColor.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       log.statusCode.toString(),
-                      style: TextStyle(
+                      style: AppTextStyles.bodySmall.copyWith(
                         color: statusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             if (log.method != null && log.path != null)
-              Text(
-                '${log.method} ${log.path}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      log.method!,
+                      style: AppTextStyles.codeSmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        log.path!,
+                        style: AppTextStyles.codeSmall.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  date_utils.DateUtils.formatFull(log.timestamp),
+                  style: AppTextStyles.caption,
+                ),
+                if (log.duration != null) ...[
+                  const SizedBox(width: AppSpacing.sm),
+                  Icon(
+                    Icons.speed,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    FormatUtils.formatDuration(log.duration!),
+                    style: AppTextStyles.caption,
+                  ),
+                ],
+              ],
+            ),
             if (log.traceId != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
-                  const Icon(Icons.fingerprint, size: 16),
+                  const Icon(
+                    Icons.fingerprint,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       'Trace: ${log.traceId}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'monospace',
+                      style: AppTextStyles.codeSmall.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -205,14 +268,23 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: 16),
-          const Text(
+          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+          const SizedBox(height: AppSpacing.md),
+          Text(
             'Failed to Load Log',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
           ),
-          const SizedBox(height: 8),
-          Text(error, textAlign: TextAlign.center),
+          const SizedBox(height: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Text(
+              error,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -221,23 +293,23 @@ class _LogDetailsPageState extends ConsumerState<LogDetailsPage>
   Color _getLevelColor(String level) {
     switch (level.toLowerCase()) {
       case 'error':
-        return Colors.red;
+        return AppColors.error;
       case 'warn':
-        return Colors.orange;
+        return AppColors.warning;
       case 'info':
-        return Colors.blue;
+        return AppColors.info;
       case 'debug':
-        return Colors.purple;
+        return AppColors.debug;
       default:
-        return Colors.grey;
+        return AppColors.border;
     }
   }
 
   Color _getStatusColor(int? statusCode) {
-    if (statusCode == null) return Colors.grey;
-    if (statusCode >= 500) return Colors.red;
-    if (statusCode >= 400) return Colors.orange;
-    if (statusCode >= 200 && statusCode < 300) return Colors.green;
-    return Colors.grey;
+    if (statusCode == null) return AppColors.border;
+    if (statusCode >= 500) return AppColors.error;
+    if (statusCode >= 400) return AppColors.warning;
+    if (statusCode >= 200 && statusCode < 300) return AppColors.success;
+    return AppColors.border;
   }
 }
