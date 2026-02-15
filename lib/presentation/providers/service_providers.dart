@@ -3,6 +3,7 @@ import '../../data/services/api_service.dart';
 import '../../data/services/local_storage_service.dart';
 import '../../data/repositories/logs_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
+import '../../core/constants/app_constants.dart';
 
 /// API Service Provider
 final apiServiceProvider = Provider<ApiService>((ref) {
@@ -76,10 +77,20 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     
     try {
       final storage = await LocalStorageService.getInstance();
-      final baseUrl = storage.getApiUrl();
-      final apiKey = storage.getApiKey();
-      
-      if (baseUrl != null && apiKey != null) {
+      var baseUrl = storage.getApiUrl();
+      var apiKey = storage.getApiKey();
+
+      baseUrl ??= AppConstants.defaultApiBaseUrl;
+
+      const envApiKey =
+          String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
+      if ((apiKey == null || apiKey.isEmpty) && envApiKey.isNotEmpty) {
+        apiKey = envApiKey;
+        await storage.setApiKey(apiKey);
+      }
+
+      if (baseUrl.isNotEmpty && apiKey != null && apiKey.isNotEmpty) {
+        await storage.setApiUrl(baseUrl);
         _apiService.configure(baseUrl: baseUrl, apiKey: apiKey);
         state = state.copyWith(
           baseUrl: baseUrl,

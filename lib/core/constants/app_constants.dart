@@ -1,7 +1,8 @@
 /// App-wide constants
 class AppConstants {
   // API Configuration
-  static const String defaultApiBaseUrl = 'https://your-logging-service.run.app';
+  static const String defaultApiBaseUrl =
+      'https://central-logging-service-858865328729.europe-west1.run.app';
   static const String apiVersion = 'v1';
   static const String apiBasePath = '/api/$apiVersion';
   
