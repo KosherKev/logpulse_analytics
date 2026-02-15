@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/dashboard_provider.dart';
-import '../providers/api_config_provider.dart';
-
+import '../../providers/dashboard_provider.dart';
+import '../../providers/api_config_provider.dart';
+import '../../../data/models/dashboard_stats.dart';
 /// Dashboard Page
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/errors_provider.dart';
-import '../../data/models/error_group.dart';
-import '../../core/utils/date_utils.dart' as date_utils;
+import '../../providers/errors_provider.dart';
+import '../../../data/models/error_group.dart';
+import '../../../core/utils/date_utils.dart' as date_utils;
 
 /// Errors Page - Error tracking and grouping
 class ErrorsPage extends ConsumerStatefulWidget {

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:logger/logger.dart';
+import 'package:logger/logger.dart' hide LogFilter;
 import '../models/log_entry.dart';
 import '../models/dashboard_stats.dart';
 import '../models/log_filter.dart';
