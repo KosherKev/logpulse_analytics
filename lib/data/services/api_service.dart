@@ -7,27 +7,22 @@ import '../../core/constants/app_constants.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/errors/exceptions.dart';
 
-/// API service for communicating with the central logging service
 class ApiService {
   final Dio _dio;
   final Logger _logger = Logger();
-  
+
   String? _baseUrl;
   String? _apiKey;
-  
+
   ApiService({Dio? dio}) : _dio = dio ?? Dio() {
-    _configureDio();
-  }
-  
-  void _configureDio() {
-    _dio.options.connectTimeout = AppConstants.connectionTimeout;
-    _dio.options.receiveTimeout = AppConstants.apiTimeout;
-    _dio.options.headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    
-    // Add interceptors for logging
+    _dio.options
+      ..connectTimeout = AppConstants.connectionTimeout
+      ..receiveTimeout = AppConstants.apiTimeout
+      ..headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
@@ -35,34 +30,40 @@ class ApiService {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          _logger.d('Response: ${response.statusCode} ${response.requestOptions.uri}');
+          _logger.d(
+            'Response: ${response.statusCode} ${response.requestOptions.uri}',
+          );
           return handler.next(response);
         },
         onError: (error, handler) {
-          _logger.e('Error: ${error.message}');
+          _logger.e(
+            'Error (${error.type}): ${error.message ?? error.error}',
+          );
           return handler.next(error);
         },
       ),
     );
   }
-  
-  /// Configure API with base URL and API key
+
   void configure({required String baseUrl, required String apiKey}) {
-    _baseUrl = baseUrl;
+    final normalizedBaseUrl =
+        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+
+    _baseUrl = normalizedBaseUrl;
     _apiKey = apiKey;
-    
-    _dio.options.baseUrl = '$baseUrl${AppConstants.apiBasePath}';
+
     _dio.options.headers['X-API-Key'] = apiKey;
   }
-  
-  /// Check if API is configured
+
   bool get isConfigured => _baseUrl != null && _apiKey != null;
+
+  String get _apiRoot => '$_baseUrl${AppConstants.apiBasePath}';
   
   /// Fetch logs with filters
   Future<List<LogEntry>> getLogs(LogFilter filter) async {
     try {
       _ensureConfigured();
-      
+
       final endpoint = ApiEndpoints.buildLogsQuery(
         service: filter.service,
         level: filter.level,
@@ -73,16 +74,26 @@ class ApiService {
         offset: filter.offset,
         search: filter.searchQuery,
       );
-      
-      final response = await _dio.get(endpoint);
-      
-      if (response.data is List) {
-        return (response.data as List)
-            .map((json) => LogEntry.fromJson(json as Map<String, dynamic>))
-            .toList();
+
+      final response = await _dio.get('$_apiRoot$endpoint');
+      final body = response.data;
+
+      List<dynamic>? items;
+      if (body is List) {
+        items = body;
+      } else if (body is Map<String, dynamic> && body['data'] is List) {
+        items = body['data'] as List<dynamic>;
       }
-      
-      throw ParseException('Invalid response format');
+
+      if (items == null) {
+        throw ParseException('Invalid response format for logs');
+      }
+
+      return items.map((raw) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        map['id'] ??= map['_id']?.toString();
+        return LogEntry.fromJson(map);
+      }).toList();
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -92,9 +103,24 @@ class ApiService {
   Future<LogEntry> getLogById(String id) async {
     try {
       _ensureConfigured();
-      
-      final response = await _dio.get(ApiEndpoints.logById(id));
-      return LogEntry.fromJson(response.data as Map<String, dynamic>);
+
+      final endpoint = ApiEndpoints.logById(id);
+      final response = await _dio.get('$_apiRoot$endpoint');
+      final body = response.data;
+
+      Map<String, dynamic>? log;
+      if (body is Map<String, dynamic> && body['data'] is Map<String, dynamic>) {
+        log = Map<String, dynamic>.from(body['data'] as Map<String, dynamic>);
+      } else if (body is Map<String, dynamic>) {
+        log = Map<String, dynamic>.from(body);
+      }
+
+      if (log == null) {
+        throw ParseException('Invalid response format for log');
+      }
+
+      log['id'] ??= log['_id']?.toString();
+      return LogEntry.fromJson(log);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -104,30 +130,59 @@ class ApiService {
   Future<List<LogEntry>> getLogsByTraceId(String traceId) async {
     try {
       _ensureConfigured();
-      
-      final response = await _dio.get(ApiEndpoints.logsByTraceId(traceId));
-      
-      if (response.data is List) {
-        return (response.data as List)
-            .map((json) => LogEntry.fromJson(json as Map<String, dynamic>))
-            .toList();
+
+      final endpoint = ApiEndpoints.logsByTraceId(traceId);
+      final response = await _dio.get('$_apiRoot$endpoint');
+      final body = response.data;
+
+      List<dynamic>? items;
+      if (body is List) {
+        items = body;
+      } else if (body is Map<String, dynamic> && body['data'] is List) {
+        items = body['data'] as List<dynamic>;
       }
-      
-      throw ParseException('Invalid response format');
+
+      if (items == null) {
+        throw ParseException('Invalid response format for logs by trace ID');
+      }
+
+      return items.map((raw) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        map['id'] ??= map['_id']?.toString();
+        return LogEntry.fromJson(map);
+      }).toList();
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
+  }
+
+  String _extractErrorMessage(Response? response, String fallback) {
+    final data = response?.data;
+
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String && message.isNotEmpty) {
+        return message;
+      }
+
+      final error = data['error'];
+      if (error is String && error.isNotEmpty) {
+        return error;
+      }
+    }
+
+    return fallback;
   }
   
   /// Fetch dashboard statistics
   Future<DashboardStats> getDashboardStats({String? timeRange}) async {
     try {
       _ensureConfigured();
-      
+
       final endpoint = ApiEndpoints.buildStatsQuery(timeRange: timeRange);
-      final response = await _dio.get(endpoint);
-      
-      return DashboardStats.fromJson(response.data as Map<String, dynamic>);
+      final response = await _dio.get('$_apiRoot$endpoint');
+
+      return DashboardStats.fromApiJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -137,8 +192,9 @@ class ApiService {
   Future<bool> checkHealth() async {
     try {
       _ensureConfigured();
-      
-      final response = await _dio.get(ApiEndpoints.health);
+
+      final endpoint = ApiEndpoints.health;
+      final response = await _dio.get('$_apiRoot$endpoint');
       return response.statusCode == 200;
     } on DioException catch (e) {
       _logger.w('Health check failed: ${e.message}');
@@ -164,28 +220,33 @@ class ApiService {
         );
         
       case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-        
+        final response = error.response;
+        final statusCode = response?.statusCode;
+        final backendMessage =
+            _extractErrorMessage(response, AppConstants.errorUnknown);
+
         if (statusCode == 401 || statusCode == 403) {
           return AuthException(
-            AppConstants.errorUnauthorized,
+            'HTTP $statusCode: $backendMessage',
             code: 'UNAUTHORIZED',
-            details: error.response?.data,
+            details: response?.data,
           );
         }
-        
+
         if (statusCode != null && statusCode >= 500) {
           return ApiException(
-            AppConstants.errorServerError,
+            'HTTP $statusCode: $backendMessage',
             statusCode: statusCode,
-            details: error.response?.data,
+            details: response?.data,
           );
         }
-        
+
         return ApiException(
-          error.response?.data?['message'] ?? AppConstants.errorUnknown,
+          statusCode != null
+              ? 'HTTP $statusCode: $backendMessage'
+              : backendMessage,
           statusCode: statusCode,
-          details: error.response?.data,
+          details: response?.data,
         );
         
       case DioExceptionType.cancel:

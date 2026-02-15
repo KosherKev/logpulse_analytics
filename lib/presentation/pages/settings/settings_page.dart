@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/service_providers.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_text_styles.dart';
 
 /// Settings Page
 class SettingsPage extends ConsumerStatefulWidget {
@@ -52,13 +55,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           // API Configuration Section
           _buildSectionHeader('API Configuration'),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -72,7 +75,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     enabled: _isEditing,
                     onChanged: (_) => setState(() => _isEditing = true),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   TextField(
                     controller: _apiKeyController,
                     decoration: const InputDecoration(
@@ -84,7 +87,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     enabled: _isEditing,
                     onChanged: (_) => setState(() => _isEditing = true),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   if (!_isEditing && !apiConfig.isConfigured)
                     ElevatedButton.icon(
                       onPressed: () => setState(() => _isEditing = true),
@@ -95,7 +98,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     Row(
                       children: [
                         const Icon(Icons.check_circle, color: Colors.green),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.sm),
                         const Text('API Configured'),
                         const Spacer(),
                         TextButton(
@@ -108,7 +111,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Appearance Section
           _buildSectionHeader('Appearance'),
@@ -117,7 +120,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.brightness_6),
-                  title: const Text('Theme'),
+                  title: Text(
+                    'Theme',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   subtitle: Text(_getThemeLabel(settings.themeMode)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _showThemePicker(),
@@ -125,7 +133,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Auto Refresh Section
           _buildSectionHeader('Auto Refresh'),
@@ -134,8 +142,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               children: [
                 SwitchListTile(
                   secondary: const Icon(Icons.refresh),
-                  title: const Text('Enable Auto Refresh'),
-                  subtitle: const Text('Automatically refresh data'),
+                  title: Text(
+                    'Enable Auto Refresh',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Automatically refresh data',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   value: settings.autoRefresh,
                   onChanged: (value) {
                     ref.read(settingsProvider.notifier).setAutoRefresh(value);
@@ -144,7 +162,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 if (settings.autoRefresh)
                   ListTile(
                     leading: const Icon(Icons.timer),
-                    title: const Text('Refresh Interval'),
+                    title: Text(
+                      'Refresh Interval',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                     subtitle: Text('${settings.refreshInterval} seconds'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _showIntervalPicker(),
@@ -152,21 +175,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // About Section
           _buildSectionHeader('About'),
           Card(
             child: Column(
               children: [
-                const ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Version'),
-                  subtitle: Text('1.0.0'),
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(
+                    'Version',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '1.0.0',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ),
                 ListTile(
                   leading: const Icon(Icons.description),
-                  title: const Text('Documentation'),
+                  title: Text(
+                    'Documentation',
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   trailing: const Icon(Icons.open_in_new),
                   onTap: () {
                     // Open documentation
@@ -175,30 +213,48 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
 
           // Danger Zone
           _buildSectionHeader('Danger Zone'),
           Card(
-            color: Colors.red[50],
+            color: AppColors.errorLight,
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.delete_outline, color: Colors.red),
-                  title: const Text(
+                  leading:
+                      const Icon(Icons.delete_outline, color: AppColors.error),
+                  title: Text(
                     'Clear Cache',
-                    style: TextStyle(color: Colors.red),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  subtitle: const Text('Clear all cached data'),
+                  subtitle: Text(
+                    'Clear all cached data',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   onTap: () => _showClearCacheDialog(),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text(
+                  leading:
+                      const Icon(Icons.logout, color: AppColors.error),
+                  title: Text(
                     'Clear Configuration',
-                    style: TextStyle(color: Colors.red),
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  subtitle: const Text('Remove API configuration'),
+                  subtitle: Text(
+                    'Remove API configuration',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                   onTap: () => _showClearConfigDialog(),
                 ),
               ],
@@ -211,13 +267,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey,
+        title.toUpperCase(),
+        style: AppTextStyles.overline.copyWith(
+          color: AppColors.textSecondary,
         ),
       ),
     );
