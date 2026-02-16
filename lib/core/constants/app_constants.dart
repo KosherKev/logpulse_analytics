@@ -9,6 +9,8 @@ class AppConstants {
   // Storage Keys
   static const String keyApiUrl = 'api_url';
   static const String keyApiKey = 'api_key';
+  static const String keyApiProfiles = 'api_profiles';
+  static const String keyActiveApiProfileId = 'active_api_profile_id';
   static const String keyThemeMode = 'theme_mode';
   static const String keyAutoRefresh = 'auto_refresh';
   static const String keyRefreshInterval = 'refresh_interval';

@@ -44,12 +44,12 @@ class ErrorsNotifier extends StateNotifier<ErrorsState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Load error logs
       await _logsNotifier.applyFilter(
-        _logsNotifier.state.filter.copyWith(level: 'error'),
+        _logsNotifier.state.filter.copyWith(level: null),
       );
 
-      final errorLogs = _logsNotifier.state.logs;
+      final errorLogs =
+          _logsNotifier.state.logs.where((log) => log.isError).toList();
 
       // Group errors by message (simplified grouping)
       final groups = _groupErrors(errorLogs);

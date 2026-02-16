@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/api_service.dart';
+import '../../data/models/api_connection_profile.dart';
 import '../../data/services/local_storage_service.dart';
 import '../../data/repositories/logs_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
@@ -40,6 +43,8 @@ class ApiConfigState {
   final bool isConfigured;
   final bool isLoading;
   final String? error;
+  final List<ApiConnectionProfile> profiles;
+  final String? activeProfileId;
 
   ApiConfigState({
     this.baseUrl,
@@ -47,6 +52,8 @@ class ApiConfigState {
     this.isConfigured = false,
     this.isLoading = false,
     this.error,
+    this.profiles = const [],
+    this.activeProfileId,
   });
 
   ApiConfigState copyWith({
@@ -55,6 +62,8 @@ class ApiConfigState {
     bool? isConfigured,
     bool? isLoading,
     String? error,
+    List<ApiConnectionProfile>? profiles,
+    String? activeProfileId,
   }) {
     return ApiConfigState(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -62,6 +71,8 @@ class ApiConfigState {
       isConfigured: isConfigured ?? this.isConfigured,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
+      profiles: profiles ?? this.profiles,
+      activeProfileId: activeProfileId ?? this.activeProfileId,
     );
   }
 }
@@ -77,31 +88,70 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     
     try {
       final storage = await LocalStorageService.getInstance();
-      var baseUrl = storage.getApiUrl();
-      var apiKey = storage.getApiKey();
+      final profilesJson =
+          storage.getString(AppConstants.keyApiProfiles);
+      final activeId =
+          storage.getString(AppConstants.keyActiveApiProfileId);
 
-      baseUrl ??= AppConstants.defaultApiBaseUrl;
+      List<ApiConnectionProfile> profiles = [];
+      ApiConnectionProfile? activeProfile;
 
-      const envApiKey =
-          String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
-      if ((apiKey == null || apiKey.isEmpty) && envApiKey.isNotEmpty) {
-        apiKey = envApiKey;
-        await storage.setApiKey(apiKey);
+      if (profilesJson != null && profilesJson.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(profilesJson) as List<dynamic>;
+        profiles = decoded
+            .map((e) =>
+                ApiConnectionProfile.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (profiles.isNotEmpty) {
+          activeProfile = profiles.firstWhere(
+            (p) => p.id == activeId,
+            orElse: () => profiles.first,
+          );
+        }
+      } else {
+        var baseUrl = storage.getApiUrl();
+        var apiKey = storage.getApiKey();
+
+        baseUrl ??= AppConstants.defaultApiBaseUrl;
+
+        const envApiKey =
+            String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
+        if ((apiKey == null || apiKey.isEmpty) && envApiKey.isNotEmpty) {
+          apiKey = envApiKey;
+          await storage.setApiKey(apiKey);
+        }
+
+        if (baseUrl.isNotEmpty && apiKey != null && apiKey.isNotEmpty) {
+          final profile = ApiConnectionProfile(
+            id: 'default',
+            name: 'Default',
+            baseUrl: baseUrl,
+            apiKey: apiKey,
+          );
+          profiles = [profile];
+          activeProfile = profile;
+          await _persistProfiles(storage, profiles, profile.id);
+        }
       }
 
-      if (baseUrl.isNotEmpty && apiKey != null && apiKey.isNotEmpty) {
-        await storage.setApiUrl(baseUrl);
-        _apiService.configure(baseUrl: baseUrl, apiKey: apiKey);
+      if (activeProfile != null) {
+        _apiService.configure(
+          baseUrl: activeProfile.baseUrl,
+          apiKey: activeProfile.apiKey,
+        );
         state = state.copyWith(
-          baseUrl: baseUrl,
-          apiKey: apiKey,
+          baseUrl: activeProfile.baseUrl,
+          apiKey: activeProfile.apiKey,
           isConfigured: true,
           isLoading: false,
+          profiles: profiles,
+          activeProfileId: activeProfile.id,
         );
       } else {
         state = state.copyWith(
           isConfigured: false,
           isLoading: false,
+          profiles: profiles,
         );
       }
     } catch (e) {
@@ -117,16 +167,46 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     
     try {
       final storage = await LocalStorageService.getInstance();
-      await storage.setApiUrl(baseUrl);
-      await storage.setApiKey(apiKey);
-      
-      _apiService.configure(baseUrl: baseUrl, apiKey: apiKey);
-      
-      state = state.copyWith(
+      final currentProfiles = [...state.profiles];
+      ApiConnectionProfile? activeProfile;
+
+      if (state.activeProfileId != null) {
+        final index = currentProfiles
+            .indexWhere((p) => p.id == state.activeProfileId);
+        if (index >= 0) {
+          currentProfiles[index] = currentProfiles[index].copyWith(
+            baseUrl: baseUrl,
+            apiKey: apiKey,
+          );
+          activeProfile = currentProfiles[index];
+        }
+      }
+
+      activeProfile ??= ApiConnectionProfile(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: 'Connection ${currentProfiles.length + 1}',
         baseUrl: baseUrl,
         apiKey: apiKey,
+      );
+
+      if (!currentProfiles.contains(activeProfile)) {
+        currentProfiles.add(activeProfile);
+      }
+
+      await _persistProfiles(storage, currentProfiles, activeProfile.id);
+
+      _apiService.configure(
+        baseUrl: activeProfile.baseUrl,
+        apiKey: activeProfile.apiKey,
+      );
+
+      state = state.copyWith(
+        baseUrl: activeProfile.baseUrl,
+        apiKey: activeProfile.apiKey,
         isConfigured: true,
         isLoading: false,
+        profiles: currentProfiles,
+        activeProfileId: activeProfile.id,
       );
     } catch (e) {
       state = state.copyWith(
@@ -141,10 +221,122 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
       final storage = await LocalStorageService.getInstance();
       await storage.remove('api_url');
       await storage.remove('api_key');
+      await storage.remove(AppConstants.keyApiProfiles);
+      await storage.remove(AppConstants.keyActiveApiProfileId);
       
       state = ApiConfigState();
     } catch (e) {
       state = state.copyWith(error: e.toString());
+    }
+  }
+
+  Future<void> addProfile({
+    required String name,
+    required String baseUrl,
+    required String apiKey,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final storage = await LocalStorageService.getInstance();
+      final profiles = [...state.profiles];
+
+      final profile = ApiConnectionProfile(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: name,
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+      );
+
+      profiles.add(profile);
+      await _persistProfiles(storage, profiles, profile.id);
+
+      _apiService.configure(baseUrl: baseUrl, apiKey: apiKey);
+
+      state = state.copyWith(
+        baseUrl: baseUrl,
+        apiKey: apiKey,
+        isConfigured: true,
+        isLoading: false,
+        profiles: profiles,
+        activeProfileId: profile.id,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        error: e.toString(),
+        isLoading: false,
+      );
+    }
+  }
+
+  Future<void> setActiveProfile(String profileId) async {
+    if (state.profiles.isEmpty) {
+      return;
+    }
+
+    final profile = state.profiles.firstWhere(
+      (p) => p.id == profileId,
+      orElse: () => state.profiles.first,
+    );
+
+    final storage = await LocalStorageService.getInstance();
+    await _persistProfiles(storage, state.profiles, profile.id);
+
+    _apiService.configure(
+      baseUrl: profile.baseUrl,
+      apiKey: profile.apiKey,
+    );
+
+    state = state.copyWith(
+      baseUrl: profile.baseUrl,
+      apiKey: profile.apiKey,
+      isConfigured: true,
+      activeProfileId: profile.id,
+    );
+  }
+
+  Future<void> removeProfile(String profileId) async {
+    final profiles =
+        state.profiles.where((p) => p.id != profileId).toList(growable: false);
+
+    final storage = await LocalStorageService.getInstance();
+
+    String? newActiveId;
+    if (profiles.isNotEmpty) {
+      newActiveId = profiles.first.id;
+      await _persistProfiles(storage, profiles, newActiveId);
+
+      final active = profiles.first;
+      _apiService.configure(
+        baseUrl: active.baseUrl,
+        apiKey: active.apiKey,
+      );
+
+      state = state.copyWith(
+        baseUrl: active.baseUrl,
+        apiKey: active.apiKey,
+        isConfigured: true,
+        profiles: profiles,
+        activeProfileId: newActiveId,
+      );
+    } else {
+      await _persistProfiles(storage, profiles, null);
+      state = ApiConfigState();
+    }
+  }
+
+  Future<void> _persistProfiles(
+    LocalStorageService storage,
+    List<ApiConnectionProfile> profiles,
+    String? activeId,
+  ) async {
+    final encoded =
+        jsonEncode(profiles.map((p) => p.toJson()).toList());
+    await storage.setString(AppConstants.keyApiProfiles, encoded);
+    if (activeId != null) {
+      await storage.setString(AppConstants.keyActiveApiProfileId, activeId);
+    } else {
+      await storage.remove(AppConstants.keyActiveApiProfileId);
     }
   }
 }
