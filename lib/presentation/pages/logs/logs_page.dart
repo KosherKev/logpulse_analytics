@@ -5,6 +5,7 @@ import '../../../data/models/log_filter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../providers/saved_filters_provider.dart';
 import '../log_details/log_details_page.dart';
 import '../../widgets/logs/enhanced_log_card.dart';
@@ -102,6 +103,8 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                 children: [
                   _buildSearchBar(),
                   const SizedBox(height: AppSpacing.sm),
+                  _buildLevelFilterChips(state),
+                  const SizedBox(height: AppSpacing.sm),
                   _buildActiveFiltersRow(state),
                 ],
               ),
@@ -194,6 +197,49 @@ class _LogsPageState extends ConsumerState<LogsPage> {
         if (value.isNotEmpty) {
           ref.read(logsProvider.notifier).search(value);
         }
+      },
+    );
+  }
+
+  Widget _buildLevelFilterChips(LogsState state) {
+    final currentLevel = state.filter.level;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildLevelChip('All', null, currentLevel),
+          const SizedBox(width: AppSpacing.xs),
+          _buildLevelChip('Error', AppConstants.levelError, currentLevel),
+          const SizedBox(width: AppSpacing.xs),
+          _buildLevelChip('Warn', AppConstants.levelWarn, currentLevel),
+          const SizedBox(width: AppSpacing.xs),
+          _buildLevelChip('Info', AppConstants.levelInfo, currentLevel),
+          const SizedBox(width: AppSpacing.xs),
+          _buildLevelChip('Debug', AppConstants.levelDebug, currentLevel),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLevelChip(
+    String label,
+    String? levelValue,
+    String? currentLevel,
+  ) {
+    final isSelected =
+        levelValue == null ? currentLevel == null : currentLevel == levelValue;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) async {
+        final notifier = ref.read(logsProvider.notifier);
+        final filter = notifier.state.filter.copyWith(
+          level: levelValue,
+          offset: 0,
+        );
+        await notifier.applyFilter(filter);
       },
     );
   }

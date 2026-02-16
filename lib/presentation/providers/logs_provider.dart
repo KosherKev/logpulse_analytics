@@ -68,21 +68,23 @@ class LogsNotifier extends StateNotifier<LogsState> {
     }
 
     try {
-      final logs = await _repository.getLogs(state.filter);
+      final filter = state.filter;
+      final logs = await _repository.getLogs(filter);
+      final filteredLogs = _applyLocalSearch(logs, filter.searchQuery);
 
       if (refresh) {
         state = state.copyWith(
-          logs: logs,
+          logs: filteredLogs,
           isLoading: false,
-          hasMore: logs.length >= state.filter.limit,
-          totalCount: logs.length,
+          hasMore: filteredLogs.length >= filter.limit,
+          totalCount: filteredLogs.length,
         );
       } else {
         state = state.copyWith(
-          logs: [...state.logs, ...logs],
+          logs: [...state.logs, ...filteredLogs],
           isLoading: false,
-          hasMore: logs.length >= state.filter.limit,
-          totalCount: state.totalCount + logs.length,
+          hasMore: filteredLogs.length >= filter.limit,
+          totalCount: state.totalCount + filteredLogs.length,
         );
       }
     } on AppException catch (e) {
@@ -135,6 +137,47 @@ class LogsNotifier extends StateNotifier<LogsState> {
       offset: 0,
     );
     await applyFilter(filter);
+  }
+
+  List<LogEntry> _applyLocalSearch(
+    List<LogEntry> logs,
+    String? query,
+  ) {
+    if (query == null || query.trim().isEmpty) {
+      return logs;
+    }
+
+    final q = query.toLowerCase();
+
+    return logs.where((log) {
+      if (log.service.toLowerCase().contains(q)) {
+        return true;
+      }
+
+      if (log.traceId != null &&
+          log.traceId!.toLowerCase().contains(q)) {
+        return true;
+      }
+
+      if (log.path != null &&
+          log.path!.toLowerCase().contains(q)) {
+        return true;
+      }
+
+      if (log.error?.message != null &&
+          log.error!.message!.toLowerCase().contains(q)) {
+        return true;
+      }
+
+      if (log.metadata != null) {
+        final metaString = log.metadata.toString().toLowerCase();
+        if (metaString.contains(q)) {
+          return true;
+        }
+      }
+
+      return false;
+    }).toList();
   }
 }
 

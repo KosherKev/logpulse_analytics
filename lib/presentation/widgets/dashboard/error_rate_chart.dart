@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../core/theme/app_colors.dart';
@@ -21,6 +23,18 @@ class ErrorRateChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final axisTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
+    final maxY = points.isEmpty
+        ? 0.0
+        : points
+            .map((p) => p.y)
+            .reduce((a, b) => math.max(a, b));
+    final effectiveMaxY = maxY == 0 ? 1.0 : maxY * 1.2;
+    final interval = _calculateInterval(effectiveMaxY);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -52,13 +66,46 @@ class ErrorRateChart extends StatelessWidget {
                     )
                   : LineChart(
                       LineChartData(
-                        gridData: FlGridData(show: true),
+                        minY: 0,
+                        maxY: effectiveMaxY,
+                        gridData: FlGridData(
+                          show: true,
+                          horizontalInterval: interval,
+                        ),
                         titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
+                          bottomTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
                           leftTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: true),
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 32,
+                              interval: interval,
+                              getTitlesWidget: (value, meta) {
+                                if (value < 0 ||
+                                    value > effectiveMaxY + 0.0001) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                final rounded = value.round();
+                                if (rounded % interval.round() != 0) {
+                                  return const SizedBox.shrink();
+                                }
+
+                                return Text(
+                                  rounded.toString(),
+                                  style: AppTextStyles.caption.copyWith(
+                                    color: axisTextColor,
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                         borderData: FlBorderData(show: false),
@@ -82,5 +129,15 @@ class ErrorRateChart extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  double _calculateInterval(double maxY) {
+    if (maxY <= 5) return 1;
+    if (maxY <= 10) return 2;
+    if (maxY <= 25) return 5;
+    if (maxY <= 50) return 10;
+    if (maxY <= 100) return 20;
+    if (maxY <= 500) return 100;
+    return (maxY / 5).ceilToDouble();
   }
 }
