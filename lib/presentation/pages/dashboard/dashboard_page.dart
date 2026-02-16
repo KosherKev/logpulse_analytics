@@ -25,14 +25,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(dashboardProvider.notifier).loadStats();
-      ref.read(errorsProvider.notifier).loadErrors();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ApiConfigState>(apiConfigProvider, (previous, next) {
+      final wasConfigured = previous?.isConfigured ?? false;
+      if (!wasConfigured && next.isConfigured) {
+        ref.read(dashboardProvider.notifier).loadStats();
+        ref.read(errorsProvider.notifier).loadErrors();
+      }
+    });
+
     final dashboardState = ref.watch(dashboardProvider);
     final apiConfig = ref.watch(apiConfigProvider);
 
@@ -59,6 +63,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildBody(DashboardState state, ApiConfigState apiConfig) {
+    if (apiConfig.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (!apiConfig.isConfigured) {
       return _buildNotConfigured();
     }

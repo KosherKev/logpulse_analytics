@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/saved_filters_provider.dart';
+import '../../providers/service_providers.dart';
 import '../log_details/log_details_page.dart';
 import '../../widgets/logs/enhanced_log_card.dart';
 
@@ -25,11 +26,6 @@ class _LogsPageState extends ConsumerState<LogsPage> {
   @override
   void initState() {
     super.initState();
-    // Load logs on init
-    Future.microtask(() {
-      ref.read(logsProvider.notifier).loadLogs(refresh: true);
-    });
-
     // Setup infinite scroll
     _scrollController.addListener(_onScroll);
   }
@@ -50,6 +46,13 @@ class _LogsPageState extends ConsumerState<LogsPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ApiConfigState>(apiConfigProvider, (previous, next) {
+      final wasConfigured = previous?.isConfigured ?? false;
+      if (!wasConfigured && next.isConfigured) {
+        ref.read(logsProvider.notifier).loadLogs(refresh: true);
+      }
+    });
+
     final logsState = ref.watch(logsProvider);
 
     return Scaffold(
