@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/dashboard_stats.dart';
+import '../../data/models/time_series_point.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../core/errors/exceptions.dart';
 import 'service_providers.dart';
@@ -17,6 +18,7 @@ class DashboardState {
   final String? error;
   final String timeRange;
   final DateTime? lastUpdated;
+  final List<TimeSeriesPoint> timeSeries;
 
   DashboardState({
     this.stats,
@@ -24,6 +26,7 @@ class DashboardState {
     this.error,
     this.timeRange = 'last_24h',
     this.lastUpdated,
+    this.timeSeries = const [],
   });
 
   DashboardState copyWith({
@@ -32,6 +35,7 @@ class DashboardState {
     String? error,
     String? timeRange,
     DateTime? lastUpdated,
+    List<TimeSeriesPoint>? timeSeries,
   }) {
     return DashboardState(
       stats: stats ?? this.stats,
@@ -39,6 +43,7 @@ class DashboardState {
       error: error,
       timeRange: timeRange ?? this.timeRange,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      timeSeries: timeSeries ?? this.timeSeries,
     );
   }
 }
@@ -53,15 +58,21 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
+      final effectiveRange = timeRange ?? state.timeRange;
+
       final stats = await _repository.getStats(
-        timeRange: timeRange ?? state.timeRange,
+        timeRange: effectiveRange,
+      );
+      final series = await _repository.getErrorTrafficSeries(
+        timeRange: effectiveRange,
       );
 
       state = state.copyWith(
         stats: stats,
         isLoading: false,
-        timeRange: timeRange ?? state.timeRange,
+        timeRange: effectiveRange,
         lastUpdated: DateTime.now(),
+        timeSeries: series,
       );
     } on AppException catch (e) {
       state = state.copyWith(

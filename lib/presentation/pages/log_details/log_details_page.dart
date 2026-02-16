@@ -43,6 +43,10 @@ class _LogDetailsPageState extends State<LogDetailsPage>
   @override
   Widget build(BuildContext context) {
     final log = widget.log;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final unselectedColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
 
     return Scaffold(
       appBar: AppBar(
@@ -56,22 +60,26 @@ class _LogDetailsPageState extends State<LogDetailsPage>
           ),
         ],
       ),
-      body: _buildContent(log),
+      body: _buildContent(log, surfaceColor, unselectedColor),
     );
   }
 
-  Widget _buildContent(LogEntry log) {
+  Widget _buildContent(
+    LogEntry log,
+    Color surfaceColor,
+    Color unselectedColor,
+  ) {
     return Column(
       children: [
         _buildHeader(log),
         Material(
-          color: AppColors.surface,
+          color: surfaceColor,
           elevation: 2,
           child: TabBar(
             controller: _tabController,
             isScrollable: true,
             labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textSecondary,
+            unselectedLabelColor: unselectedColor,
             indicatorColor: AppColors.primary,
             labelStyle: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w600,
@@ -102,6 +110,12 @@ class _LogDetailsPageState extends State<LogDetailsPage>
   }
 
   Widget _buildHeader(LogEntry log) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     final levelColor = _getLevelColor(log.level);
     final statusColor = _getStatusColor(log.statusCode);
 
@@ -136,9 +150,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                   child: Text(
                     log.service,
                     style: AppTextStyles.h3.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary,
+                      color: primaryTextColor,
                     ),
                   ),
                 ),
@@ -187,9 +199,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                       child: Text(
                         log.path!,
                         style: AppTextStyles.codeSmall.copyWith(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.textPrimary,
+                          color: primaryTextColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -204,24 +214,28 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                 Icon(
                   Icons.schedule,
                   size: 14,
-                  color: AppColors.textSecondary,
+                  color: secondaryTextColor,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   date_utils.DateUtils.formatFull(log.timestamp),
-                  style: AppTextStyles.caption,
+                  style: AppTextStyles.caption.copyWith(
+                    color: secondaryTextColor,
+                  ),
                 ),
                 if (log.duration != null) ...[
                   const SizedBox(width: AppSpacing.sm),
                   Icon(
                     Icons.speed,
                     size: 14,
-                    color: AppColors.textSecondary,
+                    color: secondaryTextColor,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     FormatUtils.formatDuration(log.duration!),
-                    style: AppTextStyles.caption,
+                    style: AppTextStyles.caption.copyWith(
+                      color: secondaryTextColor,
+                    ),
                   ),
                 ],
               ],
@@ -240,7 +254,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                     child: Text(
                       'Trace: ${log.traceId}',
                       style: AppTextStyles.codeSmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: secondaryTextColor,
                       ),
                     ),
                   ),

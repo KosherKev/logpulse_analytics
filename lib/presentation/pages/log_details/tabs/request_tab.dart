@@ -73,6 +73,11 @@ class _RequestTabState extends State<RequestTab> {
     required Map<String, dynamic>? content,
     bool defaultExpanded = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     if (content == null || content.isEmpty) {
       return Card(
         child: Padding(
@@ -80,7 +85,7 @@ class _RequestTabState extends State<RequestTab> {
           child: Text(
             'No $title',
             style: AppTextStyles.body.copyWith(
-              color: AppColors.textSecondary,
+              color: secondaryTextColor,
             ),
           ),
         ),
@@ -93,7 +98,7 @@ class _RequestTabState extends State<RequestTab> {
           title,
           style: AppTextStyles.body.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: primaryTextColor,
           ),
         ),
         initiallyExpanded: defaultExpanded,
@@ -114,7 +119,7 @@ class _RequestTabState extends State<RequestTab> {
                           entry.key,
                           style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
+                            color: secondaryTextColor,
                           ),
                         ),
                       ),
@@ -122,7 +127,7 @@ class _RequestTabState extends State<RequestTab> {
                         child: SelectableText(
                           entry.value.toString(),
                           style: AppTextStyles.codeSmall.copyWith(
-                            color: AppColors.textPrimary,
+                            color: primaryTextColor,
                           ),
                         ),
                       ),
@@ -142,6 +147,9 @@ class _RequestTabState extends State<RequestTab> {
     required String title,
     required dynamic body,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     String bodyText;
     try {
       bodyText = _prettyPrint
@@ -162,7 +170,7 @@ class _RequestTabState extends State<RequestTab> {
                 Text(
                   title,
                   style: AppTextStyles.h4.copyWith(
-                    color: AppColors.textPrimary,
+                    color: primaryTextColor,
                   ),
                 ),
                 const Spacer(),
@@ -191,7 +199,7 @@ class _RequestTabState extends State<RequestTab> {
             child: SelectableText(
               bodyText,
               style: AppTextStyles.codeSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: primaryTextColor,
               ),
             ),
           ),

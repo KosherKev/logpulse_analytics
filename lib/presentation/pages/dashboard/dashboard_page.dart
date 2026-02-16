@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/api_config_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/errors_provider.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../data/models/dashboard_stats.dart';
 import '../../../data/models/error_group.dart';
 import '../../widgets/dashboard/time_range_selector.dart';
@@ -135,6 +137,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         .where((g) => g.severity == ErrorSeverity.critical || g.severity == ErrorSeverity.high)
         .toList();
 
+    final series = state.timeSeries;
+    final errorPoints = <FlSpot>[];
+    final trafficPoints = <FlSpot>[];
+
+    for (var i = 0; i < series.length; i++) {
+      final point = series[i];
+      final x = i.toDouble();
+      errorPoints.add(FlSpot(x, point.errorRatePercent));
+      trafficPoints.add(FlSpot(x, point.totalCount.toDouble()));
+    }
+
     return RefreshIndicator(
       onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
       child: ListView(
@@ -154,7 +167,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: 16),
           StatsGrid(stats: stats),
           const SizedBox(height: 24),
-          ErrorRateChart(points: const []),
+          ErrorRateChart(
+            points: errorPoints,
+            label: 'Error Rate',
+            lineColor: AppColors.error,
+            areaColor: AppColors.error.withOpacity(0.1),
+          ),
+          const SizedBox(height: 24),
+          ErrorRateChart(
+            points: trafficPoints,
+            label: 'Traffic',
+            lineColor: AppColors.primary,
+            areaColor: AppColors.primary.withOpacity(0.1),
+          ),
           const SizedBox(height: 24),
           ServiceHealthList(serviceStats: stats.serviceStats),
           const SizedBox(height: 24),

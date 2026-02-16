@@ -22,6 +22,12 @@ class _ResponseTabState extends State<ResponseTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     if (widget.log.response == null) {
       return const Center(
         child: Text('No response data available'),
@@ -41,7 +47,7 @@ class _ResponseTabState extends State<ResponseTab> {
                 Text(
                   'Status',
                   style: AppTextStyles.h4.copyWith(
-                    color: AppColors.textPrimary,
+                    color: primaryTextColor,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -109,6 +115,11 @@ class _ResponseTabState extends State<ResponseTab> {
     required Map<String, dynamic>? content,
     bool defaultExpanded = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     if (content == null || content.isEmpty) {
       return Card(
         child: Padding(
@@ -116,7 +127,7 @@ class _ResponseTabState extends State<ResponseTab> {
           child: Text(
             'No $title',
             style: AppTextStyles.body.copyWith(
-              color: AppColors.textSecondary,
+              color: secondaryTextColor,
             ),
           ),
         ),
@@ -129,7 +140,7 @@ class _ResponseTabState extends State<ResponseTab> {
           title,
           style: AppTextStyles.body.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: primaryTextColor,
           ),
         ),
         initiallyExpanded: defaultExpanded,
@@ -150,7 +161,7 @@ class _ResponseTabState extends State<ResponseTab> {
                           entry.key,
                           style: AppTextStyles.bodySmall.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
+                            color: secondaryTextColor,
                           ),
                         ),
                       ),
@@ -158,7 +169,7 @@ class _ResponseTabState extends State<ResponseTab> {
                         child: SelectableText(
                           entry.value.toString(),
                           style: AppTextStyles.codeSmall.copyWith(
-                            color: AppColors.textPrimary,
+                            color: primaryTextColor,
                           ),
                         ),
                       ),
@@ -178,6 +189,9 @@ class _ResponseTabState extends State<ResponseTab> {
     required String title,
     required dynamic body,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     String bodyText;
     try {
       bodyText = _prettyPrint
@@ -198,7 +212,7 @@ class _ResponseTabState extends State<ResponseTab> {
                 Text(
                   title,
                   style: AppTextStyles.h4.copyWith(
-                    color: AppColors.textPrimary,
+                    color: primaryTextColor,
                   ),
                 ),
                 const Spacer(),
@@ -227,7 +241,7 @@ class _ResponseTabState extends State<ResponseTab> {
             child: SelectableText(
               bodyText,
               style: AppTextStyles.codeSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: primaryTextColor,
               ),
             ),
           ),

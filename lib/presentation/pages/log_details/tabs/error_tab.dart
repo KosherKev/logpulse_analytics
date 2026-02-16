@@ -13,6 +13,12 @@ class ErrorTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     if (log.error == null) {
       return const Center(
         child: Column(
@@ -47,19 +53,19 @@ class ErrorTab extends StatelessWidget {
                 Text(
                   'Error Details',
                   style: AppTextStyles.h4.copyWith(
-                    color: AppColors.textPrimary,
+                    color: primaryTextColor,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 if (log.error!.message != null) ...[
-                  _buildInfoRow('Message', log.error!.message!),
+                  _buildInfoRow(context, 'Message', log.error!.message!),
                   const SizedBox(height: 8),
                 ],
                 if (log.error!.code != null) ...[
-                  _buildInfoRow('Code', log.error!.code!),
+                  _buildInfoRow(context, 'Code', log.error!.code!),
                   const SizedBox(height: 8),
                 ],
-                _buildInfoRow('Level', log.level.toUpperCase()),
+                _buildInfoRow(context, 'Level', log.level.toUpperCase()),
               ],
             ),
           ),
@@ -78,7 +84,7 @@ class ErrorTab extends StatelessWidget {
                       Text(
                         'Stack Trace',
                         style: AppTextStyles.h4.copyWith(
-                          color: AppColors.textPrimary,
+                          color: primaryTextColor,
                         ),
                       ),
                       const Spacer(),
@@ -148,7 +154,12 @@ class ErrorTab extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,7 +169,7 @@ class ErrorTab extends StatelessWidget {
             label,
             style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
+              color: secondaryTextColor,
             ),
           ),
         ),
@@ -166,7 +177,7 @@ class ErrorTab extends StatelessWidget {
           child: SelectableText(
             value,
             style: AppTextStyles.codeSmall.copyWith(
-              color: AppColors.textPrimary,
+              color: primaryTextColor,
             ),
           ),
         ),

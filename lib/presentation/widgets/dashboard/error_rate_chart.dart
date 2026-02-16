@@ -7,12 +7,17 @@ import '../../../core/theme/app_text_styles.dart';
 class ErrorRateChart extends StatelessWidget {
   final List<FlSpot> points;
   final String label;
+  final Color lineColor;
+  final Color areaColor;
 
   const ErrorRateChart({
     super.key,
     required this.points,
     this.label = 'Error Rate',
-  });
+    Color? lineColor,
+    Color? areaColor,
+  })  : lineColor = lineColor ?? AppColors.error,
+        areaColor = areaColor ?? AppColors.error;
 
   @override
   Widget build(BuildContext context) {
@@ -61,12 +66,12 @@ class ErrorRateChart extends StatelessWidget {
                           LineChartBarData(
                             spots: points,
                             isCurved: true,
-                            color: AppColors.error,
+                            color: lineColor,
                             barWidth: 3,
                             dotData: FlDotData(show: false),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: AppColors.error.withOpacity(0.1),
+                              color: areaColor,
                             ),
                           ),
                         ],
