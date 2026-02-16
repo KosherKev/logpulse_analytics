@@ -84,10 +84,6 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       return _buildError(state.error!);
     }
 
-    if (state.logs.isEmpty) {
-      return _buildEmpty();
-    }
-
     return RefreshIndicator(
       onRefresh: () => ref.read(logsProvider.notifier).loadLogs(refresh: true),
       child: CustomScrollView(
@@ -116,6 +112,10 @@ class _LogsPageState extends ConsumerState<LogsPage> {
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {
+                if (state.logs.isEmpty) {
+                  return _buildEmpty();
+                }
+
                 if (index == state.logs.length) {
                   if (!state.hasMore) return const SizedBox.shrink();
                   return const Padding(
@@ -123,6 +123,7 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
+
                 final log = state.logs[index];
                 return EnhancedLogCard(
                   log: log,
@@ -136,7 +137,8 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                   },
                 );
               },
-              childCount: state.logs.length + (state.hasMore ? 1 : 0),
+              childCount:
+                  state.logs.isEmpty ? 1 : state.logs.length + (state.hasMore ? 1 : 0),
             ),
           ),
         ],

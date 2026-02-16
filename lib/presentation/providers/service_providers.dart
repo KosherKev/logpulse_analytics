@@ -121,12 +121,12 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
           await storage.setApiKey(apiKey);
         }
 
-        if (baseUrl.isNotEmpty && apiKey != null && apiKey.isNotEmpty) {
+        if (baseUrl.isNotEmpty) {
           final profile = ApiConnectionProfile(
             id: 'default',
             name: 'Default',
             baseUrl: baseUrl,
-            apiKey: apiKey,
+            apiKey: apiKey ?? '',
           );
           profiles = [profile];
           activeProfile = profile;

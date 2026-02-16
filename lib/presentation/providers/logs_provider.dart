@@ -176,6 +176,14 @@ class LogsNotifier extends StateNotifier<LogsState> {
         }
       }
 
+      if (log.request != null) {
+        final requestString =
+            log.request!.toJson().toString().toLowerCase();
+        if (requestString.contains(q)) {
+          return true;
+        }
+      }
+
       return false;
     }).toList();
   }

@@ -45,17 +45,23 @@ class ApiService {
     );
   }
 
-  void configure({required String baseUrl, required String apiKey}) {
+  void configure({required String baseUrl, String? apiKey}) {
     final normalizedBaseUrl =
         baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
 
     _baseUrl = normalizedBaseUrl;
-    _apiKey = apiKey;
 
-    _dio.options.headers['X-API-Key'] = apiKey;
+    final trimmedKey = apiKey?.trim();
+    if (trimmedKey != null && trimmedKey.isNotEmpty) {
+      _apiKey = trimmedKey;
+      _dio.options.headers['X-API-Key'] = trimmedKey;
+    } else {
+      _apiKey = null;
+      _dio.options.headers.remove('X-API-Key');
+    }
   }
 
-  bool get isConfigured => _baseUrl != null && _apiKey != null;
+  bool get isConfigured => _baseUrl != null && _baseUrl!.isNotEmpty;
 
   String get _apiRoot => '$_baseUrl${AppConstants.apiBasePath}';
   
@@ -177,7 +183,7 @@ class ApiService {
   
   void _ensureConfigured() {
     if (!isConfigured) {
-      throw AuthException('API not configured. Please set base URL and API key.');
+      throw AuthException('API not configured. Please set base URL in Settings.');
     }
   }
   
