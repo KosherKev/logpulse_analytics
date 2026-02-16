@@ -12,6 +12,7 @@ class AppConstants {
   static const String keyThemeMode = 'theme_mode';
   static const String keyAutoRefresh = 'auto_refresh';
   static const String keyRefreshInterval = 'refresh_interval';
+  static const String keySavedLogFilters = 'saved_log_filters';
   
   // Pagination
   static const int defaultPageSize = 20;

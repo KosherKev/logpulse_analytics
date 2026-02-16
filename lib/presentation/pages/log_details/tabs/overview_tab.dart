@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/log_entry.dart';
 import '../../../../core/utils/date_utils.dart' as date_utils;
 import '../../../../core/utils/format_utils.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../providers/logs_provider.dart';
 
 /// Overview Tab - Summary of the log entry
-class OverviewTab extends StatelessWidget {
+class OverviewTab extends ConsumerWidget {
   final LogEntry log;
 
   const OverviewTab({super.key, required this.log});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
@@ -60,7 +62,12 @@ class OverviewTab extends StatelessWidget {
               const SizedBox(height: 8),
               ElevatedButton.icon(
                 onPressed: () {
-                  // Navigate to related logs
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => _TraceLogsPage(traceId: log.traceId!),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.search),
                 label: const Text('View Related Logs'),
@@ -139,3 +146,49 @@ class OverviewTab extends StatelessWidget {
     );
   }
 }
+
+class _TraceLogsPage extends ConsumerWidget {
+  final String traceId;
+
+  const _TraceLogsPage({required this.traceId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(logsByTraceIdProvider(traceId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Trace Logs'),
+      ),
+      body: logsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Text('Failed to load trace logs: $error'),
+        ),
+        data: (logs) {
+          if (logs.isEmpty) {
+            return const Center(child: Text('No logs found for this trace.'));
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            itemCount: logs.length,
+            itemBuilder: (context, index) {
+              final entry = logs[index];
+              return ListTile(
+                leading: const Icon(Icons.timeline),
+                title: Text(
+                  '${entry.level.toUpperCase()} • ${entry.service}',
+                  style: AppTextStyles.body,
+                ),
+                subtitle: Text(
+                  date_utils.DateUtils.formatFull(entry.timestamp),
+                  style: AppTextStyles.caption,
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+  }

@@ -5,6 +5,7 @@ import '../../../data/models/log_filter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../providers/saved_filters_provider.dart';
 import '../log_details/log_details_page.dart';
 import '../../widgets/logs/enhanced_log_card.dart';
 
@@ -143,15 +144,25 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       decoration: InputDecoration(
         hintText: 'Search logs, trace IDs, messages...',
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: _searchController.text.isNotEmpty
-            ? IconButton(
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.bookmarks_outlined),
+              onPressed: () {
+                _showSavedFiltersSheet();
+              },
+            ),
+            if (_searchController.text.isNotEmpty)
+              IconButton(
                 icon: const Icon(Icons.clear),
                 onPressed: () {
                   _searchController.clear();
                   ref.read(logsProvider.notifier).clearFilter();
                 },
-              )
-            : null,
+              ),
+          ],
+        ),
         filled: true,
         fillColor: Theme.of(context).brightness == Brightness.dark
             ? AppColors.darkSurface
@@ -183,6 +194,109 @@ class _LogsPageState extends ConsumerState<LogsPage> {
         if (value.isNotEmpty) {
           ref.read(logsProvider.notifier).search(value);
         }
+      },
+    );
+  }
+
+  void _showSavedFiltersSheet() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final savedState = ref.watch(savedFiltersProvider);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('Saved Filters'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await _showSaveCurrentFilterDialog();
+                  },
+                ),
+              ),
+              if (savedState.isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (savedState.filters.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: Text('No saved filters yet'),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: savedState.filters.length,
+                    itemBuilder: (context, index) {
+                      final saved = savedState.filters[index];
+                      return ListTile(
+                        title: Text(saved.name),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+                          await ref
+                              .read(logsProvider.notifier)
+                              .applyFilter(saved.filter);
+                        },
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () {
+                            ref
+                                .read(savedFiltersProvider.notifier)
+                                .deleteFilter(saved.name);
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showSaveCurrentFilterDialog() async {
+    final controller = TextEditingController();
+    final filter = ref.read(logsProvider).filter;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Save Current Filter'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  await ref
+                      .read(savedFiltersProvider.notifier)
+                      .saveFilter(name, filter);
+                }
+                // ignore: use_build_context_synchronously
+                Navigator.of(context).pop();
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
       },
     );
   }

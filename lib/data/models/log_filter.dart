@@ -80,4 +80,32 @@ class LogFilter {
     
     return params;
   }
+
+  factory LogFilter.fromJson(Map<String, dynamic> json) {
+    return LogFilter(
+      service: json['service'] as String?,
+      level: json['level'] as String?,
+      statusCode: json['statusCode'] as int?,
+      startDate:
+          json['startDate'] != null ? DateTime.parse(json['startDate'] as String) : null,
+      endDate:
+          json['endDate'] != null ? DateTime.parse(json['endDate'] as String) : null,
+      searchQuery: json['searchQuery'] as String?,
+      limit: json['limit'] as int? ?? 20,
+      offset: json['offset'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'service': service,
+      'level': level,
+      'statusCode': statusCode,
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+      'searchQuery': searchQuery,
+      'limit': limit,
+      'offset': offset,
+    };
+  }
 }
