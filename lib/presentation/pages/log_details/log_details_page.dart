@@ -190,7 +190,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                     Text(
                       log.method!,
                       style: AppTextStyles.codeSmall.copyWith(
-                        color: AppColors.primary,
+                        color: isDark ? primaryTextColor : AppColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

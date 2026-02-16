@@ -97,7 +97,14 @@ class OverviewTab extends ConsumerWidget {
     required String title,
     required List<Widget> children,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final cardColor =
+        isDark ? AppColors.darkSurface : AppColors.surface;
+
     return Card(
+      color: cardColor,
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
@@ -106,7 +113,7 @@ class OverviewTab extends ConsumerWidget {
             Text(
               title,
               style: AppTextStyles.h4.copyWith(
-                color: AppColors.textPrimary,
+                color: primaryTextColor,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -118,6 +125,13 @@ class OverviewTab extends ConsumerWidget {
   }
 
   Widget _buildInfoRow(String label, String value) {
+    final isDark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
@@ -129,7 +143,7 @@ class OverviewTab extends ConsumerWidget {
               label,
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
+                color: secondaryTextColor,
               ),
             ),
           ),
@@ -137,7 +151,7 @@ class OverviewTab extends ConsumerWidget {
             child: SelectableText(
               value,
               style: AppTextStyles.codeSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: primaryTextColor,
               ),
             ),
           ),
@@ -154,6 +168,12 @@ class _TraceLogsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     final logsAsync = ref.watch(logsByTraceIdProvider(traceId));
 
     return Scaffold(
@@ -178,11 +198,15 @@ class _TraceLogsPage extends ConsumerWidget {
                 leading: const Icon(Icons.timeline),
                 title: Text(
                   '${entry.level.toUpperCase()} • ${entry.service}',
-                  style: AppTextStyles.body,
+                  style: AppTextStyles.body.copyWith(
+                    color: primaryTextColor,
+                  ),
                 ),
                 subtitle: Text(
                   date_utils.DateUtils.formatFull(entry.timestamp),
-                  style: AppTextStyles.caption,
+                  style: AppTextStyles.caption.copyWith(
+                    color: secondaryTextColor,
+                  ),
                 ),
               );
             },
