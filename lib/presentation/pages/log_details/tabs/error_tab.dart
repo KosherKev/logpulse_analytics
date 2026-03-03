@@ -2,192 +2,171 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../data/models/log_entry.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import 'detail_widgets.dart';
 
-/// Error Tab - Shows error details and stack trace
 class ErrorTab extends StatelessWidget {
   final LogEntry log;
-
   const ErrorTab({super.key, required this.log});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final c = AppColors.of(context);
 
     if (log.error == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'No Errors',
-              style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const Text('This log entry has no error information'),
+            Icon(Icons.check_circle_outline, size: 48, color: c.success),
+            const SizedBox(height: 14),
+            Text('No Errors',
+                style: AppTextStyles.h2.copyWith(color: c.textPrimary)),
+            const SizedBox(height: 8),
+            Text('This log entry has no error information',
+                style: AppTextStyles.body.copyWith(color: c.textTertiary)),
           ],
         ),
       );
     }
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Error Details',
-                  style: AppTextStyles.h4.copyWith(
-                    color: primaryTextColor,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                if (log.error!.message != null) ...[
-                  _buildInfoRow(context, 'Message', log.error!.message!),
-                  const SizedBox(height: 8),
-                ],
-                if (log.error!.code != null) ...[
-                  _buildInfoRow(context, 'Code', log.error!.code!),
-                  const SizedBox(height: 8),
-                ],
-                _buildInfoRow(context, 'Level', log.level.toUpperCase()),
-              ],
-            ),
-          ),
+        // Error details
+        DetailSection(
+          title: 'ERROR DETAILS',
+          accentBorder: c.error,
+          c: c,
+          children: [
+            if (log.error!.message != null)
+              DetailKVRow(
+                  label: 'Message',
+                  value: log.error!.message!,
+                  valueColor: c.error,
+                  c: c),
+            if (log.error!.code != null)
+              DetailKVRow(label: 'Code', value: log.error!.code!, c: c),
+            DetailKVRow(
+                label: 'Level',
+                value: log.level.toUpperCase(),
+                valueColor: c.levelColor(log.level),
+                c: c),
+          ],
         ),
-        const SizedBox(height: AppSpacing.md),
 
+        // Stack trace — dark terminal container
         if (log.error!.stack != null) ...[
-          Card(
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.border),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                   child: Row(
                     children: [
-                      Text(
-                        'Stack Trace',
-                        style: AppTextStyles.h4.copyWith(
-                          color: primaryTextColor,
-                        ),
-                      ),
+                      Text('STACK TRACE',
+                          style: AppTextStyles.label
+                              .copyWith(color: c.textTertiary)),
                       const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.copy, size: 20),
-                        onPressed: () => _copyToClipboard(
-                          context,
-                          log.error!.stack!,
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(
+                              ClipboardData(text: log.error!.stack!));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Stack trace copied',
+                                style: AppTextStyles.monoSm),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.copy_rounded,
+                              size: 16, color: c.textTertiary),
                         ),
-                        tooltip: 'Copy',
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                Divider(height: 1, color: c.borderSoft),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  color: AppColors.darkSurface,
+                  padding: const EdgeInsets.all(14),
+                  decoration: const BoxDecoration(
+                    color: AppColors.darkSurface,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(11),
+                      bottomRight: Radius.circular(11),
+                    ),
+                  ),
                   child: SelectableText(
                     log.error!.stack!,
                     style: AppTextStyles.monoSm.copyWith(
                       color: AppColors.darkTextPrimary,
+                      height: 1.6,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
         ],
 
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // Actions
+        const SizedBox(height: 12),
+        DetailSection(
+          title: 'ACTIONS',
+          c: c,
+          children: [
+            Row(
               children: [
-                Text(
-                  'Actions',
-                  style: AppTextStyles.h4.copyWith(
-                    color: AppColors.textPrimary,
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: Icon(Icons.search, size: 16, color: c.accent),
+                    label: Text('View Similar',
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: c.accent)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: c.accent.withValues(alpha: 0.4)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // View similar errors
-                  },
-                  icon: const Icon(Icons.search),
-                  label: const Text('View Similar Errors'),
-                ),
-                const SizedBox(height: 8),
-                if (log.traceId != null)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // View related logs
-                    },
-                    icon: const Icon(Icons.timeline),
-                    label: const Text('View Related Logs'),
+                if (log.traceId != null) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {},
+                      icon: Icon(Icons.timeline, size: 16, color: c.accent),
+                      label: Text('Trace Logs',
+                          style: AppTextStyles.bodySmall
+                              .copyWith(color: c.accent)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                            color: c.accent.withValues(alpha: 0.4)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
                   ),
+                ],
               ],
             ),
-          ),
+          ],
         ),
       ],
-    );
-  }
-
-  Widget _buildInfoRow(BuildContext context, String label, String value) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            label,
-            style: AppTextStyles.bodySmall.copyWith(
-              fontWeight: FontWeight.w500,
-              color: secondaryTextColor,
-            ),
-          ),
-        ),
-        Expanded(
-          child: SelectableText(
-            value,
-            style: AppTextStyles.monoSm.copyWith(
-              color: primaryTextColor,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _copyToClipboard(BuildContext context, String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Stack trace copied to clipboard'),
-        duration: Duration(seconds: 2),
-      ),
     );
   }
 }

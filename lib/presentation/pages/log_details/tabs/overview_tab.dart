@@ -4,209 +4,192 @@ import '../../../../data/models/log_entry.dart';
 import '../../../../core/utils/date_utils.dart' as date_utils;
 import '../../../../core/utils/format_utils.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../providers/logs_provider.dart';
+import 'detail_widgets.dart';
 
-/// Overview Tab - Summary of the log entry
 class OverviewTab extends ConsumerWidget {
   final LogEntry log;
-
   const OverviewTab({super.key, required this.log});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final c = AppColors.of(context);
+
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        _buildSection(
-          context,
-          title: 'Request Summary',
+        DetailSection(
+          title: 'REQUEST SUMMARY',
+          c: c,
           children: [
-            _buildInfoRow('Method', log.method ?? 'N/A'),
-            _buildInfoRow('Path', log.path ?? 'N/A'),
-            _buildInfoRow('Status Code', log.statusCode?.toString() ?? 'N/A'),
-            _buildInfoRow(
-              'Duration',
-              log.duration != null
+            DetailKVRow(label: 'Method', value: log.method ?? 'N/A', c: c),
+            DetailKVRow(label: 'Path', value: log.path ?? 'N/A', c: c),
+            DetailKVRow(
+              label: 'Status',
+              value: log.statusCode?.toString() ?? 'N/A',
+              valueColor: _statusColor(log.statusCode, c),
+              c: c,
+            ),
+            DetailKVRow(
+              label: 'Duration',
+              value: log.duration != null
                   ? FormatUtils.formatDuration(log.duration!)
                   : 'N/A',
+              c: c,
             ),
-            _buildInfoRow(
-              'Timestamp',
-              date_utils.DateUtils.formatFull(log.timestamp),
+            DetailKVRow(
+              label: 'Timestamp',
+              value: date_utils.DateUtils.formatFull(log.timestamp),
+              c: c,
             ),
             if (log.request?.ip != null)
-              _buildInfoRow('IP Address', log.request!.ip!),
+              DetailKVRow(label: 'IP Address', value: log.request!.ip!, c: c),
           ],
         ),
-        const SizedBox(height: 16),
+
         if (log.error != null) ...[
-          _buildSection(
-            context,
-            title: 'Error Summary',
+          const SizedBox(height: 12),
+          DetailSection(
+            title: 'ERROR SUMMARY',
+            accentBorder: c.error,
+            c: c,
             children: [
-              _buildInfoRow('Message', log.error!.message ?? 'N/A'),
+              if (log.error!.message != null)
+                DetailKVRow(
+                    label: 'Message',
+                    value: log.error!.message!,
+                    valueColor: c.error,
+                    c: c),
               if (log.error!.code != null)
-                _buildInfoRow('Code', log.error!.code!),
+                DetailKVRow(label: 'Code', value: log.error!.code!, c: c),
             ],
           ),
-          const SizedBox(height: 16),
         ],
+
         if (log.traceId != null) ...[
-          _buildSection(
-            context,
-            title: 'Trace Information',
+          const SizedBox(height: 12),
+          DetailSection(
+            title: 'TRACE',
+            c: c,
             children: [
-              _buildInfoRow('Trace ID', log.traceId!),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => _TraceLogsPage(traceId: log.traceId!),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.search),
-                label: const Text('View Related Logs'),
+              DetailKVRow(
+                label: 'Trace ID',
+                value: log.traceId!,
+                valueColor: c.accent,
+                c: c,
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => _TraceLogsPage(traceId: log.traceId!)),
+                ),
+                icon: Icon(Icons.account_tree_rounded, size: 16, color: c.accent),
+                label: Text('View Related Logs',
+                    style: AppTextStyles.bodySmall.copyWith(color: c.accent)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: c.accent.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
         ],
+
         if (log.metadata != null && log.metadata!.isNotEmpty) ...[
-          _buildSection(
-            context,
-            title: 'Metadata',
-            children: log.metadata!.entries.map((entry) {
-              return _buildInfoRow(
-                entry.key,
-                entry.value.toString(),
-              );
-            }).toList(),
+          const SizedBox(height: 12),
+          DetailSection(
+            title: 'METADATA',
+            c: c,
+            children: log.metadata!.entries
+                .map((e) =>
+                    DetailKVRow(label: e.key, value: e.value.toString(), c: c))
+                .toList(),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildSection(
-    BuildContext context, {
-    required String title,
-    required List<Widget> children,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final cardColor =
-        isDark ? AppColors.darkSurface : AppColors.surface;
-
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: AppTextStyles.h4.copyWith(
-                color: primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    final isDark = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
-        Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: AppTextStyles.bodySmall.copyWith(
-                fontWeight: FontWeight.w500,
-                color: secondaryTextColor,
-              ),
-            ),
-          ),
-          Expanded(
-            child: SelectableText(
-              value,
-              style: AppTextStyles.monoSm.copyWith(
-                color: primaryTextColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _statusColor(int? code, AppColorTokens c) {
+    if (code == null) return c.textPrimary;
+    if (code >= 500) return c.error;
+    if (code >= 400) return c.warning;
+    if (code >= 200 && code < 300) return c.success;
+    return c.textPrimary;
   }
 }
 
+// ── Trace logs viewer ─────────────────────────────────────────────────────────
+
 class _TraceLogsPage extends ConsumerWidget {
   final String traceId;
-
   const _TraceLogsPage({required this.traceId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-
+    final c = AppColors.of(context);
     final logsAsync = ref.watch(logsByTraceIdProvider(traceId));
 
     return Scaffold(
+      backgroundColor: c.bg,
       appBar: AppBar(
-        title: const Text('Trace Logs'),
+        backgroundColor: c.bg,
+        elevation: 0,
+        title: Text('Trace Logs',
+            style: AppTextStyles.h3.copyWith(color: c.textPrimary)),
       ),
       body: logsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Text('Failed to load trace logs: $error'),
-        ),
+        error: (e, _) => Center(
+            child: Text('Failed to load: $e',
+                style: AppTextStyles.body.copyWith(color: c.error))),
         data: (logs) {
           if (logs.isEmpty) {
-            return const Center(child: Text('No logs found for this trace.'));
+            return Center(
+                child: Text('No logs for this trace',
+                    style:
+                        AppTextStyles.body.copyWith(color: c.textTertiary)));
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(16),
             itemCount: logs.length,
             itemBuilder: (context, index) {
               final entry = logs[index];
-              return ListTile(
-                leading: const Icon(Icons.timeline),
-                title: Text(
-                  '${entry.level.toUpperCase()} • ${entry.service}',
-                  style: AppTextStyles.body.copyWith(
-                    color: primaryTextColor,
+              final levelColor = c.levelColor(entry.level);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: c.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border(
+                    left: BorderSide(color: levelColor, width: 3),
+                    top: BorderSide(color: c.border),
+                    right: BorderSide(color: c.border),
+                    bottom: BorderSide(color: c.border),
                   ),
                 ),
-                subtitle: Text(
-                  date_utils.DateUtils.formatFull(entry.timestamp),
-                  style: AppTextStyles.caption.copyWith(
-                    color: secondaryTextColor,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Text(entry.level.toUpperCase(),
+                          style: AppTextStyles.label
+                              .copyWith(color: levelColor)),
+                      const SizedBox(width: 8),
+                      Text(entry.service,
+                          style: AppTextStyles.monoSm
+                              .copyWith(color: c.textPrimary)),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(date_utils.DateUtils.formatFull(entry.timestamp),
+                        style: AppTextStyles.monoSm
+                            .copyWith(color: c.textTertiary)),
+                  ],
                 ),
               );
             },
@@ -215,4 +198,4 @@ class _TraceLogsPage extends ConsumerWidget {
       ),
     );
   }
-  }
+}

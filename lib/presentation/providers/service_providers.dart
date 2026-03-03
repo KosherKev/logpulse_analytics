@@ -114,6 +114,14 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
           );
           final secureKey = await storage.getProfileApiKey(activeProfile.id);
           activeProfile = activeProfile.copyWith(apiKey: secureKey ?? '');
+          if ((activeProfile.apiKey.isEmpty)) {
+            const envApiKey =
+                String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
+            if (envApiKey.isNotEmpty) {
+              await storage.setProfileApiKey(activeProfile.id, envApiKey);
+              activeProfile = activeProfile.copyWith(apiKey: envApiKey);
+            }
+          }
         }
       } else {
         final legacyBaseUrl = storage.getApiUrl();
@@ -140,7 +148,23 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
 
         const envApiKey =
             String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
-        if (activeProfile != null && (activeProfile.apiKey.isEmpty) && envApiKey.isNotEmpty) {
+        const envBaseUrl =
+            String.fromEnvironment('LOGPULSE_BASE_URL', defaultValue: '');
+        if (activeProfile == null && envBaseUrl.isNotEmpty) {
+          final profile = ApiConnectionProfile(
+            id: 'default',
+            name: 'Default',
+            baseUrl: envBaseUrl,
+            apiKey: envApiKey,
+          );
+          profiles = [profile];
+          activeProfile = profile;
+          await _persistProfiles(storage, profiles, profile.id);
+          if (envApiKey.isNotEmpty) {
+            await storage.setProfileApiKey(profile.id, envApiKey);
+            activeProfile = activeProfile.copyWith(apiKey: envApiKey);
+          }
+        } else if (activeProfile != null && (activeProfile.apiKey.isEmpty) && envApiKey.isNotEmpty) {
           await storage.setProfileApiKey(activeProfile.id, envApiKey);
           activeProfile = activeProfile.copyWith(apiKey: envApiKey);
         }

@@ -27,7 +27,7 @@
 | 9 | Dashboard Screen Redesign | ✅ Complete | 2026-03-03 |
 | 10 | Logs Screen Redesign | ✅ Complete | 2026-03-03 |
 | 11 | Errors Screen Redesign | ✅ Complete | 2026-03-03 |
-| 12 | Log Detail Screen Redesign | ⬜ Not Started | — |
+| 12 | Log Detail Screen Redesign | ✅ Complete | 2026-03-03 |
 | 13 | Settings & ENV Switcher Redesign | ⬜ Not Started | — |
 | 14 | Navigation & Shell Redesign | ⬜ Not Started | — |
 | 15 | Animation & Micro-interactions | ⬜ Not Started | — |
@@ -222,6 +222,32 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter analyze: 0 errors. 6 pre-existing warnings unchanged.
   - Errors page: 3-card summary section, 5-tab severity filter with live counts, error groups list, detail sheet with terminal stack trace + action buttons
 - **Next Step**: Phase 12 — Log Detail Screen Redesign
+
+### [PHASE 12] — Log Detail Screen Redesign
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - **12-A: Header card** — Replaced `Card` + raw `TextStyle` with a `Container` using Neo-Terminal left-border (3px, level color). Row 1: level chip (label style, levelBg fill, levelColor border) + service name in `monoMd` 600 + status badge (statusColor bg). Row 2: method+path in dark `surface2` terminal container — method in accent, path in textPrimary. Row 3: timestamp + duration in `monoSm` textTertiary with icon pairs. Row 4: traceId as tappable accent underline link with copy icon — tapping copies to clipboard + shows snackbar. Copy also available from AppBar icon button (only shown when traceId exists).
+  - **12-B: Custom tab bar** — Replaced `Material + elevation: 2` wrapper with a `Container` (surface bg, 10px radius, border) holding a `TabBar`. `indicator`: solid `BoxDecoration` with accent fill + 7px radius (pill inside the container). `indicatorSize: TabBarIndicatorSize.tab`. `tabAlignment: TabAlignment.start` (scrollable, left-aligned). Labels in `AppTextStyles.label` (JetBrains Mono uppercase): OVERVIEW / REQUEST / RESPONSE / ERROR / TIMELINE. White label when selected, textTertiary when not. No underline indicator.
+  - **12-C: Shared widget file** — Created `detail_widgets.dart` with 6 public widgets to avoid cross-file private class import issues: `DetailSection` (left-border section container), `DetailKVRow` (90px label + value row), `DetailHeadersSection` (expandable headers/params with count badge), `DetailBodySection` (dark terminal JSON block with PRETTY/RAW toggle + copy), `DetailEmptyBlock` (placeholder), `DetailActionChip` (small pill toggle). All widgets accept `AppColorTokens c` — zero hardcoded colors.
+  - **12-D: Overview tab** — Replaced Card + `_buildInfoRow` pattern with `DetailSection` + `DetailKVRow` grid. REQUEST SUMMARY section (method/path/status/duration/timestamp/IP). ERROR SUMMARY section with error accent border (shown only if `log.error != null`). TRACE section with traceId in accent + "View Related Logs" outlined button. METADATA section. Trace logs viewer `_TraceLogsPage` updated to use token colors and left-border log rows.
+  - **12-E: Request tab** — Replaced Card + ExpansionTile with `DetailHeadersSection` (expandable, shows entry count badge). REQUEST HEADERS + QUERY PARAMS sections. REQUEST BODY in `DetailBodySection` dark terminal block with PRETTY/RAW toggle and copy icon. All surface/border via tokens.
+  - **12-F: Response tab** — STATUS card with left-border colored by status code (green/amber/red/blue). Status badge with `monoMd` 600 value. RESPONSE HEADERS via `DetailHeadersSection`. RESPONSE BODY via `DetailBodySection`. Imports `detail_widgets.dart`.
+  - **12-G: Error tab** — ERROR DETAILS `DetailSection` with error accent border (message in error color, code, level in levelColor). STACK TRACE: dark `AppColors.darkSurface` terminal container with `SelectableText` + copy icon button. ACTIONS: "View Similar" + "Trace Logs" side-by-side outlined buttons. No-error empty state: green check icon + h2 text.
+  - **12-H: Timeline tab** — TOTAL duration card with accent left-border. TIMELINE events: `_TimelineEventRow` using `IntrinsicHeight` + dot column (10px dot with glow shadow, 2px connector line in `borderSoft`). Dots: accent for normal, error color for error events with ERROR badge chip. PERFORMANCE BREAKDOWN: `_BreakdownBar` with `FractionallySizedBox` bars using token colors (accent/success/warning/info) — no hardcoded `Colors.blue` etc. `surface2` background track.
+  - **Fix**: Private classes can't be re-exported across Dart files. Solved by extracting all shared widgets into `detail_widgets.dart` with public names. `timeline_tab.dart` uses its own private widgets only.
+- **Files Changed**:
+  - lib/presentation/pages/log_details/log_details_page.dart (rewrite — 357 lines)
+  - lib/presentation/pages/log_details/tabs/detail_widgets.dart (NEW — 348 lines)
+  - lib/presentation/pages/log_details/tabs/overview_tab.dart (rewrite — 202 lines)
+  - lib/presentation/pages/log_details/tabs/request_tab.dart (rewrite — 58 lines)
+  - lib/presentation/pages/log_details/tabs/response_tab.dart (rewrite — 104 lines)
+  - lib/presentation/pages/log_details/tabs/error_tab.dart (rewrite — 173 lines)
+  - lib/presentation/pages/log_details/tabs/timeline_tab.dart (rewrite — 350 lines)
+- **Verify**:
+  - flutter analyze: 0 errors. 3 warnings remaining — all pre-existing (down from 6, eliminated 3 pre-existing unused_local_variable warnings in log_details tabs)
+  - Log detail: left-border header card, pill tab bar, all 5 tabs use token colors, dark terminal containers for code/stack trace, expandable headers sections
+- **Next Step**: Phase 13 — Settings & ENV Switcher Redesign
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP

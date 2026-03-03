@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../../../data/models/log_entry.dart';
-import '../../../../core/utils/format_utils.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import 'dart:convert';
+import 'detail_widgets.dart';
 
-/// Request Tab - Shows request headers, query params, and body
 class RequestTab extends StatefulWidget {
   final LogEntry log;
-
   const RequestTab({super.key, required this.log});
 
   @override
@@ -22,199 +17,41 @@ class _RequestTabState extends State<RequestTab> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+
     if (widget.log.request == null) {
-      return const Center(
-        child: Text('No request data available'),
-      );
+      return Center(
+          child: Text('No request data',
+              style: AppTextStyles.body.copyWith(color: c.textTertiary)));
     }
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        // Headers Section
-        _buildExpandableSection(
-          context,
-          title: 'Headers',
+        DetailHeadersSection(
+          title: 'REQUEST HEADERS',
           content: widget.log.request!.headers,
-          defaultExpanded: false,
+          c: c,
         ),
-        const SizedBox(height: 16),
-
-        // Query Parameters Section
-        _buildExpandableSection(
-          context,
-          title: 'Query Parameters',
+        const SizedBox(height: 12),
+        DetailHeadersSection(
+          title: 'QUERY PARAMS',
           content: widget.log.request!.query,
-          defaultExpanded: false,
+          c: c,
         ),
-        const SizedBox(height: 16),
-
-        // Body Section
-        if (widget.log.request!.body != null) ...[
-          _buildBodySection(
-            context,
-            title: 'Request Body',
+        const SizedBox(height: 12),
+        if (widget.log.request!.body != null)
+          DetailBodySection(
+            title: 'REQUEST BODY',
             body: widget.log.request!.body,
-          ),
-        ] else
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('No request body'),
-            ),
-          ),
+            prettyPrint: _prettyPrint,
+            onTogglePretty: () =>
+                setState(() => _prettyPrint = !_prettyPrint),
+            c: c,
+          )
+        else
+          DetailEmptyBlock(label: 'No request body', c: c),
       ],
-    );
-  }
-
-  Widget _buildExpandableSection(
-    BuildContext context, {
-    required String title,
-    required Map<String, dynamic>? content,
-    bool defaultExpanded = false,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    if (content == null || content.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Text(
-            'No $title',
-            style: AppTextStyles.body.copyWith(
-              color: secondaryTextColor,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      child: ExpansionTile(
-        title: Text(
-          title,
-          style: AppTextStyles.body.copyWith(
-            fontWeight: FontWeight.w600,
-            color: primaryTextColor,
-          ),
-        ),
-        initiallyExpanded: defaultExpanded,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: content.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 120,
-                        child: Text(
-                          entry.key,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: secondaryTextColor,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: SelectableText(
-                          entry.value.toString(),
-                          style: AppTextStyles.monoSm.copyWith(
-                            color: primaryTextColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBodySection(
-    BuildContext context, {
-    required String title,
-    required dynamic body,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    String bodyText;
-    try {
-      bodyText = _prettyPrint
-          ? FormatUtils.prettyPrintJson(body)
-          : json.encode(body);
-    } catch (e) {
-      bodyText = body.toString();
-    }
-
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              children: [
-                Text(
-                  title,
-                  style: AppTextStyles.h4.copyWith(
-                    color: primaryTextColor,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 20),
-                  onPressed: () => _copyToClipboard(bodyText),
-                  tooltip: 'Copy',
-                ),
-                IconButton(
-                  icon: Icon(
-                    _prettyPrint ? Icons.code : Icons.wrap_text,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    setState(() => _prettyPrint = !_prettyPrint);
-                  },
-                  tooltip: _prettyPrint ? 'Raw' : 'Pretty',
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: SelectableText(
-              bodyText,
-              style: AppTextStyles.monoSm.copyWith(
-                color: primaryTextColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copied to clipboard'),
-        duration: Duration(seconds: 2),
-      ),
     );
   }
 }
