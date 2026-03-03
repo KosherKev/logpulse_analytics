@@ -264,6 +264,21 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter test: all tests passed
   - Settings page shows redesigned sections and segmented theme control; add connection uses bottom sheet
 - **Next Step**: Phase 14 — Navigation & Shell Redesign
+
+### [PHASE 14] — Navigation & Shell Redesign
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Updated nav item order: Dashboard → Logs → Errors → Settings
+  - Added badge dot on Errors tab reflecting current error group count
+  - Confirmed AppBar theme uses h3 title, zero elevation, token colors
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/pages/home_page.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/theme/app_theme.dart (pre-existing)
+- **Verify**:
+  - flutter analyze: no new errors vs baseline; tests pass
+  - Navigation bar shows pill styling via theme; updated order; badge visible when errors exist
+- **Next Step**: Phase 15 — Animation & Micro-interactions
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP
