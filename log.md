@@ -28,7 +28,7 @@
 | 10 | Logs Screen Redesign | ✅ Complete | 2026-03-03 |
 | 11 | Errors Screen Redesign | ✅ Complete | 2026-03-03 |
 | 12 | Log Detail Screen Redesign | ✅ Complete | 2026-03-03 |
-| 13 | Settings & ENV Switcher Redesign | ⬜ Not Started | — |
+| 13 | Settings & ENV Switcher Redesign | ✅ Complete | 2026-03-03 |
 | 14 | Navigation & Shell Redesign | ⬜ Not Started | — |
 | 15 | Animation & Micro-interactions | ⬜ Not Started | — |
 
@@ -248,6 +248,22 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter analyze: 0 errors. 3 warnings remaining — all pre-existing (down from 6, eliminated 3 pre-existing unused_local_variable warnings in log_details tabs)
   - Log detail: left-border header card, pill tab bar, all 5 tabs use token colors, dark terminal containers for code/stack trace, expandable headers sections
 - **Next Step**: Phase 13 — Settings & ENV Switcher Redesign
+
+### [PHASE 13] — Settings & ENV Switcher Redesign
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Redesigned API Configuration section with left-border accent for active profile and truncated URL
+  - Implemented full-screen bottom sheet for “Add Connection” with handle and outlined action button
+  - Replaced theme picker dialog with inline segmented control (Light · Dark · System)
+  - Updated Danger Zone styling to subtle surface card with red text only
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/pages/settings/settings_page.dart
+- **Verify**:
+  - flutter analyze: warnings unchanged or reduced, no new errors
+  - flutter test: all tests passed
+  - Settings page shows redesigned sections and segmented theme control; add connection uses bottom sheet
+- **Next Step**: Phase 14 — Navigation & Shell Redesign
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP

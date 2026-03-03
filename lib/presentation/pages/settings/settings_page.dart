@@ -44,6 +44,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final apiConfig = ref.watch(apiConfigProvider);
+    final c = AppColors.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -76,26 +77,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           itemCount: apiConfig.profiles.length,
                           itemBuilder: (context, index) {
                             final profile = apiConfig.profiles[index];
-                            final isActive =
-                                profile.id == apiConfig.activeProfileId;
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                isActive
-                                    ? Icons.radio_button_checked
-                                    : Icons.radio_button_off,
-                              ),
-                              title: Text(profile.name),
-                              subtitle: Text(
-                                profile.baseUrl,
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
+                            final isActive = profile.id == apiConfig.activeProfileId;
+                            return GestureDetector(
                               onTap: () async {
-                                await ref
-                                    .read(apiConfigProvider.notifier)
-                                    .setActiveProfile(profile.id);
+                                await ref.read(apiConfigProvider.notifier).setActiveProfile(profile.id);
                                 setState(() {
                                   _selectedProfileId = profile.id;
                                   _apiUrlController.text = profile.baseUrl;
@@ -103,24 +88,60 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                   _isEditing = false;
                                 });
                               },
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async {
-                                  await ref
-                                      .read(apiConfigProvider.notifier)
-                                      .removeProfile(profile.id);
-                                  final updated =
-                                      ref.read(apiConfigProvider);
-                                  setState(() {
-                                    _selectedProfileId =
-                                        updated.activeProfileId;
-                                    _apiUrlController.text =
-                                        updated.baseUrl ?? '';
-                                    _apiKeyController.text =
-                                        updated.apiKey ?? '';
-                                    _isEditing = false;
-                                  });
-                                },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: c.surface,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: c.border, width: 1),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: isActive ? c.accent : c.border,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            profile.name,
+                                            style: AppTextStyles.body.copyWith(
+                                              color: c.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _truncateUrl(profile.baseUrl),
+                                            style: AppTextStyles.bodySmall.copyWith(color: c.textSecondary),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline),
+                                      color: c.textSecondary,
+                                      onPressed: () async {
+                                        await ref.read(apiConfigProvider.notifier).removeProfile(profile.id);
+                                        final updated = ref.read(apiConfigProvider);
+                                        setState(() {
+                                          _selectedProfileId = updated.activeProfileId;
+                                          _apiUrlController.text = updated.baseUrl ?? '';
+                                          _apiKeyController.text = updated.apiKey ?? '';
+                                          _isEditing = false;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -192,23 +213,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           // Appearance Section
           _buildSectionHeader('Appearance'),
           Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.brightness_6),
-                  title: Text(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
                     'Theme',
                     style: AppTextStyles.body.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
                     ),
                   ),
-                  subtitle: Text(_getThemeLabel(settings.themeMode)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _showThemePicker(),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.sm),
+                  SegmentedButton<String>(
+                    segments: const <ButtonSegment<String>>[
+                      ButtonSegment<String>(value: 'light', label: Text('Light'), icon: Icon(Icons.wb_sunny_outlined)),
+                      ButtonSegment<String>(value: 'dark', label: Text('Dark'), icon: Icon(Icons.nightlight_round)),
+                      ButtonSegment<String>(value: 'system', label: Text('System'), icon: Icon(Icons.settings_suggest_outlined)),
+                    ],
+                    selected: <String>{settings.themeMode},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (newSelection) {
+                      final value = newSelection.first;
+                      ref.read(settingsProvider.notifier).setThemeMode(value);
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -304,46 +335,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           // Danger Zone
           _buildSectionHeader('Danger Zone'),
           Card(
-            color: AppColors.errorLight,
-            child: Column(
-              children: [
-                ListTile(
-                  leading:
-                      const Icon(Icons.delete_outline, color: AppColors.error),
-                  title: Text(
-                    'Clear Cache',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.w600,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                    title: Text(
+                      'Clear Cache',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    'Clear all cached data',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                    subtitle: Text(
+                      'Clear all cached data',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
+                    onTap: () => _showClearCacheDialog(),
                   ),
-                  onTap: () => _showClearCacheDialog(),
-                ),
-                ListTile(
-                  leading:
-                      const Icon(Icons.logout, color: AppColors.error),
-                  title: Text(
-                    'Clear Configuration',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.w600,
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: AppColors.error),
+                    title: Text(
+                      'Clear Configuration',
+                      style: AppTextStyles.body.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    'Remove API configuration',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                    subtitle: Text(
+                      'Remove API configuration',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
+                    onTap: () => _showClearConfigDialog(),
                   ),
-                  onTap: () => _showClearConfigDialog(),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -365,64 +396,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  String _getThemeLabel(String mode) {
-    switch (mode) {
-      case 'light':
-        return 'Light';
-      case 'dark':
-        return 'Dark';
-      case 'system':
-      default:
-        return 'System Default';
-    }
-  }
-
-  void _showThemePicker() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Theme'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: const Text('Light'),
-              value: 'light',
-              groupValue: ref.read(settingsProvider).themeMode,
-              onChanged: (value) {
-                if (value != null) {
-                  ref.read(settingsProvider.notifier).setThemeMode(value);
-                  Navigator.pop(context);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('Dark'),
-              value: 'dark',
-              groupValue: ref.read(settingsProvider).themeMode,
-              onChanged: (value) {
-                if (value != null) {
-                  ref.read(settingsProvider.notifier).setThemeMode(value);
-                  Navigator.pop(context);
-                }
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('System Default'),
-              value: 'system',
-              groupValue: ref.read(settingsProvider).themeMode,
-              onChanged: (value) {
-                if (value != null) {
-                  ref.read(settingsProvider.notifier).setThemeMode(value);
-                  Navigator.pop(context);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showIntervalPicker() {
     showDialog(
@@ -532,15 +505,38 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final nameController = TextEditingController();
     final urlController = TextEditingController(text: _apiUrlController.text);
     final keyController = TextEditingController(text: _apiKeyController.text);
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.of(context).surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Connection'),
-          content: Column(
+        return Padding(
+          padding: EdgeInsets.only(
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            top: AppSpacing.md,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text('Add Connection', style: AppTextStyles.h3),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
@@ -567,48 +563,49 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 obscureText: true,
               ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final name = nameController.text.trim().isEmpty ? 'Connection' : nameController.text.trim();
+                      final url = urlController.text.trim();
+                      final key = keyController.text.trim();
+                      if (url.isEmpty || key.isEmpty) return;
+                      await ref.read(apiConfigProvider.notifier).addProfile(
+                            name: name,
+                            baseUrl: url,
+                            apiKey: key,
+                          );
+                      final updated = ref.read(apiConfigProvider);
+                      setState(() {
+                        _selectedProfileId = updated.activeProfileId;
+                        _apiUrlController.text = updated.baseUrl ?? '';
+                        _apiKeyController.text = updated.apiKey ?? '';
+                        _isEditing = false;
+                      });
+                      if (mounted) Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add'),
+                  ),
+                ],
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final name = nameController.text.trim().isEmpty
-                    ? 'Connection'
-                    : nameController.text.trim();
-                final url = urlController.text.trim();
-                final key = keyController.text.trim();
-
-                if (url.isEmpty || key.isEmpty) {
-                  return;
-                }
-
-                await ref.read(apiConfigProvider.notifier).addProfile(
-                      name: name,
-                      baseUrl: url,
-                      apiKey: key,
-                    );
-
-                final updated = ref.read(apiConfigProvider);
-                setState(() {
-                  _selectedProfileId = updated.activeProfileId;
-                  _apiUrlController.text = updated.baseUrl ?? '';
-                  _apiKeyController.text = updated.apiKey ?? '';
-                  _isEditing = false;
-                });
-
-                if (mounted) {
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
         );
       },
     );
+  }
+
+  String _truncateUrl(String url) {
+    if (url.length <= 40) return url;
+    return '${url.substring(0, 37)}…';
   }
 }
