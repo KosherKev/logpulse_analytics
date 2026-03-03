@@ -25,7 +25,7 @@
 | 7 | Typography Integration | ✅ Complete | 2026-03-03 |
 | 8 | Core Component Redesign | ✅ Complete | 2026-03-03 |
 | 9 | Dashboard Screen Redesign | ✅ Complete | 2026-03-03 |
-| 10 | Logs Screen Redesign | ⬜ Not Started | — |
+| 10 | Logs Screen Redesign | ✅ Complete | 2026-03-03 |
 | 11 | Errors Screen Redesign | ⬜ Not Started | — |
 | 12 | Log Detail Screen Redesign | ⬜ Not Started | — |
 | 13 | Settings & ENV Switcher Redesign | ⬜ Not Started | — |
@@ -190,6 +190,23 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter analyze: 0 errors. 1 error fixed (undefined_getter `activeProfile` on `ApiConfigState` — derived from `profiles.firstWhere`). 1 warning fixed (`axisColor` unused). All remaining 10 warnings are pre-existing.
   - Dashboard matches mockup: pulsing dot in AppBar title, ENV switcher bar, 2×2 stat grid with color-coded left borders, dual-line Traffic & Errors chart with legend, Service Health section with "view all →", recent errors section
 - **Next Step**: Phase 10 — Logs Screen Redesign
+
+### [PHASE 10] — Logs Screen Redesign
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - **10-A: Search bar redesign** — Replaced `TextField` inside `InputDecoration`-styled box with a custom `AnimatedContainer` that owns the border directly. Focus state: accent border 1.5px via `_searchFocused` tracked with `FocusNode` listener. `⌘K` shortcut badge (cosmetic, monoSm, surface2 bg) shown when not focused and empty. Clear icon shown when text present. Search icon prefix in textTertiary. No `InputDecoration` border — `InputBorder.none` on the inner `TextField`, all border control is on the container.
+  - **10-B: Level filter pills** — Replaced `ChoiceChip` with custom `_LevelPill` widgets. Each pill has a distinct color pair from design tokens: error → `c.error`/`c.errorBg`, warn → `c.warning`/`c.warningBg`, info → `c.info`/`c.infoBg`, debug → `c.debug`/`c.debugBg`, all → `c.accent`/`c.accentDim`. `AnimatedContainer` 160ms for selection transition. Active: colored bg + colored border (0.5 alpha) + colored label text. Inactive: transparent bg + border + textTertiary. Labels in `AppTextStyles.label` (JetBrains Mono uppercase). Fixed `notifier.state.filter` → `ref.read(logsProvider).filter` to eliminate protected-member warning.
+  - **10-C: Results count divider** — `_buildResultsDivider` row: horizontal `Divider` (borderSoft) · centered count text in `monoSm` textTertiary · horizontal `Divider`. Shows `totalCount` if > 0, else `logs.length`. Appends "· error priority" when error level active. Hidden when count is 0.
+  - **10-D: Skeleton loading** — Initial load (isLoading + empty logs): renders `ListView` with search bar + pills + 6 `SkeletonLogCard`s instead of `CircularProgressIndicator`. Load-more footer: replaced bottom spinner with 3 `SkeletonLogCard`s (childCount = logs.length + 3 when hasMore). End-of-list: `SizedBox(height: 32)` padding.
+  - **10-E: Saved filters bottom sheet redesign** — Replaced fixed `showModalBottomSheet` + `ListView.builder` with `DraggableScrollableSheet` (0.3 min → 0.5 initial → 0.85 max). Header: "SAVED FILTERS" in label style + "+ SAVE CURRENT" accent button (same accentDim pill style as dashboard SWITCH button). Filters listed as `Dismissible` rows (swipe-to-delete with errorBg background). Each row: filter name in `monoMd` + summary string (level · service · status · query) in `monoSm` textTertiary. Empty state: bookmarks icon + body text. `showDragHandle: true`.
+  - **Supporting**: Custom AppBar with bordered `_IconBtn` (tune icon → opens saved filters). `_ScrollTopFab`: custom 44×44 bordered square instead of default FAB. `_ActiveTag`: pill chip for active service/status/query filters with "clear all" accent link. Scaffold `backgroundColor: c.bg`. `RefreshIndicator` uses `c.accent` color.
+- **Files Changed**:
+  - lib/presentation/pages/logs/logs_page.dart (full rewrite — 777 lines)
+- **Verify**:
+  - flutter analyze: 0 errors. Pre-existing warning `invalid_use_of_protected_member` eliminated (was line 243, now gone). 6 remaining warnings all pre-existing.
+  - Logs page: custom search bar with focus animation, 5 color-coded level pills, results count divider, skeleton loading (initial + load-more), redesigned saved-filters sheet with drag handle + swipe-to-delete
+- **Next Step**: Phase 11 — Errors Screen Redesign
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP
