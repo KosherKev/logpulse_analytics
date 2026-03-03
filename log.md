@@ -24,7 +24,7 @@
 | 6 | Design Token System | ✅ Complete | 2026-03-03 |
 | 7 | Typography Integration | ✅ Complete | 2026-03-03 |
 | 8 | Core Component Redesign | ✅ Complete | 2026-03-03 |
-| 9 | Dashboard Screen Redesign | ⬜ Not Started | — |
+| 9 | Dashboard Screen Redesign | ✅ Complete | 2026-03-03 |
 | 10 | Logs Screen Redesign | ⬜ Not Started | — |
 | 11 | Errors Screen Redesign | ⬜ Not Started | — |
 | 12 | Log Detail Screen Redesign | ⬜ Not Started | — |
@@ -165,6 +165,31 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - `ServiceHealthCard` pulsing dot: healthy = slow 2s pulse, unhealthy = fast 0.8s pulse with glow
   - `SkeletonLogCard` shimmer animation cycles opacity 0.3→0.7
 - **Next Step**: Phase 9 — Dashboard Screen Redesign
+
+### [PHASE 9] — Dashboard Screen Redesign
+- **Date**: 2026-03-03
+- **Reference**: Light + Dark mockups (Image 1 + 2)
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - **9-A: `env_switcher_bar.dart` (NEW)** — `ConsumerStatefulWidget` with `SingleTickerProviderStateMixin`. Pulsing status dot (green = connected, red = not configured). Profile name in `monoMd`, URL in `monoSm` textTertiary. `SWITCH` button: `accentDim` bg, `label` text, accent border. Bottom sheet lists all profiles with left-border accent on active, `monoMd` names, `monoSm` URLs, check icon on active. Derives profile name from `apiConfig.profiles.firstWhere(id == activeProfileId)` (no `activeProfile` getter on `ApiConfigState`).
+  - **9-B: `stats_grid.dart` rewrite** — Fixed 2-column grid (`crossAxisCount: 2`, `childAspectRatio: 1.35`, no conditional on screen width). Four `StatCard`s with distinct accent colors matching the mockup: accent (Total Logs), error (Error Rate), warning (Avg Latency), success (Req/Hour). Delta strings with directional polarity. `_formatCount()` helper: K/M formatting.
+  - **9-C: `time_range_selector.dart` rewrite** — Compact pill chips (no label, no "Time Range" header). Options: `1h / 24h / 7d / 30d`. Selected = solid accent fill + white text, unselected = transparent + border + textSecondary. `AnimatedContainer` 180ms for selection transition. `monoSm` font throughout.
+  - **9-D: `error_rate_chart.dart` rewrite** — Dual-series chart: `trafficPoints` (solid blue, gradient fill) + `errorPoints` (dashed red, faint fill). `subtitle` param top-right (e.g. "last 24h · 1h buckets"). Legend row: `_LegendDot` with `_LinePainter` CustomPainter for solid/dashed line swatches. Legacy single-series API (`points`/`label`/`lineColor`/`areaColor`) preserved as fallback. Dark mode: stronger gradient alpha (0.25 vs 0.15). Border-only container, no elevation. Removed unused `axisColor` variable.
+  - **9-E: `service_health_list.dart` rewrite** — `h2` section header + "view all →" in `monoSm` accent (only when services > `maxVisible`). `maxVisible` param (default 3). Taps navigate to logs filtered by service.
+  - **9-F: `recent_errors_list.dart` rewrite** — `h2` header, delegates rendering to `ErrorGroupCard` (Phase 8 design). `maxVisible` param (default 5).
+  - **9-G: `dashboard_page.dart` rewrite (348 lines)** — Custom AppBar: pulsing `_PulseDot` (1.8s animation with glow) + Syne `h1` title + two `_AppBarIconButton` (bordered 38×38 containers). Body: `ListView` with 16px horizontal padding. Sequence: `EnvSwitcherBar → TimeRangeSelector → StatsGrid → ErrorRateChart (dual series) → ServiceHealthList → RecentErrorsList`. Chart subtitle adapts to selected time range (`1h → 5m buckets`, `24h → 1h buckets`, `7d → 6h buckets`, `30d → 1d buckets`). `_buildUnconfigured` + `_buildError` with token colors. `bg` used as scaffold background (warm off-white / deep slate). Removed all inline `ThemeData` and legacy `withOpacity` calls.
+- **Files Changed**:
+  - lib/presentation/pages/dashboard/dashboard_page.dart (full rewrite)
+  - lib/presentation/widgets/dashboard/env_switcher_bar.dart (NEW)
+  - lib/presentation/widgets/dashboard/stats_grid.dart (rewrite)
+  - lib/presentation/widgets/dashboard/time_range_selector.dart (rewrite)
+  - lib/presentation/widgets/dashboard/error_rate_chart.dart (rewrite)
+  - lib/presentation/widgets/dashboard/service_health_list.dart (rewrite)
+  - lib/presentation/widgets/dashboard/recent_errors_list.dart (rewrite)
+- **Verify**:
+  - flutter analyze: 0 errors. 1 error fixed (undefined_getter `activeProfile` on `ApiConfigState` — derived from `profiles.firstWhere`). 1 warning fixed (`axisColor` unused). All remaining 10 warnings are pre-existing.
+  - Dashboard matches mockup: pulsing dot in AppBar title, ENV switcher bar, 2×2 stat grid with color-coded left borders, dual-line Traffic & Errors chart with legend, Service Health section with "view all →", recent errors section
+- **Next Step**: Phase 10 — Logs Screen Redesign
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP

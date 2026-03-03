@@ -7,14 +7,14 @@ import '../../providers/navigation_provider.dart';
 import '../../providers/errors_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../data/models/dashboard_stats.dart';
 import '../../../data/models/error_group.dart';
+import '../../widgets/dashboard/env_switcher_bar.dart';
 import '../../widgets/dashboard/time_range_selector.dart';
 import '../../widgets/dashboard/stats_grid.dart';
 import '../../widgets/dashboard/error_rate_chart.dart';
 import '../../widgets/dashboard/service_health_list.dart';
 import '../../widgets/dashboard/recent_errors_list.dart';
-/// Dashboard Page
+
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
@@ -30,6 +30,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+
+    // Reload data when API becomes configured
     ref.listen<ApiConfigState>(apiConfigProvider, (previous, next) {
       final wasConfigured = previous?.isConfigured ?? false;
       if (!wasConfigured && next.isConfigured) {
@@ -42,187 +45,302 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final apiConfig = ref.watch(apiConfigProvider);
 
     return Scaffold(
+      backgroundColor: c.bg,
+      // ── AppBar: LogPulse · pulse dot · bell · search ─────────────────────
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        backgroundColor: c.bg,
+        elevation: 0,
+        titleSpacing: 16,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Pulsing dot
+            _PulseDot(color: c.pulse),
+            const SizedBox(width: 8),
+            Text(
+              'LogPulse',
+              style: AppTextStyles.h1.copyWith(color: c.textPrimary),
+            ),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(dashboardProvider.notifier).refresh();
-            },
+          _AppBarIconButton(
+            icon: Icons.notifications_outlined,
+            color: c,
+            onTap: () {},
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              ref.read(navigationProvider.notifier).setIndex(3);
-            },
+          const SizedBox(width: 8),
+          _AppBarIconButton(
+            icon: Icons.search,
+            color: c,
+            onTap: () {},
           ),
+          const SizedBox(width: 16),
         ],
       ),
-      body: _buildBody(dashboardState, apiConfig),
+      body: _buildBody(dashboardState, apiConfig, c),
     );
   }
 
-  Widget _buildBody(DashboardState state, ApiConfigState apiConfig) {
+  Widget _buildBody(
+    DashboardState state,
+    ApiConfigState apiConfig,
+    AppColorTokens c,
+  ) {
     if (apiConfig.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (!apiConfig.isConfigured) {
-      if (apiConfig.isFirstRun) {
-        return _buildSetupPrompt();
-      }
-      return _buildNotConfigured();
+      return _buildUnconfigured(c, apiConfig.isFirstRun);
     }
 
     if (state.isLoading && state.stats == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (state.error != null) {
-      return _buildError(state.error!);
+    if (state.error != null && state.stats == null) {
+      return _buildError(state.error!, c);
     }
 
-    if (state.stats == null) {
-      return const Center(child: Text('No data available'));
-    }
-
-    return _buildDashboard(state);
+    return _buildDashboard(state, c);
   }
 
-  Widget _buildSetupPrompt() {
+  // ── Unconfigured state ────────────────────────────────────────────────────
+  Widget _buildUnconfigured(AppColorTokens c, bool isFirstRun) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.playlist_add, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(
-            'Welcome to LogPulse',
-            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
-          ),
-          const SizedBox(height: 8),
-          const Text('Let’s add your first API connection in Settings'),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              ref.read(navigationProvider.notifier).setIndex(3);
-            },
-            icon: const Icon(Icons.settings),
-            label: const Text('Open Settings'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isFirstRun ? Icons.playlist_add : Icons.settings_outlined,
+              size: 56,
+              color: c.textTertiary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isFirstRun ? 'Welcome to LogPulse' : 'API Not Configured',
+              style: AppTextStyles.h2.copyWith(color: c.textPrimary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isFirstRun
+                  ? 'Add your first API connection in Settings'
+                  : 'Configure your API key in Settings',
+              style: AppTextStyles.body.copyWith(color: c.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  ref.read(navigationProvider.notifier).goToSettings(),
+              icon: const Icon(Icons.settings),
+              label: const Text('Open Settings'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNotConfigured() {
+  // ── Error state ───────────────────────────────────────────────────────────
+  Widget _buildError(String error, AppColorTokens c) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.settings, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
-          Text(
-            'API Not Configured',
-            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
-          ),
-          const SizedBox(height: 8),
-          const Text('Please configure your API in Settings'),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              ref.read(navigationProvider.notifier).setIndex(3);
-            },
-            icon: const Icon(Icons.settings),
-            label: const Text('Go to Settings'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 56, color: c.error),
+            const SizedBox(height: 16),
+            Text(
+              'Dashboard Error',
+              style: AppTextStyles.h2.copyWith(color: c.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              style: AppTextStyles.body.copyWith(color: c.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  ref.read(dashboardProvider.notifier).refresh(),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildError(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 64, color: Colors.red),
-          const SizedBox(height: 16),
-          Text(
-            'Error Loading Dashboard',
-            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
-          ),
-          const SizedBox(height: 8),
-          Text(error, textAlign: TextAlign.center),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              ref.read(dashboardProvider.notifier).refresh();
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboard(DashboardState state) {
+  // ── Main dashboard ────────────────────────────────────────────────────────
+  Widget _buildDashboard(DashboardState state, AppColorTokens c) {
     final stats = state.stats!;
-    final errorsState = ref.watch(errorsProvider);
-    final errorGroups = errorsState.errorGroups
-        .where((g) => g.severity == ErrorSeverity.critical || g.severity == ErrorSeverity.high)
-        .toList();
 
+    // Build chart series from time-series data
     final series = state.timeSeries;
-    final errorPoints = <FlSpot>[];
     final trafficPoints = <FlSpot>[];
+    final errorPoints = <FlSpot>[];
 
     for (var i = 0; i < series.length; i++) {
-      final point = series[i];
       final x = i.toDouble();
-      errorPoints.add(FlSpot(x, point.errorRatePercent));
-      trafficPoints.add(FlSpot(x, point.totalCount.toDouble()));
+      trafficPoints.add(FlSpot(x, series[i].totalCount.toDouble()));
+      errorPoints.add(FlSpot(x, series[i].errorRatePercent));
     }
+
+    // Error groups for recent errors section
+    final errorsState = ref.watch(errorsProvider);
+    final criticalErrors = errorsState.errorGroups
+        .where((g) =>
+            g.severity == ErrorSeverity.critical ||
+            g.severity == ErrorSeverity.high)
+        .toList();
 
     return RefreshIndicator(
       onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
+          // 1. ENV Switcher
+          const EnvSwitcherBar(),
+          const SizedBox(height: 16),
+
+          // 2. Time range pills
           TimeRangeSelector(
             selectedRange: state.timeRange,
-            onRangeChanged: (value) {
-              ref.read(dashboardProvider.notifier).setTimeRange(value);
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'System Overview',
-            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
+            onRangeChanged: (value) =>
+                ref.read(dashboardProvider.notifier).setTimeRange(value),
           ),
           const SizedBox(height: 16),
+
+          // 3. Stats 2×2 grid
           StatsGrid(stats: stats),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // 4. Combined traffic + errors chart
           ErrorRateChart(
-            points: errorPoints,
-            label: 'Error Rate',
-            lineColor: AppColors.error,
-            areaColor: AppColors.error.withOpacity(0.1),
+            trafficPoints: trafficPoints,
+            errorPoints: errorPoints,
+            subtitle: _chartSubtitle(state.timeRange),
           ),
           const SizedBox(height: 24),
-          ErrorRateChart(
-            points: trafficPoints,
-            label: 'Traffic',
-            lineColor: AppColors.primary,
-            areaColor: AppColors.primary.withOpacity(0.1),
-          ),
-          const SizedBox(height: 24),
+
+          // 5. Service health
           ServiceHealthList(serviceStats: stats.serviceStats),
           const SizedBox(height: 24),
-          RecentErrorsList(errorGroups: errorGroups),
+
+          // 6. Recent critical errors
+          if (criticalErrors.isNotEmpty)
+            RecentErrorsList(errorGroups: criticalErrors),
         ],
+      ),
+    );
+  }
+
+  String _chartSubtitle(String timeRange) {
+    switch (timeRange) {
+      case 'last_hour':
+        return 'last 1h · 5m buckets';
+      case 'last_7d':
+        return 'last 7d · 6h buckets';
+      case 'last_30d':
+        return 'last 30d · 1d buckets';
+      default:
+        return 'last 24h · 1h buckets';
+    }
+  }
+}
+
+// ── Private sub-widgets ──────────────────────────────────────────────────────
+
+class _PulseDot extends StatefulWidget {
+  final Color color;
+  const _PulseDot({required this.color});
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.8, end: 1.3).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => Transform.scale(
+        scale: _scale.value,
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: widget.color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.5),
+                blurRadius: 5 * _scale.value,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AppBarIconButton extends StatelessWidget {
+  const _AppBarIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final AppColorTokens color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: c.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: c.border, width: 1),
+        ),
+        child: Icon(icon, size: 18, color: c.textSecondary),
       ),
     );
   }

@@ -1,83 +1,42 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/error_group.dart';
+import '../errors/error_group_card.dart';
 
+/// Compact "Recent Critical Errors" section — reuses [ErrorGroupCard].
 class RecentErrorsList extends StatelessWidget {
   final List<ErrorGroup> errorGroups;
+  final int maxVisible;
 
   const RecentErrorsList({
     super.key,
     required this.errorGroups,
+    this.maxVisible = 5,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (errorGroups.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (errorGroups.isEmpty) return const SizedBox.shrink();
 
-    final recent = errorGroups.take(5).toList();
+    final c = AppColors.of(context);
+    final visible = errorGroups.take(maxVisible).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Recent Critical Errors',
-          style: AppTextStyles.h3,
+          style: AppTextStyles.h2.copyWith(color: c.textPrimary),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        ...recent.map((group) {
-          final color = _severityColor(group.severity);
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.error, color: color, size: 18),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          '${group.errorCode ?? ''} ${group.services.join(', ')}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    group.message,
-                    style: AppTextStyles.body,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
+        const SizedBox(height: 12),
+        ...visible.map(
+          (group) => ErrorGroupCard(
+            group: group,
+            onTap: () {},
+          ),
+        ),
       ],
     );
-  }
-
-  Color _severityColor(ErrorSeverity severity) {
-    switch (severity) {
-      case ErrorSeverity.critical:
-        return AppColors.error;
-      case ErrorSeverity.high:
-        return AppColors.warning;
-      case ErrorSeverity.medium:
-        return AppColors.info;
-      case ErrorSeverity.low:
-        return AppColors.debug;
-    }
   }
 }
