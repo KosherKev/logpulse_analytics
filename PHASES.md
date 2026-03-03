@@ -597,7 +597,7 @@ terminal-style content containers.
 ---
 
 ### Phase 13 — Settings & ENV Switcher Redesign
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete — 2026-03-03  
 **Files touched**:
 - `lib/presentation/pages/settings/settings_page.dart` (rewrite)
 
