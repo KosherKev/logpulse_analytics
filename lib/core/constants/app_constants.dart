@@ -1,10 +1,13 @@
 /// App-wide constants
 class AppConstants {
   // API Configuration
-  static const String defaultApiBaseUrl =
-      'https://central-logging-service-858865328729.europe-west1.run.app';
+  static const String defaultApiBaseUrl = '';
   static const String apiVersion = 'v1';
   static const String apiBasePath = '/api/$apiVersion';
+  
+  // Storage Migration
+  static const String keyStorageVersion = 'storage_version';
+  static const int currentStorageVersion = 2;
   
   // Storage Keys
   static const String keyApiUrl = 'api_url';

@@ -119,3 +119,21 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter test: all tests passed
   - Rapid time range changes cancel prior requests; only latest completes; no error state on cancel
 - **Next Step**: Await approval to proceed to Phase 3
+
+### [PHASE 3] — Config Boot & Migration Fix
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added storage version keys to AppConstants
+  - Implemented one-time migration of legacy api_url/api_key into profiles
+  - Removed default base URL auto-configuration; fresh installs start unconfigured
+  - Added isFirstRun flag to ApiConfigState and onboarding prompt on Dashboard
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/app_constants.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/service_providers.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/pages/dashboard/dashboard_page.dart
+- **Verify**:
+  - flutter analyze: no new errors vs baseline (warnings remain)
+  - flutter test: all tests passed
+  - Fresh state shows setup prompt; legacy state migrates once and persists version=2
+- **Next Step**: Await approval to proceed to Phase 4

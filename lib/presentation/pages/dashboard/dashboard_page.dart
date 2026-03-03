@@ -68,6 +68,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
 
     if (!apiConfig.isConfigured) {
+      if (apiConfig.isFirstRun) {
+        return _buildSetupPrompt();
+      }
       return _buildNotConfigured();
     }
 
@@ -86,6 +89,32 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     return _buildDashboard(state);
   }
 
+  Widget _buildSetupPrompt() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.playlist_add, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
+          const Text(
+            'Welcome to LogPulse',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text('Let’s add your first API connection in Settings'),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              ref.read(navigationProvider.notifier).setIndex(3);
+            },
+            icon: const Icon(Icons.settings),
+            label: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNotConfigured() {
     return Center(
       child: Column(
@@ -102,7 +131,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              // Navigate to settings will be implemented in next phase
+              ref.read(navigationProvider.notifier).setIndex(3);
             },
             icon: const Icon(Icons.settings),
             label: const Text('Go to Settings'),

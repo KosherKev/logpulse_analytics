@@ -45,6 +45,7 @@ class ApiConfigState {
   final String? error;
   final List<ApiConnectionProfile> profiles;
   final String? activeProfileId;
+  final bool isFirstRun;
 
   ApiConfigState({
     this.baseUrl,
@@ -54,6 +55,7 @@ class ApiConfigState {
     this.error,
     this.profiles = const [],
     this.activeProfileId,
+    this.isFirstRun = false,
   });
 
   ApiConfigState copyWith({
@@ -64,6 +66,7 @@ class ApiConfigState {
     String? error,
     List<ApiConnectionProfile>? profiles,
     String? activeProfileId,
+    bool? isFirstRun,
   }) {
     return ApiConfigState(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -73,6 +76,7 @@ class ApiConfigState {
       error: error ?? this.error,
       profiles: profiles ?? this.profiles,
       activeProfileId: activeProfileId ?? this.activeProfileId,
+      isFirstRun: isFirstRun ?? this.isFirstRun,
     );
   }
 }
@@ -88,6 +92,7 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     
     try {
       final storage = await LocalStorageService.getInstance();
+      final storageVersion = storage.getInt(AppConstants.keyStorageVersion) ?? 0;
       final profilesJson =
           storage.getString(AppConstants.keyApiProfiles);
       final activeId =
@@ -111,28 +116,33 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
           activeProfile = activeProfile.copyWith(apiKey: secureKey ?? '');
         }
       } else {
-        var baseUrl = storage.getApiUrl();
-        var apiKey = await storage.getProfileApiKey('default');
+        final legacyBaseUrl = storage.getApiUrl();
+        String? legacyApiKey = await storage.getProfileApiKey('default');
+        legacyApiKey ??= storage.getString(AppConstants.keyApiKey);
 
-        baseUrl ??= AppConstants.defaultApiBaseUrl;
+        if (storageVersion < AppConstants.currentStorageVersion) {
+          if (legacyBaseUrl != null && legacyBaseUrl.isNotEmpty) {
+            final profile = ApiConnectionProfile(
+              id: 'default',
+              name: 'Default',
+              baseUrl: legacyBaseUrl,
+              apiKey: legacyApiKey ?? '',
+            );
+            profiles = [profile];
+            activeProfile = profile;
+            await _persistProfiles(storage, profiles, profile.id);
+            if ((legacyApiKey ?? '').isNotEmpty) {
+              await storage.setProfileApiKey(profile.id, legacyApiKey!);
+            }
+          }
+          await storage.setInt(AppConstants.keyStorageVersion, AppConstants.currentStorageVersion);
+        }
 
         const envApiKey =
             String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
-        if ((apiKey == null || apiKey.isEmpty) && envApiKey.isNotEmpty) {
-          apiKey = envApiKey;
-          await storage.setProfileApiKey('default', apiKey);
-        }
-
-        if (baseUrl.isNotEmpty) {
-          final profile = ApiConnectionProfile(
-            id: 'default',
-            name: 'Default',
-            baseUrl: baseUrl,
-            apiKey: apiKey ?? '',
-          );
-          profiles = [profile];
-          activeProfile = profile;
-          await _persistProfiles(storage, profiles, profile.id);
+        if (activeProfile != null && (activeProfile.apiKey.isEmpty) && envApiKey.isNotEmpty) {
+          await storage.setProfileApiKey(activeProfile.id, envApiKey);
+          activeProfile = activeProfile.copyWith(apiKey: envApiKey);
         }
       }
 
@@ -148,12 +158,14 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
           isLoading: false,
           profiles: profiles,
           activeProfileId: activeProfile.id,
+          isFirstRun: false,
         );
       } else {
         state = state.copyWith(
           isConfigured: false,
           isLoading: false,
           profiles: profiles,
+          isFirstRun: true,
         );
       }
     } catch (e) {
