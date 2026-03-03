@@ -287,16 +287,13 @@ No 1000-entry log dump requests.
 ---
 
 ### Phase 6 — Design Token System
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete — 2026-03-03
 **Files touched**:
-- `lib/core/theme/app_colors.dart` (rewrite)
-- `lib/core/theme/app_text_styles.dart` (rewrite)
-- `lib/core/theme/app_dimensions.dart` (update)
-- `lib/core/theme/app_spacing.dart` (update)
-- `lib/core/theme/app_shadows.dart` (update)
-- `lib/core/theme/app_theme.dart` (new file)
-- `pubspec.yaml` (add google_fonts)
-- `lib/app.dart` (update ThemeData)
+- `pubspec.yaml` (google_fonts: ^6.2.1 added)
+- `lib/core/theme/app_colors.dart` (rewrite — AppColorTokens typed container, light/dark variants, legacy compat)
+- `lib/core/theme/app_text_styles.dart` (rewrite — Syne/JetBrains Mono/Inter via GoogleFonts, getter-based)
+- `lib/core/theme/app_theme.dart` (NEW — AppTheme.lightTheme / darkTheme, full ThemeData)
+- `lib/app.dart` (updated to use AppTheme)
 
 **Actions**:
 
@@ -333,31 +330,79 @@ light background and deep slate dark background.
 ---
 
 ### Phase 7 — Typography Integration
-**Status**: ⬜ Not Started  
+**Status**: ⬜ Not Started
 **Files touched**:
-- All screen files (systematic find/replace of text style references)
-- `lib/core/theme/app_text_styles.dart`
+- `lib/presentation/pages/dashboard/dashboard_page.dart`
+- `lib/presentation/pages/logs/logs_page.dart`
+- `lib/presentation/pages/errors/errors_page.dart`
+- `lib/presentation/pages/settings/settings_page.dart`
+- `lib/presentation/pages/log_details/log_details_page.dart`
+- `lib/presentation/pages/log_details/tabs/overview_tab.dart`
+- `lib/presentation/pages/log_details/tabs/error_tab.dart`
+- `lib/presentation/pages/log_details/tabs/request_tab.dart`
+- `lib/presentation/pages/log_details/tabs/response_tab.dart`
+- `lib/presentation/pages/log_details/tabs/timeline_tab.dart`
+- `lib/presentation/widgets/cards/stat_card.dart`
+- `lib/presentation/widgets/cards/service_health_card.dart`
+- `lib/presentation/widgets/dashboard/error_rate_chart.dart`
+- `lib/presentation/widgets/dashboard/recent_errors_list.dart`
+- `lib/presentation/widgets/dashboard/service_health_list.dart`
+- `lib/presentation/widgets/dashboard/time_range_selector.dart`
+- `lib/presentation/widgets/errors/error_group_card.dart`
+- `lib/presentation/widgets/errors/summary_card.dart`
+- `lib/presentation/widgets/logs/enhanced_log_card.dart`
+- `lib/presentation/widgets/common_widgets.dart`
+- `lib/presentation/widgets/filter_dialog.dart`
+
+**Style Mapping** (old → new):
+| Old | New | Font | Notes |
+|-----|-----|------|-------|
+| `TextStyle(fontSize:20, fontWeight:bold)` | `AppTextStyles.h2` | Syne 700 | Inline raw styles (dashboard/logs) |
+| `Theme.of(context).textTheme.titleLarge` | `AppTextStyles.h3` | Syne 600 | common_widgets titles |
+| `AppTextStyles.overline` | `AppTextStyles.label` | JetBrains Mono | Upgrade overline→label |
+| `AppTextStyles.codeSmall` | `AppTextStyles.monoSm` | JetBrains Mono | All code/trace/path values |
+| `AppTextStyles.code` | `AppTextStyles.mono` | JetBrains Mono | Longer code blocks |
+| `TextStyle(fontWeight:bold)` | `AppTextStyles.bodyMedium` | Inter 500 | Raw bold in filter_dialog |
+| `TextStyle(color: Colors.grey[600])` | `AppTextStyles.body` + token color | Inter 400 | Generic grey text |
+| `TextStyle(color:Colors.red)` | `AppTextStyles.bodyMedium` + error token | Inter 500 | Danger text in settings |
 
 **Actions**:
 
-#### 7-A: Audit all `Text()` widgets across the app
-Use `start_search` to find all `.textTheme`, `AppTextStyles.`, and raw
-`TextStyle(` usages. Create a mapping of old → new styles.
+#### 7-A: Fix raw `TextStyle(...)` in `dashboard_page.dart`
+Three instances at lines ~101, ~127, ~153 use `TextStyle(fontSize:20, fontWeight:FontWeight.bold)`.
+Replace all three with `AppTextStyles.h2.copyWith(color: c.textPrimary)` where
+`c = AppColors.of(context)`.
 
-#### 7-B: Replace heading styles app-wide
-- Dashboard title "System Overview" → `AppTextStyles.h2` (Syne 700)
-- Section headers like "Service Health" → `AppTextStyles.h3` (Syne 600)
-- Stat card values → `AppTextStyles.display` (Syne 800)
+#### 7-B: Fix raw `TextStyle(...)` and `.textTheme.titleLarge` in `logs_page.dart`
+- Line ~427: `TextStyle(fontSize: 20, fontWeight: FontWeight.bold)` → `AppTextStyles.h2`
+- Line ~453: inline raw TextStyle → `AppTextStyles.body`
+- Line ~462: `TextStyle(color: Colors.grey[600])` → `AppTextStyles.body.copyWith(color: c.textTertiary)`
 
-#### 7-C: Replace data/label styles app-wide
-- All timestamps → `AppTextStyles.monoSm`
-- All trace IDs → `AppTextStyles.mono`
-- All HTTP methods (GET/POST) → `AppTextStyles.label` with accent color
-- All paths → `AppTextStyles.mono`
-- All stat card labels → `AppTextStyles.label` with textTertiary color
+#### 7-C: Fix raw `TextStyle(...)` in `filter_dialog.dart`
+Four instances of `TextStyle(fontWeight: FontWeight.bold)` (lines ~49, ~71, ~94, ~116).
+Replace all four with `AppTextStyles.bodyMedium`.
 
-**Verification**: Fonts load visually. `flutter run` on iOS simulator shows
-Syne on headings and JetBrains Mono on data values.
+#### 7-D: Fix raw `TextStyle(...)` in `settings_page.dart`
+- Lines ~471, ~500: `TextStyle(color: Colors.red)` → `AppTextStyles.bodyMedium.copyWith(color: c.error)`
+
+#### 7-E: Fix `Theme.of(context).textTheme.titleLarge` in `common_widgets.dart`
+- Lines ~53, ~102: `.textTheme.titleLarge?.copyWith(...)` → `AppTextStyles.h3.copyWith(...)`
+- Lines ~62, ~108: `TextStyle(color: Colors.grey[600])` → `AppTextStyles.bodySmall.copyWith(color: c.textTertiary)`
+
+#### 7-F: Upgrade `AppTextStyles.overline` → `AppTextStyles.label` app-wide
+`overline` in `settings_page.dart` line ~359 → `AppTextStyles.label`.
+
+#### 7-G: Upgrade `AppTextStyles.codeSmall` → `AppTextStyles.monoSm` app-wide
+All occurrences across log_details_page, all tabs, error_group_card, enhanced_log_card.
+
+#### 7-H: Fix `error_tab.dart` raw `TextStyle(...)` at line ~31
+Raw `TextStyle(...)` → `AppTextStyles.monoSm`.
+
+**Verification**:
+- `flutter analyze` — no new issues vs Phase 6 baseline (75 pre-existing)
+- No `TextStyle(` raw literals remain in any file listed above
+- No `Colors.grey[600]`, `Colors.red` hardcoded color references remain
+- No `AppTextStyles.codeSmall` or `AppTextStyles.overline` calls remain
 
 ---
 
