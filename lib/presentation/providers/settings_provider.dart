@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/local_storage_service.dart';
+import '../../core/constants/app_constants.dart';
 
 /// Settings State Provider
 final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
@@ -54,13 +55,17 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 
     try {
       final storage = await LocalStorageService.getInstance();
+      final activeId = storage.getString(AppConstants.keyActiveApiProfileId);
+      final hasSecureKey = activeId != null
+          ? (await storage.getProfileApiKey(activeId)) != null
+          : false;
 
       state = state.copyWith(
         themeMode: storage.getThemeMode(),
         autoRefresh: storage.getAutoRefresh(),
         refreshInterval: storage.getRefreshInterval(),
         apiUrl: storage.getApiUrl(),
-        hasApiKey: storage.getApiKey() != null,
+        hasApiKey: hasSecureKey,
         isLoading: false,
       );
     } catch (e) {
