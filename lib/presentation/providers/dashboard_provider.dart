@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/dashboard_stats.dart';
 import '../../data/models/time_series_point.dart';
@@ -51,6 +52,7 @@ class DashboardState {
 /// Dashboard Notifier
 class DashboardNotifier extends StateNotifier<DashboardState> {
   final DashboardRepository _repository;
+  Timer? _debounceTimer;
 
   DashboardNotifier(this._repository) : super(DashboardState());
 
@@ -75,10 +77,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         timeSeries: series,
       );
     } on AppException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.message,
-      );
+      if (e.code == 'CANCELLED') {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      state = state.copyWith(isLoading: false, error: e.message);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -94,7 +97,10 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   void setTimeRange(String timeRange) {
     if (timeRange != state.timeRange) {
       state = state.copyWith(timeRange: timeRange);
-      loadStats(timeRange: timeRange);
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+        loadStats(timeRange: timeRange);
+      });
     }
   }
 }

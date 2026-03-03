@@ -17,7 +17,7 @@
 | Phase | Name | Status | Completed |
 |-------|------|--------|-----------|
 | 1 | Secure Storage Migration | ✅ Complete | 2026-03-03 |
-| 2 | Request Race-Condition & Cancellation | ⬜ Not Started | — |
+| 2 | Request Race-Condition & Cancellation | ✅ Complete | 2026-03-03 |
 | 3 | Config Boot & Migration Fix | ⬜ Not Started | — |
 | 4 | Error Handling Specificity | ⬜ Not Started | — |
 | 5 | Time-Series Architecture Improvement | ⬜ Not Started | — |
@@ -102,3 +102,20 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - Ran flutter test: all tests passed
   - On app run, configuration loads API key from secure storage using active profile ID
 - **Next Step**: Await approval to proceed to Phase 2
+
+### [PHASE 2] — Request Race-Condition & Cancellation
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added CancelToken tracking with keyed cancellation in ApiService
+  - Applied cancellation to stats and logs requests
+  - Added 300ms debounce in DashboardNotifier.setTimeRange
+  - Suppressed error state updates on cancelled requests
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/dashboard_provider.dart
+- **Verify**:
+  - flutter analyze: no new errors (warnings remain from baseline)
+  - flutter test: all tests passed
+  - Rapid time range changes cancel prior requests; only latest completes; no error state on cancel
+- **Next Step**: Await approval to proceed to Phase 3

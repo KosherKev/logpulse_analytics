@@ -13,6 +13,7 @@ class ApiService {
 
   String? _baseUrl;
   String? _apiKey;
+  final Map<String, CancelToken> _activeTokens = {};
 
   ApiService({Dio? dio}) : _dio = dio ?? Dio() {
     _dio.options
@@ -36,9 +37,11 @@ class ApiService {
           return handler.next(response);
         },
         onError: (error, handler) {
-          _logger.e(
-            'Error (${error.type}): ${error.message ?? error.error}',
-          );
+          if (error.type == DioExceptionType.cancel) {
+            _logger.w('Request cancelled: ${error.requestOptions.uri}');
+          } else {
+            _logger.e('Error (${error.type}): ${error.message ?? error.error}');
+          }
           return handler.next(error);
         },
       ),
@@ -65,6 +68,23 @@ class ApiService {
 
   String get _apiRoot => '$_baseUrl${AppConstants.apiBasePath}';
   
+  void cancelRequest(String key) {
+    final token = _activeTokens.remove(key);
+    if (token != null && !token.isCancelled) {
+      token.cancel('Cancelled: $key');
+    }
+  }
+  
+  CancelToken _issueToken(String key) {
+    final existing = _activeTokens[key];
+    if (existing != null && !existing.isCancelled) {
+      existing.cancel('Replaced by newer request: $key');
+    }
+    final token = CancelToken();
+    _activeTokens[key] = token;
+    return token;
+  }
+  
   /// Fetch logs with filters
   Future<List<LogEntry>> getLogs(LogFilter filter) async {
     try {
@@ -81,7 +101,8 @@ class ApiService {
         search: filter.searchQuery,
       );
 
-      final response = await _dio.get('$_apiRoot$endpoint');
+      final cancelToken = _issueToken(endpoint);
+      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       final body = response.data;
 
       List<dynamic>? items;
@@ -111,7 +132,8 @@ class ApiService {
       _ensureConfigured();
 
       final endpoint = ApiEndpoints.logsByTraceId(traceId);
-      final response = await _dio.get('$_apiRoot$endpoint');
+      final cancelToken = _issueToken(endpoint);
+      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       final body = response.data;
 
       List<dynamic>? items;
@@ -159,13 +181,14 @@ class ApiService {
       _ensureConfigured();
 
       final endpoint = ApiEndpoints.buildStatsQuery(timeRange: timeRange);
-      final response = await _dio.get('$_apiRoot$endpoint');
-
+      final cancelToken = _issueToken(endpoint);
+      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return DashboardStats.fromApiJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
+  
   
   /// Check service health
   Future<bool> checkHealth() async {
