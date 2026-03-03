@@ -26,7 +26,7 @@
 | 8 | Core Component Redesign | ✅ Complete | 2026-03-03 |
 | 9 | Dashboard Screen Redesign | ✅ Complete | 2026-03-03 |
 | 10 | Logs Screen Redesign | ✅ Complete | 2026-03-03 |
-| 11 | Errors Screen Redesign | ⬜ Not Started | — |
+| 11 | Errors Screen Redesign | ✅ Complete | 2026-03-03 |
 | 12 | Log Detail Screen Redesign | ⬜ Not Started | — |
 | 13 | Settings & ENV Switcher Redesign | ⬜ Not Started | — |
 | 14 | Navigation & Shell Redesign | ⬜ Not Started | — |
@@ -207,6 +207,21 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter analyze: 0 errors. Pre-existing warning `invalid_use_of_protected_member` eliminated (was line 243, now gone). 6 remaining warnings all pre-existing.
   - Logs page: custom search bar with focus animation, 5 color-coded level pills, results count divider, skeleton loading (initial + load-more), redesigned saved-filters sheet with drag handle + swipe-to-delete
 - **Next Step**: Phase 11 — Errors Screen Redesign
+
+### [PHASE 11] — Errors Screen Redesign
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - **11-A: Summary cards row** — Full-width `ErrorSummaryCard` for "Total Error Groups" (error accent border), then 2-col row: "5xx Server Errors" (error) + "4xx Client Errors" (warning). Uses Phase 8 `ErrorSummaryCard` left-border design with `displaySm` value + `label` uppercase header. Old icon-circle pattern gone.
+  - **11-B: Severity filter tabs (`_SeverityTab`)** — 5 pill tabs: ALL · CRITICAL · HIGH · MEDIUM · LOW. Each tab has an inline count badge (e.g. `CRITICAL 3`). Color pairs: ALL → accent, CRITICAL → error, HIGH → warning, MEDIUM → info, LOW → debug. `_severityFilter` state drives in-memory filter — no new API call. `AnimatedContainer` 160ms transition. `setState` only — keeps existing `errorsProvider` state intact. Results count divider below shows `N GROUPS · SEVERITY` in JetBrains Mono label style, left-aligned with trailing line.
+  - **11-C: Error detail bottom sheet (`_showErrorDetails`)** — Replaced fixed `showModalBottomSheet` + fixed-size `Column` with `DraggableScrollableSheet` (0.35 min → 0.55 initial → 0.92 max). Content: error code chip + `_SeverityBadge` + count pill in header row. Message in `bodyLarge`. `_DetailRow` widgets (90px label column in `monoSm` textTertiary + value in `monoSm` textPrimary) for FIRST SEEN / LAST SEEN / SERVICES. Stack trace in dark terminal container (`AppColors.darkSurface` bg, `darkBorder` border, `darkTextPrimary` mono text, `SelectableText` so user can copy). "Find Similar" + "View Trace" as `OutlinedButton.icon` with accent border — side-by-side in a Row.
+  - **Supporting**: AppBar: red `_PulseDot` (900ms fast pulse, matches unhealthy service card speed) + Syne h1 "Errors" title + bordered refresh `_IconBtn`. `scaffold backgroundColor: c.bg`. `RefreshIndicator` uses `c.accent`. Empty state: green check icon + h2 "No Errors Found". Filtered-empty state: filter_list_off icon + body text. Error state: matches logs/dashboard pattern.
+- **Files Changed**:
+  - lib/presentation/pages/errors/errors_page.dart (full rewrite — 731 lines)
+- **Verify**:
+  - flutter analyze: 0 errors. 6 pre-existing warnings unchanged.
+  - Errors page: 3-card summary section, 5-tab severity filter with live counts, error groups list, detail sheet with terminal stack trace + action buttons
+- **Next Step**: Phase 12 — Log Detail Screen Redesign
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP
