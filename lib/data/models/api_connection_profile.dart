@@ -16,7 +16,7 @@ class ApiConnectionProfile {
       id: json['id'] as String,
       name: json['name'] as String,
       baseUrl: json['baseUrl'] as String,
-      apiKey: json['apiKey'] as String,
+      apiKey: '',
     );
   }
 
@@ -25,7 +25,6 @@ class ApiConnectionProfile {
       'id': id,
       'name': name,
       'baseUrl': baseUrl,
-      'apiKey': apiKey,
     };
   }
 
@@ -43,4 +42,3 @@ class ApiConnectionProfile {
     );
   }
 }
-

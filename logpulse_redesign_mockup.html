@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogPulse — Design System Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ═══════════════════════════════════════════
+     LIGHT THEME
+  ═══════════════════════════════════════════ */
+  .theme-light {
+    --bg:          #F7F6F3;
+    --bg-alt:      #EFEDE8;
+    --surface:     #FFFFFF;
+    --surface-2:   #F3F1EC;
+    --border:      #E2DFD8;
+    --border-soft: #EBE9E2;
+    --text-1:      #0D0C0A;
+    --text-2:      #4A4740;
+    --text-3:      #8C897F;
+    --text-inv:    #FFFFFF;
+    --accent:      #0052FF;
+    --accent-glow: rgba(0,82,255,0.12);
+    --accent-dim:  rgba(0,82,255,0.08);
+    --error:       #C8151B;
+    --error-bg:    #FFF0F0;
+    --error-glow:  rgba(200,21,27,0.10);
+    --warning:     #B45309;
+    --warning-bg:  #FFFBEB;
+    --success:     #047857;
+    --success-bg:  #F0FDF4;
+    --info:        #0369A1;
+    --info-bg:     #F0F9FF;
+    --debug:       #6D28D9;
+    --pulse:       #10B981;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:   0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+  }
+
+  /* ═══════════════════════════════════════════
+     DARK THEME
+  ═══════════════════════════════════════════ */
+  .theme-dark {
+    --bg:          #0D1117;
+    --bg-alt:      #090D12;
+    --surface:     #161B22;
+    --surface-2:   #1C2333;
+    --border:      #2A3141;
+    --border-soft: #1E2736;
+    --text-1:      #E6EDF3;
+    --text-2:      #8B949E;
+    --text-3:      #484F58;
+    --text-inv:    #0D1117;
+    --accent:      #2D7EFF;
+    --accent-glow: rgba(45,126,255,0.20);
+    --accent-dim:  rgba(45,126,255,0.10);
+    --error:       #FF4D54;
+    --error-bg:    rgba(255,77,84,0.10);
+    --error-glow:  rgba(255,77,84,0.20);
+    --warning:     #F59E0B;
+    --warning-bg:  rgba(245,158,11,0.10);
+    --success:     #1DB954;
+    --success-bg:  rgba(29,185,84,0.10);
+    --info:        #38BDF8;
+    --info-bg:     rgba(56,189,248,0.10);
+    --debug:       #A78BFA;
+    --pulse:       #1DB954;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.30);
+    --shadow-md:   0 4px 12px rgba(0,0,0,0.40);
+    --shadow-lg:   0 8px 32px rgba(0,0,0,0.50);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #111;
+    padding: 40px 24px;
+    min-height: 100vh;
+  }
+
+  h1.page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .page-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    margin-bottom: 48px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .themes-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 900px) {
+    .themes-wrapper { grid-template-columns: 1fr; }
+  }
+
+  .theme-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+
+  /* ═══════════════════════════════════════════
+     PHONE SHELL
+  ═══════════════════════════════════════════ */
+  .phone-shell {
+    width: 100%;
+    max-width: 390px;
+    margin: 0 auto;
+    border-radius: 48px;
+    padding: 14px;
+    background: #1A1A1A;
+    box-shadow: 0 0 0 1px #333, 0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 2px #222;
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 34px;
+    background: #0A0A0A;
+    border-radius: 20px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .phone-notch::after {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #1A1A1A;
+    box-shadow: 0 0 0 2px #333;
+  }
+  .phone-screen {
+    border-radius: 36px;
+    overflow: hidden;
+    background: var(--bg);
+    position: relative;
+    height: 844px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ═══════════════════════════════════════════
+     STATUS BAR
+  ═══════════════════════════════════════════ */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px 8px;
+    background: var(--bg);
+    flex-shrink: 0;
+    padding-top: 52px;
+  }
+  .status-time {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+  .status-icons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .status-icons span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  /* ═══════════════════════════════════════════
+     TOP NAV
+  ═══════════════════════════════════════════ */
+  .top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 16px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .nav-wordmark {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-1);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-wordmark .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pulse);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(29,185,84,0.5); }
+    50% { box-shadow: 0 0 0 5px rgba(29,185,84,0); }
+  }
+  .nav-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .nav-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+  }
+  .nav-icon-btn svg { width: 16px; height: 16px; stroke: var(--text-2); }
+
+  /* ═══════════════════════════════════════════
+     ENV SWITCHER
+  ═══════════════════════════════════════════ */
+  .env-switcher {
+    margin: 0 20px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+  }
+  .env-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .env-badge {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px var(--success-bg);
+  }
+  .env-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-1);
+  }
+  .env-url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .env-switch-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent-glow);
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  /* ═══════════════════════════════════════════
+     SCROLLABLE CONTENT
+  ═══════════════════════════════════════════ */
+  .screen-content {
+    flex: 1;
+    overflow: hidden;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ═══════════════════════════════════════════
+     TIME RANGE PILLS
+  ═══════════════════════════════════════════ */
+  .time-pills {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    background: var(--surface);
+    transition: var(--transition);
+    white-space: nowrap;
+  }
+  .pill.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+
+  /* ═══════════════════════════════════════════
+     STATS ROW
+  ═══════════════════════════════════════════ */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 16px 0 0 16px;
+  }
+  .stat-card.blue::before  { background: var(--accent); }
+  .stat-card.red::before   { background: var(--error); }
+  .stat-card.green::before { background: var(--success); }
+  .stat-card.amber::before { background: var(--warning); }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-3);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-1);
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+  .stat-delta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .stat-delta.up   { color: var(--success); }
+  .stat-delta.down { color: var(--error); }
+  .stat-delta.neutral { color: var(--text-3); }
+
+  /* ═══════════════════════════════════════════
+     CHART CARD
+  ═══════════════════════════════════════════ */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+  }
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+  .chart-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .chart-area {
+    height: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .chart-svg { width: 100%; height: 100%; }
+
+  /* ═══════════════════════════════════════════
+     SERVICE LIST
+  ═══════════════════════════════════════════ */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-1);
+  }
+  .section-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+  }
+
+  .service-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .service-row::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+  }
+  .service-row.healthy::before  { background: var(--success); }
+  .service-row.degraded::before { background: var(--warning); }
+  .service-row.down::before     { background: var(--error); }
+
+  .service-status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .healthy  .service-status-dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .degraded .service-status-dot { background: var(--warning); }
+  .down     .service-status-dot { background: var(--error); animation: error-pulse 1s ease-in-out infinite; }
+
+  @keyframes error-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--error-glow); }
+    50% { box-shadow: 0 0 0 5px transparent; }
+  }
+
+  .service-info { flex: 1; min-width: 0; }
+  .service-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .service-detail {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+
+  .service-count {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .service-count-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-1);
+  }
+  .service-count-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+  }
+
+  /* ═══════════════════════════════════════════
+     BOTTOM NAV
+  ═══════════════════════════════════════════ */
+  .bottom-nav {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px 28px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-around;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    position: relative;
+  }
+  .nav-icon-wrap {
+    width: 44px; height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .nav-item.active .nav-icon-wrap {
+    background: var(--accent-dim);
+  }
+  .nav-item.active .nav-icon-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%; transform: translateX(-50%);
+    width: 16px; height: 2px;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .nav-item svg { width: 20px; height: 20px; }
+  .nav-item.active svg { stroke: var(--accent); }
+  .nav-item:not(.active) svg { stroke: var(--text-3); }
+  .nav-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .nav-item.active .nav-label { color: var(--accent); }
+  .nav-item:not(.active) .nav-label { color: var(--text-3); }
+  .nav-badge {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--error);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border: 2px solid var(--surface);
+  }
+
+  /* ═══════════════════════════════════════════
+     LOG ENTRY CARD (Logs Screen)
+  ═══════════════════════════════════════════ */
+  .log-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .log-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .log-card.error::before   { background: var(--error); }
+  .log-card.warn::before    { background: var(--warning); }
+  .log-card.info::before    { background: var(--info); }
+  .log-card.debug::before   { background: var(--debug); }
+
+  .log-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .log-level-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .level-error { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-glow); }
+  .level-warn  { background: var(--warning-bg); color: var(--warning); }
+  .level-info  { background: var(--info-bg); color: var(--info); }
+  .level-debug { background: rgba(109,40,217,0.10); color: var(--debug); }
+
+  .log-service {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-1);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .log-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .status-5xx { color: var(--error); }
+  .status-4xx { color: var(--warning); }
+  .status-2xx { color: var(--success); }
+
+  .log-path-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 5px 10px;
+    margin-bottom: 6px;
+  }
+  .log-method {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .log-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .log-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .log-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+  }
+  .log-meta-item svg { width: 10px; height: 10px; stroke: var(--text-3); }
+
+  .log-error-msg {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--error);
+    margin-top: 6px;
+    padding: 5px 8px;
+    background: var(--error-bg);
+    border-radius: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ═══════════════════════════════════════════
+     SEARCH BAR
+  ═══════════════════════════════════════════ */
+  .search-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+  }
+  .search-icon svg { width: 15px; height: 15px; stroke: var(--text-3); }
+  .search-placeholder {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    flex: 1;
+  }
+  .search-shortcut {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  /* ═══════════════════════════════════════════
+     FILTER CHIPS
+  ═══════════════════════════════════════════ */
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .filter-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+  .filter-chip.active-error  { border-color: var(--error); color: var(--error); background: var(--error-bg); }
+  .filter-chip.active-warn   { border-color: var(--warning); color: var(--warning); background: var(--warning-bg); }
+  .filter-chip.active-info   { border-color: var(--info); color: var(--info); background: var(--info-bg); }
+
+  /* ═══════════════════════════════════════════
+     LABEL DIVIDER
+  ═══════════════════════════════════════════ */
+  .label-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-bottom: -8px;
+  }
+  .label-divider span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+  .label-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ═══════════════════════════════════════════
+     SCREEN SWITCHER TABS
+  ═══════════════════════════════════════════ */
+  .screen-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-alt);
+    border-radius: 10px;
+    padding: 3px;
+    margin: 0 20px 0;
+    flex-shrink: 0;
+  }
+  .screen-tab {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    padding: 7px 4px;
+    border-radius: 8px;
+    color: var(--text-3);
+    cursor: pointer;
+  }
+  .screen-tab.active {
+    background: var(--surface);
+    color: var(--text-1);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ═══════════════════════════════════════════
+     DESIGN NOTES PANEL
+  ═══════════════════════════════════════════ */
+  .notes-panel {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid #2A2A2A;
+    background: #161616;
+    max-width: 390px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .notes-panel h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .note-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .note-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .note-item p {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .note-item strong { color: #999; }
+
+  /* ═══════════════════════════════════════════
+     SECOND SCREEN (LOGS)
+  ═══════════════════════════════════════════ */
+  .screen-2 { margin-top: 40px; }
+
+</style>
+</head>
+<body>
+
+<h1 class="page-title">LogPulse — Design System Mockup</h1>
+<p class="page-subtitle">Neo-Terminal Precision · Syne + JetBrains Mono · Auto Theme</p>
+
+<div class="themes-wrapper">
+
+  <!-- ╔══════════════════════════════════╗ -->
+  <!-- ║         LIGHT THEME             ║ -->
+  <!-- ╚══════════════════════════════════╝ -->
+  <div>
+    <p class="theme-label">☀️ Light Theme — Dashboard</p>
+    <div class="phone-shell theme-light">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+          <span class="status-time">09:41</span>
+          <div class="status-icons">
+            <span>5G</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-1)"><path d="M6 18V9m4-3v12m4-6v6m4-9v9"/></svg>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--text-1)"><path d="M6.5 16H5a2 2 0 01-2-2v-4a2 2 0 012-2h1.5a2 2 0 012 2v4a2 2 0 01-2 2zm7 2H12a2 2 0 01-2-2V8a2 2 0 012-2h1.5a2 2 0 012 2v8a2 2 0 01-1.5 2zm7 0H19a2 2 0 01-2-2V6a2 2 0 012-2h1.5a2 2 0 012 2v10a2 2 0 01-1.5 2zM23 4v.01"/></svg>
+          </div>
+        </div>
+
+        <!-- Top Nav -->
+        <div class="top-nav">
+          <div class="nav-wordmark">
+            <div class="dot"></div>
+            LogPulse
+          </div>
+          <div class="nav-actions">
+            <div class="nav-icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div class="nav-icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENV Switcher -->
+        <div class="env-switcher">
+          <div class="env-left">
+            <div class="env-badge"></div>
+            <div>
+              <div class="env-name">Production</div>
+              <div class="env-url">central-logging.run.app</div>
+            </div>
+          </div>
+          <div class="env-switch-btn">SWITCH</div>
+        </div>
+
+        <!-- Scrollable content area -->
+        <div class="screen-content">
+
+          <!-- Time pills -->
+          <div class="time-pills">
+            <div class="pill">1h</div>
+            <div class="pill active">24h</div>
+            <div class="pill">7d</div>
+            <div class="pill">30d</div>
+          </div>
+
+          <!-- Stats -->
+          <div class="stats-row">
+            <div class="stat-card blue">
+              <div class="stat-label">Total Logs</div>
+              <div class="stat-value">23.4K</div>
+              <div class="stat-delta up">↑ 12% vs yesterday</div>
+            </div>
+            <div class="stat-card red">
+              <div class="stat-label">Error Rate</div>
+              <div class="stat-value">0.8%</div>
+              <div class="stat-delta down">↑ 0.2% from avg</div>
+            </div>
+            <div class="stat-card amber">
+              <div class="stat-label">Avg Latency</div>
+              <div class="stat-value">142ms</div>
+              <div class="stat-delta neutral">→ stable</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-label">Req / Hour</div>
+              <div class="stat-value">1.2K</div>
+              <div class="stat-delta up">↑ 8% peak</div>
+            </div>
+          </div>
+
+          <!-- Chart -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title">Traffic &amp; Errors</span>
+              <span class="chart-meta">last 24h · 1h buckets</span>
+            </div>
+            <div class="chart-area">
+              <svg class="chart-svg" viewBox="0 0 340 80" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="lgTrafficL" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#0052FF" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#0052FF" stop-opacity="0"/>
+                  </linearGradient>
+                  <linearGradient id="lgErrorL" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#C8151B" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#C8151B" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <!-- Traffic area -->
+                <path d="M0,55 C20,50 40,40 60,42 C80,44 100,30 120,28 C140,26 160,35 180,32 C200,29 220,20 240,22 C260,24 280,30 300,25 C320,20 340,15 340,15 L340,80 L0,80 Z" fill="url(#lgTrafficL)"/>
+                <path d="M0,55 C20,50 40,40 60,42 C80,44 100,30 120,28 C140,26 160,35 180,32 C200,29 220,20 240,22 C260,24 280,30 300,25 C320,20 340,15 340,15" fill="none" stroke="#0052FF" stroke-width="2" stroke-linecap="round"/>
+                <!-- Error area -->
+                <path d="M0,72 C20,71 40,70 60,68 C80,66 100,65 120,72 C140,78 160,70 180,68 C200,66 220,70 240,65 C260,60 280,68 300,72 C320,76 340,70 340,70 L340,80 L0,80 Z" fill="url(#lgErrorL)"/>
+                <path d="M0,72 C20,71 40,70 60,68 C80,66 100,65 120,72 C140,78 160,70 180,68 C200,66 220,70 240,65 C260,60 280,68 300,72 C320,76 340,70 340,70" fill="none" stroke="#C8151B" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/>
+                <!-- Grid lines -->
+                <line x1="0" y1="26" x2="340" y2="26" stroke="#E2DFD8" stroke-width="0.5"/>
+                <line x1="0" y1="53" x2="340" y2="53" stroke="#E2DFD8" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:8px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:12px;height:2px;background:#0052FF;border-radius:2px;"></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-3);">traffic</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:12px;height:1px;background:#C8151B;border-radius:2px;border-top:1px dashed #C8151B;"></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-3);">errors</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Services -->
+          <div class="section-header">
+            <span class="section-title">Service Health</span>
+            <span class="section-link">view all →</span>
+          </div>
+
+          <div>
+            <div class="service-row healthy">
+              <div class="service-status-dot"></div>
+              <div class="service-info">
+                <div class="service-name">payment-gateway</div>
+                <div class="service-detail">0.0% err · 98ms · 99.9% up</div>
+              </div>
+              <div class="service-count">
+                <div class="service-count-val">4.2K</div>
+                <div class="service-count-label">reqs</div>
+              </div>
+            </div>
+            <div class="service-row degraded">
+              <div class="service-status-dot"></div>
+              <div class="service-info">
+                <div class="service-name">user-api</div>
+                <div class="service-detail">2.3% err · 340ms · 97.1% up</div>
+              </div>
+              <div class="service-count">
+                <div class="service-count-val">8.1K</div>
+                <div class="service-count-label">reqs</div>
+              </div>
+            </div>
+            <div class="service-row down">
+              <div class="service-status-dot"></div>
+              <div class="service-info">
+                <div class="service-name">order-processor</div>
+                <div class="service-detail">18.2% err · 1.2s · 81.4% up</div>
+              </div>
+              <div class="service-count">
+                <div class="service-count-val">2.8K</div>
+                <div class="service-count-label">reqs</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav">
+          <div class="nav-item active">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </div>
+            <span class="nav-label">DASH</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon-wrap" style="position:relative;">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <div class="nav-badge">3</div>
+            </div>
+            <span class="nav-label">ERRORS</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <span class="nav-label">LOGS</span>
+          </div>
+          <div class="nav-item">
+            <div class="nav-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75M20.49 12H22M2 12h1.51M19.07 19.07l-1.41-1.41M5.34 18.66l-1.41 1.41M12 20.49V22M12 2v1.51"/></svg>
+            </div>
+            <span class="nav-label">CONFIG</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SCREEN 2: Logs -->
+    <div class="screen-2">
+      <p class="theme-label" style="margin-top:24px;">☀️ Light Theme — Logs View</p>
+      <div class="phone-shell theme-light">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+
+          <div class="status-bar">
+            <span class="status-time">09:41</span>
+            <div class="status-icons"><span>5G</span></div>
+          </div>
+
+          <div class="top-nav">
+            <div class="nav-wordmark">
+              <div class="dot"></div>
+              Logs
+            </div>
+            <div class="nav-actions">
+              <div class="nav-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg>
+              </div>
+              <div class="nav-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="screen-content">
+
+            <!-- Search bar -->
+            <div class="search-bar">
+              <div class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </div>
+              <span class="search-placeholder">trace ID, service, path...</span>
+              <span class="search-shortcut">⌘K</span>
+            </div>
+
+            <!-- Filter chips -->
+            <div class="filter-row">
+              <div class="filter-chip active-error">ERROR</div>
+              <div class="filter-chip active-warn">WARN</div>
+              <div class="filter-chip">INFO</div>
+              <div class="filter-chip">DEBUG</div>
+              <div class="filter-chip">ALL</div>
+            </div>
+
+            <!-- Results count -->
+            <div class="label-divider">
+              <span>186 results · 5xx priority</span>
+            </div>
+
+            <!-- Log cards -->
+            <div>
+              <div class="log-card error">
+                <div class="log-top">
+                  <span class="log-level-chip level-error">ERROR</span>
+                  <span class="log-service">order-processor</span>
+                  <span class="log-status status-5xx">500</span>
+                </div>
+                <div class="log-path-row">
+                  <span class="log-method">POST</span>
+                  <span class="log-path">/api/v1/orders/checkout</span>
+                </div>
+                <div class="log-meta">
+                  <div class="log-meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    3m ago
+                  </div>
+                  <div class="log-meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    1.24s
+                  </div>
+                  <div class="log-meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    a3f8...9c2d
+                  </div>
+                </div>
+                <div class="log-error-msg">DB_CONNECTION_TIMEOUT: pool exhausted after 30000ms</div>
+              </div>
+
+              <div class="log-card warn">
+                <div class="log-top">
+                  <span class="log-level-chip level-warn">WARN</span>
+                  <span class="log-service">user-api</span>
+                  <span class="log-status status-4xx">429</span>
+                </div>
+                <div class="log-path-row">
+                  <span class="log-method">GET</span>
+                  <span class="log-path">/api/v1/users/profile</span>
+                </div>
+                <div class="log-meta">
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>7m ago</div>
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>45ms</div>
+                </div>
+              </div>
+
+              <div class="log-card info">
+                <div class="log-top">
+                  <span class="log-level-chip level-info">INFO</span>
+                  <span class="log-service">payment-gateway</span>
+                  <span class="log-status status-2xx">201</span>
+                </div>
+                <div class="log-path-row">
+                  <span class="log-method">POST</span>
+                  <span class="log-path">/api/v1/payments/initiate</span>
+                </div>
+                <div class="log-meta">
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>12m ago</div>
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>88ms</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><span class="nav-label">DASH</span></div>
+            <div class="nav-item"><div class="nav-icon-wrap" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="nav-badge">3</div></div><span class="nav-label">ERRORS</span></div>
+            <div class="nav-item active"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span class="nav-label">LOGS</span></div>
+            <div class="nav-item"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75M20.49 12H22M2 12h1.51M19.07 19.07l-1.41-1.41M5.34 18.66l-1.41 1.41M12 20.49V22M12 2v1.51"/></svg></div><span class="nav-label">CONFIG</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Notes Light -->
+    <div class="notes-panel">
+      <h3>Design Notes · Light</h3>
+      <div class="note-item"><div class="note-dot" style="background:#0052FF;"></div><p><strong>Left-border accent lines</strong> on every card replace the old "colored chip + text" pattern. Color communicates severity at a glance.</p></div>
+      <div class="note-item"><div class="note-dot" style="background:#047857;"></div><p><strong>Live pulse animation</strong> on the green wordmark dot and healthy service indicators signals real-time connection status.</p></div>
+      <div class="note-item"><div class="note-dot" style="background:#B45309;"></div><p><strong>Warm off-white background</strong> (#F7F6F3) vs clinical white. Reduces eye strain for long monitoring sessions.</p></div>
+      <div class="note-item"><div class="note-dot" style="background:#6D28D9;"></div><p><strong>JetBrains Mono for all data</strong> — timestamps, paths, trace IDs, durations. Syne for section headings only.</p></div>
+    </div>
+
+  </div>
+
+  <!-- ╔══════════════════════════════════╗ -->
+  <!-- ║         DARK THEME              ║ -->
+  <!-- ╚══════════════════════════════════╝ -->
+  <div>
+    <p class="theme-label">🌑 Dark Theme — Dashboard</p>
+    <div class="phone-shell theme-dark">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+
+        <div class="status-bar">
+          <span class="status-time">09:41</span>
+          <div class="status-icons"><span>5G</span></div>
+        </div>
+
+        <div class="top-nav">
+          <div class="nav-wordmark">
+            <div class="dot"></div>
+            LogPulse
+          </div>
+          <div class="nav-actions">
+            <div class="nav-icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div class="nav-icon-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="env-switcher">
+          <div class="env-left">
+            <div class="env-badge"></div>
+            <div>
+              <div class="env-name">Production</div>
+              <div class="env-url">central-logging.run.app</div>
+            </div>
+          </div>
+          <div class="env-switch-btn">SWITCH</div>
+        </div>
+
+        <div class="screen-content">
+
+          <div class="time-pills">
+            <div class="pill">1h</div>
+            <div class="pill active">24h</div>
+            <div class="pill">7d</div>
+            <div class="pill">30d</div>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card blue">
+              <div class="stat-label">Total Logs</div>
+              <div class="stat-value">23.4K</div>
+              <div class="stat-delta up">↑ 12% vs yesterday</div>
+            </div>
+            <div class="stat-card red">
+              <div class="stat-label">Error Rate</div>
+              <div class="stat-value">0.8%</div>
+              <div class="stat-delta down">↑ 0.2% from avg</div>
+            </div>
+            <div class="stat-card amber">
+              <div class="stat-label">Avg Latency</div>
+              <div class="stat-value">142ms</div>
+              <div class="stat-delta neutral">→ stable</div>
+            </div>
+            <div class="stat-card green">
+              <div class="stat-label">Req / Hour</div>
+              <div class="stat-value">1.2K</div>
+              <div class="stat-delta up">↑ 8% peak</div>
+            </div>
+          </div>
+
+          <!-- Chart dark -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <span class="chart-title">Traffic &amp; Errors</span>
+              <span class="chart-meta">last 24h · 1h buckets</span>
+            </div>
+            <div class="chart-area">
+              <svg class="chart-svg" viewBox="0 0 340 80" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="lgTrafficD" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2D7EFF" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="#2D7EFF" stop-opacity="0"/>
+                  </linearGradient>
+                  <linearGradient id="lgErrorD" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FF4D54" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="#FF4D54" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,55 C20,50 40,40 60,42 C80,44 100,30 120,28 C140,26 160,35 180,32 C200,29 220,20 240,22 C260,24 280,30 300,25 C320,20 340,15 340,15 L340,80 L0,80 Z" fill="url(#lgTrafficD)"/>
+                <path d="M0,55 C20,50 40,40 60,42 C80,44 100,30 120,28 C140,26 160,35 180,32 C200,29 220,20 240,22 C260,24 280,30 300,25 C320,20 340,15 340,15" fill="none" stroke="#2D7EFF" stroke-width="2" stroke-linecap="round"/>
+                <path d="M0,72 C20,71 40,70 60,68 C80,66 100,65 120,72 C140,78 160,70 180,68 C200,66 220,70 240,65 C260,60 280,68 300,72 C320,76 340,70 340,70 L340,80 L0,80 Z" fill="url(#lgErrorD)"/>
+                <path d="M0,72 C20,71 40,70 60,68 C80,66 100,65 120,72 C140,78 160,70 180,68 C200,66 220,70 240,65 C260,60 280,68 300,72 C320,76 340,70 340,70" fill="none" stroke="#FF4D54" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/>
+                <line x1="0" y1="26" x2="340" y2="26" stroke="#2A3141" stroke-width="0.5"/>
+                <line x1="0" y1="53" x2="340" y2="53" stroke="#2A3141" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:8px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:12px;height:2px;background:#2D7EFF;border-radius:2px;"></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-3);">traffic</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:12px;height:1px;background:#FF4D54;border-radius:2px;"></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-3);">errors</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-header">
+            <span class="section-title">Service Health</span>
+            <span class="section-link">view all →</span>
+          </div>
+
+          <div>
+            <div class="service-row healthy">
+              <div class="service-status-dot"></div>
+              <div class="service-info">
+                <div class="service-name">payment-gateway</div>
+                <div class="service-detail">0.0% err · 98ms · 99.9% up</div>
+              </div>
+              <div class="service-count">
+                <div class="service-count-val">4.2K</div>
+                <div class="service-count-label">reqs</div>
+              </div>
+            </div>
+            <div class="service-row degraded">
+              <div class="service-status-dot"></div>
+              <div class="service-info">
+                <div class="service-name">user-api</div>
+                <div class="service-detail">2.3% err · 340ms · 97.1% up</div>
+              </div>
+              <div class="service-count">
+                <div class="service-count-val">8.1K</div>
+                <div class="service-count-label">reqs</div>
+              </div>
+            </div>
+            <div class="service-row down">
+              <div class="service-status-dot"></div>
+              <div class="service-info">
+                <div class="service-name">order-processor</div>
+                <div class="service-detail">18.2% err · 1.2s · 81.4% up</div>
+              </div>
+              <div class="service-count">
+                <div class="service-count-val">2.8K</div>
+                <div class="service-count-label">reqs</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item active"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><span class="nav-label">DASH</span></div>
+          <div class="nav-item"><div class="nav-icon-wrap" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="nav-badge">3</div></div><span class="nav-label">ERRORS</span></div>
+          <div class="nav-item"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span class="nav-label">LOGS</span></div>
+          <div class="nav-item"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75M20.49 12H22M2 12h1.51M19.07 19.07l-1.41-1.41M5.34 18.66l-1.41 1.41M12 20.49V22M12 2v1.51"/></svg></div><span class="nav-label">CONFIG</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SCREEN 2 Dark: Logs -->
+    <div class="screen-2">
+      <p class="theme-label" style="margin-top:24px;">🌑 Dark Theme — Logs View</p>
+      <div class="phone-shell theme-dark">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+
+          <div class="status-bar">
+            <span class="status-time">09:41</span>
+            <div class="status-icons"><span>5G</span></div>
+          </div>
+
+          <div class="top-nav">
+            <div class="nav-wordmark">
+              <div class="dot"></div>
+              Logs
+            </div>
+            <div class="nav-actions">
+              <div class="nav-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="18" y2="18"/></svg>
+              </div>
+              <div class="nav-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="screen-content">
+
+            <div class="search-bar">
+              <div class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              </div>
+              <span class="search-placeholder">trace ID, service, path...</span>
+              <span class="search-shortcut">⌘K</span>
+            </div>
+
+            <div class="filter-row">
+              <div class="filter-chip active-error">ERROR</div>
+              <div class="filter-chip active-warn">WARN</div>
+              <div class="filter-chip">INFO</div>
+              <div class="filter-chip">DEBUG</div>
+              <div class="filter-chip">ALL</div>
+            </div>
+
+            <div class="label-divider">
+              <span>186 results · 5xx priority</span>
+            </div>
+
+            <div>
+              <div class="log-card error">
+                <div class="log-top">
+                  <span class="log-level-chip level-error">ERROR</span>
+                  <span class="log-service">order-processor</span>
+                  <span class="log-status status-5xx">500</span>
+                </div>
+                <div class="log-path-row">
+                  <span class="log-method">POST</span>
+                  <span class="log-path">/api/v1/orders/checkout</span>
+                </div>
+                <div class="log-meta">
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>3m ago</div>
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>1.24s</div>
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>a3f8...9c2d</div>
+                </div>
+                <div class="log-error-msg">DB_CONNECTION_TIMEOUT: pool exhausted after 30000ms</div>
+              </div>
+
+              <div class="log-card warn">
+                <div class="log-top">
+                  <span class="log-level-chip level-warn">WARN</span>
+                  <span class="log-service">user-api</span>
+                  <span class="log-status status-4xx">429</span>
+                </div>
+                <div class="log-path-row">
+                  <span class="log-method">GET</span>
+                  <span class="log-path">/api/v1/users/profile</span>
+                </div>
+                <div class="log-meta">
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>7m ago</div>
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>45ms</div>
+                </div>
+              </div>
+
+              <div class="log-card info">
+                <div class="log-top">
+                  <span class="log-level-chip level-info">INFO</span>
+                  <span class="log-service">payment-gateway</span>
+                  <span class="log-status status-2xx">201</span>
+                </div>
+                <div class="log-path-row">
+                  <span class="log-method">POST</span>
+                  <span class="log-path">/api/v1/payments/initiate</span>
+                </div>
+                <div class="log-meta">
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>12m ago</div>
+                  <div class="log-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>88ms</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><span class="nav-label">DASH</span></div>
+            <div class="nav-item"><div class="nav-icon-wrap" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="nav-badge">3</div></div><span class="nav-label">ERRORS</span></div>
+            <div class="nav-item active"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span class="nav-label">LOGS</span></div>
+            <div class="nav-item"><div class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 5.34L3.93 6.75M20.49 12H22M2 12h1.51M19.07 19.07l-1.41-1.41M5.34 18.66l-1.41 1.41M12 20.49V22M12 2v1.51"/></svg></div><span class="nav-label">CONFIG</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Notes Dark -->
+    <div class="notes-panel">
+      <h3>Design Notes · Dark</h3>
+      <div class="note-item"><div class="note-dot" style="background:#2D7EFF;"></div><p><strong>GitHub-dark baseline</strong> (#0D1117) rather than pure #000. Deep slate feels intentional, not lazy. Surface layers step up in lightness for depth.</p></div>
+      <div class="note-item"><div class="note-dot" style="background:#FF4D54;"></div><p><strong>Error indicators glow</strong> in dark mode. The pulsing red dot on a down service creates genuine urgency that a static icon cannot.</p></div>
+      <div class="note-item"><div class="note-dot" style="background:#1DB954;"></div><p><strong>Chart gradients are richer</strong> at 35% opacity vs. 20% in light — dark mode allows more dramatic gradient fills without looking washed out.</p></div>
+      <div class="note-item"><div class="note-dot" style="background:#F59E0B;"></div><p><strong>SWITCH button</strong> in the env-switcher uses accent-dim background — critical affordance, not just a text label.</p></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Color Palette Strip -->
+<div style="max-width:1400px;margin:48px auto 0;padding:0 24px;">
+  <p style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:#444;margin-bottom:16px;">Design Tokens</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#F7F6F3;border:1px solid #333;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">bg-light</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#0D1117;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">bg-dark</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#0052FF;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">accent-L</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#2D7EFF;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">accent-D</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#C8151B;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">error-L</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#FF4D54;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">error-D</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#047857;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">success-L</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#1DB954;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">success-D</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#B45309;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">warning-L</p>
+    </div>
+    <div style="text-align:center;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#F59E0B;"></div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;margin-top:4px;">warning-D</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">
+    <div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-bottom:4px;">Display · Headings</p>
+      <p style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#eee;letter-spacing:-0.5px;">Syne 800</p>
+    </div>
+    <div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-bottom:4px;">Data · Code · Labels</p>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;color:#eee;">JetBrains Mono 500</p>
+    </div>
+    <div>
+      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-bottom:4px;">Body · Prose</p>
+      <p style="font-family:'Inter',sans-serif;font-size:14px;font-weight:400;color:#eee;">Inter 400</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

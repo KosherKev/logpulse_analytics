@@ -107,10 +107,12 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
             (p) => p.id == activeId,
             orElse: () => profiles.first,
           );
+          final secureKey = await storage.getProfileApiKey(activeProfile.id);
+          activeProfile = activeProfile.copyWith(apiKey: secureKey ?? '');
         }
       } else {
         var baseUrl = storage.getApiUrl();
-        var apiKey = storage.getApiKey();
+        var apiKey = await storage.getProfileApiKey('default');
 
         baseUrl ??= AppConstants.defaultApiBaseUrl;
 
@@ -118,7 +120,7 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
             String.fromEnvironment('LOGPULSE_API_KEY', defaultValue: '');
         if ((apiKey == null || apiKey.isEmpty) && envApiKey.isNotEmpty) {
           apiKey = envApiKey;
-          await storage.setApiKey(apiKey);
+          await storage.setProfileApiKey('default', apiKey);
         }
 
         if (baseUrl.isNotEmpty) {
@@ -176,9 +178,9 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
         if (index >= 0) {
           currentProfiles[index] = currentProfiles[index].copyWith(
             baseUrl: baseUrl,
-            apiKey: apiKey,
           );
           activeProfile = currentProfiles[index];
+          await storage.setProfileApiKey(activeProfile.id, apiKey);
         }
       }
 
@@ -191,6 +193,7 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
 
       if (!currentProfiles.contains(activeProfile)) {
         currentProfiles.add(activeProfile);
+        await storage.setProfileApiKey(activeProfile.id, apiKey);
       }
 
       await _persistProfiles(storage, currentProfiles, activeProfile.id);
@@ -220,9 +223,11 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     try {
       final storage = await LocalStorageService.getInstance();
       await storage.remove('api_url');
-      await storage.remove('api_key');
       await storage.remove(AppConstants.keyApiProfiles);
       await storage.remove(AppConstants.keyActiveApiProfileId);
+      for (final p in state.profiles) {
+        await storage.removeProfileApiKey(p.id);
+      }
       
       state = ApiConfigState();
     } catch (e) {
@@ -284,12 +289,12 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
 
     _apiService.configure(
       baseUrl: profile.baseUrl,
-      apiKey: profile.apiKey,
+      apiKey: (await storage.getProfileApiKey(profile.id)) ?? '',
     );
 
     state = state.copyWith(
       baseUrl: profile.baseUrl,
-      apiKey: profile.apiKey,
+      apiKey: (await storage.getProfileApiKey(profile.id)) ?? '',
       isConfigured: true,
       activeProfileId: profile.id,
     );
@@ -307,14 +312,15 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
       await _persistProfiles(storage, profiles, newActiveId);
 
       final active = profiles.first;
+      final secureKey = await storage.getProfileApiKey(active.id);
       _apiService.configure(
         baseUrl: active.baseUrl,
-        apiKey: active.apiKey,
+        apiKey: secureKey ?? '',
       );
 
       state = state.copyWith(
         baseUrl: active.baseUrl,
-        apiKey: active.apiKey,
+        apiKey: secureKey ?? '',
         isConfigured: true,
         profiles: profiles,
         activeProfileId: newActiveId,
@@ -323,6 +329,8 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
       await _persistProfiles(storage, profiles, null);
       state = ApiConfigState();
     }
+    
+    await storage.removeProfileApiKey(profileId);
   }
 
   Future<void> _persistProfiles(

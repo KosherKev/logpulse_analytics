@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import '../../core/constants/app_constants.dart';
 
@@ -6,6 +7,7 @@ import '../../core/constants/app_constants.dart';
 class LocalStorageService {
   static LocalStorageService? _instance;
   static SharedPreferences? _preferences;
+  static FlutterSecureStorage? _secureStorage;
   final Logger _logger = Logger();
   
   LocalStorageService._();
@@ -13,6 +15,7 @@ class LocalStorageService {
   static Future<LocalStorageService> getInstance() async {
     _instance ??= LocalStorageService._();
     _preferences ??= await SharedPreferences.getInstance();
+    _secureStorage ??= const FlutterSecureStorage();
     return _instance!;
   }
   
@@ -27,12 +30,24 @@ class LocalStorageService {
   }
   
   Future<void> setApiKey(String key) async {
-    await _preferences?.setString(AppConstants.keyApiKey, key);
+    await _secureStorage?.write(key: AppConstants.keyApiKey, value: key);
     _logger.d('API key saved');
   }
   
   String? getApiKey() {
-    return _preferences?.getString(AppConstants.keyApiKey);
+    return null;
+  }
+  
+  Future<void> setProfileApiKey(String profileId, String key) async {
+    await _secureStorage?.write(key: '${AppConstants.keyApiKey}_$profileId', value: key);
+  }
+  
+  Future<String?> getProfileApiKey(String profileId) async {
+    return _secureStorage?.read(key: '${AppConstants.keyApiKey}_$profileId');
+  }
+  
+  Future<void> removeProfileApiKey(String profileId) async {
+    await _secureStorage?.delete(key: '${AppConstants.keyApiKey}_$profileId');
   }
   
   // Theme
@@ -92,13 +107,13 @@ class LocalStorageService {
   
   Future<void> clear() async {
     await _preferences?.clear();
+    await _secureStorage?.deleteAll();
     _logger.w('All local storage cleared');
   }
   
   /// Check if API is configured
   bool get isApiConfigured {
     final url = getApiUrl();
-    final key = getApiKey();
-    return url != null && url.isNotEmpty && key != null && key.isNotEmpty;
+    return url != null && url.isNotEmpty;
   }
 }
