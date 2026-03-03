@@ -66,6 +66,13 @@ class AppConstants {
   static const String errorUnknown = 'An unexpected error occurred.';
   static const String errorNoData = 'No data available.';
   
+  // Error Codes
+  static const String errCodeConnTimeout = 'CONN_TIMEOUT';
+  static const String errCodeSendTimeout = 'SEND_TIMEOUT';
+  static const String errCodeRecvTimeout = 'RECV_TIMEOUT';
+  static const String errCodeSSL = 'SSL_ERROR';
+  static const String errCodeCancelled = 'CANCELLED';
+  
   // Validation
   static const int minApiKeyLength = 10;
   static const int maxBodyPreviewLength = 1000;

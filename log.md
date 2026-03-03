@@ -18,7 +18,7 @@
 |-------|------|--------|-----------|
 | 1 | Secure Storage Migration | ✅ Complete | 2026-03-03 |
 | 2 | Request Race-Condition & Cancellation | ✅ Complete | 2026-03-03 |
-| 3 | Config Boot & Migration Fix | ⬜ Not Started | — |
+| 3 | Config Boot & Migration Fix | ✅ Complete | 2026-03-03 |
 | 4 | Error Handling Specificity | ⬜ Not Started | — |
 | 5 | Time-Series Architecture Improvement | ⬜ Not Started | — |
 | 6 | Design Token System | ⬜ Not Started | — |
@@ -137,3 +137,20 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter test: all tests passed
   - Fresh state shows setup prompt; legacy state migrates once and persists version=2
 - **Next Step**: Await approval to proceed to Phase 4
+
+### [PHASE 4] — Error Handling Specificity
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Expanded Dio error handling with specific timeout messages and codes
+  - Added SSL/TLS specific handling using underlying error types
+  - Logged raw DioException runtimeType in error interceptor
+  - Added error code constants to AppConstants
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/app_constants.dart
+- **Verify**:
+  - flutter analyze: no new errors vs baseline (warnings remain)
+  - flutter test: all tests passed
+  - Misconfigured URL yields specific network messages instead of generic
+- **Next Step**: Await approval to proceed to Phase 5

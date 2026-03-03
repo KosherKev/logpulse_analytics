@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart' hide LogFilter;
 import '../models/log_entry.dart';
@@ -40,7 +41,8 @@ class ApiService {
           if (error.type == DioExceptionType.cancel) {
             _logger.w('Request cancelled: ${error.requestOptions.uri}');
           } else {
-            _logger.e('Error (${error.type}): ${error.message ?? error.error}');
+            final rt = error.error?.runtimeType;
+            _logger.e('Error (${error.type}${rt != null ? ' $rt' : ''}): ${error.message ?? error.error}');
           }
           return handler.next(error);
         },
@@ -213,11 +215,21 @@ class ApiService {
   AppException _handleDioError(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
+        return NetworkException(
+          'Connection timed out. Is the server reachable?',
+          code: AppConstants.errCodeConnTimeout,
+          details: error.message,
+        );
       case DioExceptionType.sendTimeout:
+        return NetworkException(
+          'Request upload timed out.',
+          code: AppConstants.errCodeSendTimeout,
+          details: error.message,
+        );
       case DioExceptionType.receiveTimeout:
         return NetworkException(
-          AppConstants.errorNetwork,
-          code: 'TIMEOUT',
+          'Server is taking too long to respond.',
+          code: AppConstants.errCodeRecvTimeout,
           details: error.message,
         );
         
@@ -254,12 +266,28 @@ class ApiService {
       case DioExceptionType.cancel:
         return NetworkException(
           'Request cancelled',
-          code: 'CANCELLED',
+          code: AppConstants.errCodeCancelled,
         );
         
       default:
+        final underlying = error.error;
+        if (underlying is SocketException) {
+          return NetworkException(
+            'Cannot reach server. Check your network or URL.',
+            code: 'NETWORK_ERROR',
+            details: underlying,
+          );
+        }
+        if (underlying is HandshakeException) {
+          return NetworkException(
+            'SSL/TLS error. Check the server certificate.',
+            code: AppConstants.errCodeSSL,
+            details: underlying,
+          );
+        }
+        final msg = error.message ?? AppConstants.errorUnknown;
         return NetworkException(
-          error.message ?? AppConstants.errorNetwork,
+          msg,
           code: 'NETWORK_ERROR',
           details: error,
         );
