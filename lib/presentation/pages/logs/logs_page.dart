@@ -75,13 +75,26 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       backgroundColor: c.bg,
       elevation: 0,
       titleSpacing: 16,
-      title: Text(
-        'Logs',
-        style: AppTextStyles.h1.copyWith(color: c.textPrimary),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _PulseDot(color: c.pulse),
+          const SizedBox(width: 8),
+          Text(
+            'Logs',
+            style: AppTextStyles.h1.copyWith(color: c.textPrimary),
+          ),
+        ],
       ),
       actions: [
         _IconBtn(
-          icon: Icons.tune,
+          icon: Icons.menu,
+          c: c,
+          onTap: () => _showSavedFiltersSheet(),
+        ),
+        const SizedBox(width: 8),
+        _IconBtn(
+          icon: Icons.bookmark_border_outlined,
           c: c,
           onTap: () => _showSavedFiltersSheet(),
         ),
@@ -192,7 +205,7 @@ class _LogsPageState extends ConsumerState<LogsPage> {
               focusNode: _searchFocusNode,
               style: AppTextStyles.body.copyWith(color: c.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Search logs, paths, trace IDs…',
+                hintText: 'trace ID, service, path...',
                 hintStyle: AppTextStyles.body.copyWith(color: c.textTertiary),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
@@ -249,16 +262,6 @@ class _LogsPageState extends ConsumerState<LogsPage> {
       child: Row(
         children: [
           _LevelPill(
-            label: 'ALL',
-            value: null,
-            currentLevel: currentLevel,
-            activeColor: c.accent,
-            activeBg: c.accentDim,
-            c: c,
-            onTap: _applyLevel,
-          ),
-          const SizedBox(width: 6),
-          _LevelPill(
             label: 'ERROR',
             value: AppConstants.levelError,
             currentLevel: currentLevel,
@@ -294,6 +297,16 @@ class _LogsPageState extends ConsumerState<LogsPage> {
             currentLevel: currentLevel,
             activeColor: c.debug,
             activeBg: c.debugBg,
+            c: c,
+            onTap: _applyLevel,
+          ),
+          const SizedBox(width: 6),
+          _LevelPill(
+            label: 'ALL',
+            value: null,
+            currentLevel: currentLevel,
+            activeColor: c.accent,
+            activeBg: c.accentDim,
             c: c,
             onTap: _applyLevel,
           ),
@@ -352,21 +365,25 @@ class _LogsPageState extends ConsumerState<LogsPage> {
   // ── 10-C: Results count divider ──────────────────────────────────────────
 
   Widget _buildResultsDivider(LogsState state, AppColorTokens c) {
-    final count = state.totalCount > 0
-        ? state.totalCount
-        : state.logs.length;
+    final count = state.totalCount > 0 ? state.totalCount : state.logs.length;
     if (count == 0) return const SizedBox.shrink();
 
-    final hasError = state.filter.level == AppConstants.levelError;
-    final priorityText = hasError ? ' · error priority' : '';
+    // Determine priority label from active filter
+    final level = state.filter.level;
+    String priorityText = '';
+    if (level == AppConstants.levelError) {
+      priorityText = ' · 5XX PRIORITY';
+    } else if (level == AppConstants.levelWarn) {
+      priorityText = ' · WARN PRIORITY';
+    } else if (level != null) {
+      priorityText = ' · ${level.toUpperCase()} PRIORITY';
+    }
 
     return Row(
       children: [
-        Expanded(child: Divider(color: c.borderSoft, thickness: 1)),
-        const SizedBox(width: 10),
         Text(
-          '$count results$priorityText',
-          style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
+          '$count RESULTS$priorityText',
+          style: AppTextStyles.label.copyWith(color: c.textTertiary),
         ),
         const SizedBox(width: 10),
         Expanded(child: Divider(color: c.borderSoft, thickness: 1)),
@@ -770,6 +787,64 @@ class _IconBtn extends StatelessWidget {
           border: Border.all(color: c.border),
         ),
         child: Icon(icon, size: 18, color: c.textSecondary),
+      ),
+    );
+  }
+}
+
+/// Pulsing green status dot — identical to dashboard AppBar
+class _PulseDot extends StatefulWidget {
+  const _PulseDot({required this.color});
+  final Color color;
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.8, end: 1.3).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => Transform.scale(
+        scale: _scale.value,
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: widget.color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.5),
+                blurRadius: 5 * _scale.value,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
