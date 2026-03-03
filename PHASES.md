@@ -405,7 +405,7 @@ Raw `TextStyle(...)` → `AppTextStyles.monoSm`.
 ---
 
 ### Phase 8 — Core Component Redesign
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete — 2026-03-03  
 **Files touched**:
 - `lib/presentation/widgets/cards/stat_card.dart` (rewrite)
 - `lib/presentation/widgets/cards/service_health_card.dart` (rewrite)
