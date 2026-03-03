@@ -23,7 +23,7 @@
 | 5 | Time-Series Architecture Improvement | ✅ Complete | 2026-03-03 |
 | 6 | Design Token System | ✅ Complete | 2026-03-03 |
 | 7 | Typography Integration | ✅ Complete | 2026-03-03 |
-| 8 | Core Component Redesign | ⬜ Not Started | — |
+| 8 | Core Component Redesign | ✅ Complete | 2026-03-03 |
 | 9 | Dashboard Screen Redesign | ⬜ Not Started | — |
 | 10 | Logs Screen Redesign | ⬜ Not Started | — |
 | 11 | Errors Screen Redesign | ⬜ Not Started | — |
@@ -141,6 +141,30 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - Post-fix analyze: error_tab.dart shows only pre-existing `unused_local_variable` warning (no errors)
   - Syne font on h2/h3/h4 headings visible throughout; JetBrains Mono on timestamps/paths/traceIDs/method chips; Inter on body text; settings section headers in JetBrains Mono label style
 - **Next Step**: Phase 8 — Core Component Redesign
+
+### [PHASE 8] — Core Component Redesign
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - **8-A: StatCard rewrite** — Removed old Card+Icon+elevation pattern. New design: left 3px accent border (via `accentColor`/`color` param), `label` in JetBrains Mono uppercase (`AppTextStyles.label`), `value` in Syne `displaySm`, optional `delta`/`trend` row in `AppTextStyles.monoSm` with directional color and up/down arrow icon. Legacy `icon`/`color`/`trend`/`title` params kept as shims so call sites don't break. Border-only surface (no elevation).
+  - **8-B: ServiceHealthCard rewrite** — Converted to `StatefulWidget` with `AnimationController`. Left 2px border in health color. `SingleTickerProviderStateMixin` drives a scale+opacity pulse: 2s for healthy, 0.8s for unhealthy. `boxShadow` glow grows with `_scaleAnim`. Service name in `AppTextStyles.monoMd`, detail row (err% · latency · uptime) in `AppTextStyles.monoSm` with `textTertiary`. Fixed: `formattedErrorRate`/`formattedAvgLatency` don't exist on `ServiceStats` — inlined as `errorRate.toStringAsFixed(1)%` and `avgLatency.toStringAsFixed(0)ms`.
+  - **8-C: EnhancedLogCard rewrite** — Full decomposition into private sub-widgets: `_LevelChip` (colored bg+border, label uppercase), `_StatusBadge` (colored bg), `_MethodPathRow` (surface2 container, accent method + mono path), `_MetaRow` (icon+text with dot separators, monoSm textTertiary), `_ErrorPill` (errorBg container with error border, monoSm text). Left 3px border from `c.levelColor(log.level)`. Uses `AppColors.of(context)` throughout.
+  - **8-D: SkeletonLogCard created** (new file) — `StatefulWidget` with `AnimationController` 1.4s repeat. `_shimmerAnim` drives opacity 0.3→0.7 on all placeholder boxes. Shape mirrors `EnhancedLogCard`: level chip box + service box in row, full-width method/path bar, meta row. Located at `lib/presentation/widgets/logs/skeleton_log_card.dart`.
+  - **8-E: ErrorGroupCard rewrite** — Left 3px border in severity color. Error code in `AppTextStyles.label` (JetBrains Mono uppercase), message in `AppTextStyles.bodyMedium`. Count badge: severity color bg pill. `_TrendChip`: RISING/FALLING in `AppTextStyles.label` with directional icon; STABLE in textTertiary. Services + last seen in `AppTextStyles.monoSm` textTertiary with icon prefixes.
+  - **8-F: ErrorSummaryCard rewrite** — Matches `StatCard` layout. Left 3px border in `color`, label in `AppTextStyles.label` uppercase, value in `AppTextStyles.displaySm`. Icon param kept for compat but no longer rendered.
+- **Files Changed**:
+  - lib/presentation/widgets/cards/stat_card.dart (rewrite)
+  - lib/presentation/widgets/cards/service_health_card.dart (rewrite)
+  - lib/presentation/widgets/logs/enhanced_log_card.dart (rewrite)
+  - lib/presentation/widgets/logs/skeleton_log_card.dart (NEW)
+  - lib/presentation/widgets/errors/error_group_card.dart (rewrite)
+  - lib/presentation/widgets/errors/summary_card.dart (rewrite)
+- **Verify**:
+  - flutter analyze: 0 new errors. 2 errors from Phase 8 (undefined_getter on ServiceStats) fixed inline. Total issues: pre-existing warnings/infos only (11 warnings, remainder infos)
+  - All components use `AppColors.of(context)` token system
+  - `ServiceHealthCard` pulsing dot: healthy = slow 2s pulse, unhealthy = fast 0.8s pulse with glow
+  - `SkeletonLogCard` shimmer animation cycles opacity 0.3→0.7
+- **Next Step**: Phase 9 — Dashboard Screen Redesign
 ### [PHASE 1] — Secure Storage Migration
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP

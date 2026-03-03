@@ -1,65 +1,64 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 
+/// Neo-Terminal ErrorSummaryCard.
+///
+/// Design:
+///   - Left 3px border in [color]
+///   - [label] in JetBrains Mono label uppercase (textTertiary)
+///   - [value] in Syne displaySm
+///   - No icon — border color conveys the category
 class ErrorSummaryCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
   final Color color;
+
+  // Legacy compat — icon ignored in new design
+  final IconData? icon;
 
   const ErrorSummaryCard({
     super.key,
     required this.label,
     required this.value,
-    required this.icon,
     required this.color,
+    this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: AppTextStyles.h3.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+    final c = AppColors.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(color: color, width: 3),
+          top: BorderSide(color: c.border, width: 1),
+          right: BorderSide(color: c.border, width: 1),
+          bottom: BorderSide(color: c.border, width: 1),
         ),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: AppTextStyles.label.copyWith(color: c.textTertiary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: AppTextStyles.displaySm.copyWith(color: c.textPrimary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

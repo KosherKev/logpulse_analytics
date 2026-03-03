@@ -1,105 +1,124 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_dimensions.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-/// Stat Card Widget - Displays a metric with icon, value, and trend
+/// Neo-Terminal StatCard.
+///
+/// Design:
+///   - Left 3px accent border (color-coded by [accentColor])
+///   - [label] in JetBrains Mono uppercase overline (textTertiary)
+///   - [value] in Syne display bold
+///   - Optional [delta] row in JetBrains Mono with directional color
+///   - No elevation — border-only surface
 class StatCard extends StatelessWidget {
-  final String title;
+  final String label;
   final String value;
-  final IconData icon;
+  final Color? accentColor;
+  final String? delta;
+  final bool? isPositive;
+
+  // Legacy compat — icon ignored in new design but kept for call-site compat
+  final IconData? icon;
   final Color? color;
   final String? trend;
-  final bool? isPositive;
 
   const StatCard({
     super.key,
-    required this.title,
+    String? label,
     required this.value,
-    required this.icon,
+    this.accentColor,
+    this.delta,
+    this.isPositive,
+    String? title,
+    this.icon,
     this.color,
     this.trend,
-    this.isPositive,
-  });
+  }) : label = label ?? title ?? '';
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = color ?? AppColors.primary;
+    final c = AppColors.of(context);
+    final borderColor = accentColor ?? color ?? c.accent;
+    final effectiveDelta = delta ?? trend;
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: cardColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                  ),
-                  child: Icon(icon, color: cardColor, size: 24),
-                ),
-                const Spacer(),
-                if (trend != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (isPositive ?? true)
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          (isPositive ?? true)
-                              ? Icons.arrow_upward
-                              : Icons.arrow_downward,
-                          size: 12,
-                          color: (isPositive ?? true)
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          trend!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: (isPositive ?? true)
-                                ? Colors.green
-                                : Colors.red,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-            Text(
-              title,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-            ),
-          const SizedBox(height: 4),
-            Text(
-              value,
-            style: AppTextStyles.h2,
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(color: borderColor, width: 3),
+          top: BorderSide(color: c.border, width: 1),
+          right: BorderSide(color: c.border, width: 1),
+          bottom: BorderSide(color: c.border, width: 1),
         ),
       ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: AppTextStyles.label.copyWith(color: c.textTertiary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: AppTextStyles.displaySm.copyWith(color: c.textPrimary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (effectiveDelta != null) ...[
+            const SizedBox(height: 6),
+            _DeltaRow(delta: effectiveDelta, isPositive: isPositive, c: c),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DeltaRow extends StatelessWidget {
+  const _DeltaRow({
+    required this.delta,
+    required this.isPositive,
+    required this.c,
+  });
+
+  final String delta;
+  final bool? isPositive;
+  final AppColorTokens c;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+    final IconData? iconData;
+
+    if (isPositive == null) {
+      color = c.textTertiary;
+      iconData = null;
+    } else if (isPositive!) {
+      color = c.success;
+      iconData = Icons.arrow_upward_rounded;
+    } else {
+      color = c.error;
+      iconData = Icons.arrow_downward_rounded;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (iconData != null) ...[
+          Icon(iconData, size: 12, color: color),
+          const SizedBox(width: 3),
+        ],
+        Text(
+          delta,
+          style: AppTextStyles.monoSm.copyWith(color: color),
+        ),
+      ],
     );
   }
 }

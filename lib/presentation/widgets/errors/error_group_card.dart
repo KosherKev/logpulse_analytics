@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart' as date_utils;
 import '../../../data/models/error_group.dart';
 
+/// Neo-Terminal ErrorGroupCard.
+///
+/// Design:
+///   - Left 3px border in severity color
+///   - Error code in JetBrains Mono label style
+///   - Message in Inter bodyLarge
+///   - Count badge and trend chip on right
+///   - Last seen in JetBrains Mono monoSm
 class ErrorGroupCard extends StatelessWidget {
   final ErrorGroup group;
   final VoidCallback onTap;
@@ -17,110 +24,109 @@ class ErrorGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final severityColor = _severityColor(group.severity);
+    final c = AppColors.of(context);
+    final severityColor = _severityColor(group.severity, c);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(color: severityColor, width: 3),
+          top: BorderSide(color: c.border, width: 1),
+          right: BorderSide(color: c.border, width: 1),
+          bottom: BorderSide(color: c.border, width: 1),
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Row 1: code · message · count ───────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 8,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: severityColor,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            if (group.errorCode != null)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  right: AppSpacing.xs,
-                                ),
-                                child: Text(
-                                  group.errorCode!,
-                                  style: AppTextStyles.monoSm.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            Expanded(
-                              child: Text(
-                                group.message,
-                                style: AppTextStyles.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                        if (group.errorCode != null)
+                          Text(
+                            group.errorCode!,
+                            style: AppTextStyles.label.copyWith(
+                              color: severityColor,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          'Services: ${group.formattedServices}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
                           ),
+                        if (group.errorCode != null)
+                          const SizedBox(height: 4),
+                        Text(
+                          group.message,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: c.textPrimary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: 12),
+                  // Count badge
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
+                          horizontal: 10,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
+                          color: severityColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           '${group.count}',
-                          style: AppTextStyles.bodySmall.copyWith(
+                          style: AppTextStyles.monoSm.copyWith(
+                            color: severityColor,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
                           ),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.xs),
-                      _buildTrendChip(group.trend, severityColor),
+                      const SizedBox(height: 6),
+                      _TrendChip(trend: group.trend, c: c),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+
+              const SizedBox(height: 10),
+
+              // ── Row 2: services · last seen ──────────────────────────
               Row(
                 children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 12,
-                    color: AppColors.textSecondary,
+                  Icon(Icons.dns_outlined, size: 12, color: c.textTertiary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      group.formattedServices,
+                      style: AppTextStyles.monoSm.copyWith(
+                        color: c.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.access_time, size: 12, color: c.textTertiary),
                   const SizedBox(width: 4),
                   Text(
-                    'Last: ${date_utils.DateUtils.formatRelative(group.lastSeen)}',
-                    style: AppTextStyles.caption,
+                    date_utils.DateUtils.formatRelative(group.lastSeen),
+                    style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
                   ),
                 ],
               ),
@@ -131,48 +137,49 @@ class ErrorGroupCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTrendChip(TrendDirection trend, Color severityColor) {
+  Color _severityColor(ErrorSeverity severity, AppColorTokens c) {
+    switch (severity) {
+      case ErrorSeverity.critical:
+        return c.error;
+      case ErrorSeverity.high:
+        return c.warning;
+      case ErrorSeverity.medium:
+        return c.info;
+      case ErrorSeverity.low:
+        return c.debug;
+    }
+  }
+}
+
+class _TrendChip extends StatelessWidget {
+  const _TrendChip({required this.trend, required this.c});
+
+  final TrendDirection trend;
+  final AppColorTokens c;
+
+  @override
+  Widget build(BuildContext context) {
     if (trend == TrendDirection.stable) {
       return Text(
-        'Stable',
-        style: AppTextStyles.caption.copyWith(
-          color: AppColors.textSecondary,
-        ),
+        'STABLE',
+        style: AppTextStyles.label.copyWith(color: c.textTertiary),
       );
     }
 
-    final isIncreasing = trend == TrendDirection.increasing;
-    final icon = isIncreasing ? Icons.trending_up : Icons.trending_down;
-    final color = isIncreasing ? AppColors.error : AppColors.success;
+    final isUp = trend == TrendDirection.increasing;
+    final color = isUp ? c.error : c.success;
+    final icon = isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded;
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 14,
-          color: color,
-        ),
-        const SizedBox(width: 4),
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 3),
         Text(
-          isIncreasing ? 'Rising' : 'Falling',
-          style: AppTextStyles.caption.copyWith(
-            color: color,
-          ),
+          isUp ? 'RISING' : 'FALLING',
+          style: AppTextStyles.label.copyWith(color: color),
         ),
       ],
     );
-  }
-
-  Color _severityColor(ErrorSeverity severity) {
-    switch (severity) {
-      case ErrorSeverity.critical:
-        return AppColors.error;
-      case ErrorSeverity.high:
-        return AppColors.warning;
-      case ErrorSeverity.medium:
-        return AppColors.info;
-      case ErrorSeverity.low:
-        return AppColors.debug;
-    }
   }
 }
