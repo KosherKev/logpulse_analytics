@@ -19,8 +19,8 @@
 | 1 | Secure Storage Migration | ✅ Complete | 2026-03-03 |
 | 2 | Request Race-Condition & Cancellation | ✅ Complete | 2026-03-03 |
 | 3 | Config Boot & Migration Fix | ✅ Complete | 2026-03-03 |
-| 4 | Error Handling Specificity | ⬜ Not Started | — |
-| 5 | Time-Series Architecture Improvement | ⬜ Not Started | — |
+| 4 | Error Handling Specificity | ✅ Complete | 2026-03-03 |
+| 5 | Time-Series Architecture Improvement | ✅ Complete | 2026-03-03 |
 | 6 | Design Token System | ⬜ Not Started | — |
 | 7 | Typography Integration | ⬜ Not Started | — |
 | 8 | Core Component Redesign | ⬜ Not Started | — |
@@ -154,3 +154,21 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter test: all tests passed
   - Misconfigured URL yields specific network messages instead of generic
 - **Next Step**: Await approval to proceed to Phase 5
+
+### [PHASE 5] — Time-Series Architecture Improvement
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added timeseries endpoint constant and query builder
+  - Implemented ApiService.getTimeSeries with 404 fallback to log-derived series
+  - Capped fallback fetch to 200 logs and added warning log
+  - Updated DashboardRepository to use ApiService.getTimeSeries
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/api_endpoints.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/repositories/dashboard_repository.dart
+- **Verify**:
+  - flutter analyze: no new errors vs baseline (warnings remain)
+  - flutter test: all tests passed
+  - Timeseries requests use dedicated endpoint; fallback fetch limited to 200
+- **Next Step**: Await approval to proceed to Phase 6

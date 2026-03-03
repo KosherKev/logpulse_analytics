@@ -3,6 +3,7 @@ class ApiEndpoints {
   // Base
   static const String logs = '/logs';
   static const String stats = '/logs/stats/summary';
+  static const String timeseries = '/logs/stats/timeseries';
   
   // Logs
   static String logsByTraceId(String traceId) => '/logs?traceId=$traceId';
@@ -58,5 +59,19 @@ class ApiEndpoints {
         .join('&');
     
     return '$stats?$query';
+  }
+  
+  static String buildTimeseriesQuery({
+    String? service,
+    String? timeRange,
+  }) {
+    final params = <String, String>{};
+    if (service != null) params['service'] = service;
+    if (timeRange != null) params['timeRange'] = timeRange;
+    if (params.isEmpty) return timeseries;
+    final query = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    return '$timeseries?$query';
   }
 }

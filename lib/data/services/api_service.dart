@@ -4,6 +4,7 @@ import 'package:logger/logger.dart' hide LogFilter;
 import '../models/log_entry.dart';
 import '../models/dashboard_stats.dart';
 import '../models/log_filter.dart';
+import '../models/time_series_point.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/errors/exceptions.dart';
@@ -188,6 +189,107 @@ class ApiService {
       return DashboardStats.fromApiJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleDioError(e);
+    }
+  }
+  
+  Future<List<TimeSeriesPoint>> getTimeSeries({String? timeRange}) async {
+    try {
+      _ensureConfigured();
+      final endpoint = ApiEndpoints.buildTimeseriesQuery(timeRange: timeRange);
+      final cancelToken = _issueToken(endpoint);
+      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      return _parseTimeSeriesResponse(response.data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return _getTimeSeriesFromLogs(timeRange: timeRange);
+      }
+      throw _handleDioError(e);
+    }
+  }
+  
+  List<TimeSeriesPoint> _parseTimeSeriesResponse(dynamic data) {
+    List<dynamic>? items;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic> && data['data'] is List) {
+      items = data['data'] as List<dynamic>;
+    }
+    if (items == null) {
+      throw ParseException('Invalid response format for timeseries');
+    }
+    return items.map((raw) {
+      final m = Map<String, dynamic>.from(raw as Map);
+      final tsStr = m['timestamp'] as String?;
+      final ts = tsStr != null ? DateTime.parse(tsStr).toUtc() : DateTime.now().toUtc();
+      final total = (m['totalCount'] as num?)?.toInt() ?? (m['total'] as num?)?.toInt() ?? 0;
+      final errors = (m['errorCount'] as num?)?.toInt() ?? (m['errors'] as num?)?.toInt() ?? 0;
+      return TimeSeriesPoint(timestamp: ts, totalCount: total, errorCount: errors);
+    }).toList();
+  }
+  
+  Future<List<TimeSeriesPoint>> _getTimeSeriesFromLogs({String? timeRange}) async {
+    final now = DateTime.now().toUtc();
+    final range = timeRange ?? AppConstants.rangeLast24Hours;
+    final from = _calculateFrom(now, range);
+    final bucket = _bucketDurationForRange(range);
+    _logger.w('Time-series fallback: fetching 200 logs. Consider adding /logs/stats/timeseries endpoint.');
+    final filter = LogFilter(
+      startDate: from,
+      endDate: now,
+      limit: 200,
+      offset: 0,
+    );
+    final logs = await getLogs(filter);
+    if (logs.isEmpty) return [];
+    final totalMillis = now.millisecondsSinceEpoch - from.millisecondsSinceEpoch;
+    final bucketMillis = bucket.inMilliseconds;
+    final bucketCount = (totalMillis / bucketMillis).ceil().clamp(1, 100);
+    final totals = List<int>.filled(bucketCount, 0);
+    final errors = List<int>.filled(bucketCount, 0);
+    for (final LogEntry log in logs) {
+      final ts = log.timestamp.toUtc().millisecondsSinceEpoch;
+      if (ts < from.millisecondsSinceEpoch || ts > now.millisecondsSinceEpoch) {
+        continue;
+      }
+      final index = ((ts - from.millisecondsSinceEpoch) / bucketMillis).floor().clamp(0, bucketCount - 1);
+      totals[index] += 1;
+      if (log.isError) {
+        errors[index] += 1;
+      }
+    }
+    final points = <TimeSeriesPoint>[];
+    for (var i = 0; i < bucketCount; i++) {
+      final bucketStart = from.add(Duration(milliseconds: bucketMillis * i));
+      points.add(TimeSeriesPoint(timestamp: bucketStart, totalCount: totals[i], errorCount: errors[i]));
+    }
+    return points;
+  }
+  
+  DateTime _calculateFrom(DateTime now, String timeRange) {
+    switch (timeRange) {
+      case AppConstants.rangeLastHour:
+        return now.subtract(const Duration(hours: 1));
+      case AppConstants.rangeLast7Days:
+        return now.subtract(const Duration(days: 7));
+      case AppConstants.rangeLast30Days:
+        return now.subtract(const Duration(days: 30));
+      case AppConstants.rangeLast24Hours:
+      default:
+        return now.subtract(const Duration(hours: 24));
+    }
+  }
+  
+  Duration _bucketDurationForRange(String timeRange) {
+    switch (timeRange) {
+      case AppConstants.rangeLastHour:
+        return const Duration(minutes: 5);
+      case AppConstants.rangeLast7Days:
+        return const Duration(hours: 12);
+      case AppConstants.rangeLast30Days:
+        return const Duration(days: 1);
+      case AppConstants.rangeLast24Hours:
+      default:
+        return const Duration(hours: 1);
     }
   }
   
