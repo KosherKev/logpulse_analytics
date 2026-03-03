@@ -559,7 +559,7 @@ and improved detail sheet.
 ---
 
 ### Phase 12 — Log Detail Screen Redesign
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete — 2026-03-03  
 **Files touched**:
 - `lib/presentation/pages/log_details/log_details_page.dart` (update)
 - `lib/presentation/pages/log_details/tabs/overview_tab.dart` (update)
