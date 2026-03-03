@@ -496,7 +496,7 @@ grid, and service health list all using the new design language.
 ---
 
 ### Phase 10 — Logs Screen Redesign
-**Status**: ⬜ Not Started  
+**Status**: ✅ Complete — 2026-03-03  
 **Files touched**:
 - `lib/presentation/pages/logs/logs_page.dart` (update)
 - `lib/presentation/widgets/logs/enhanced_log_card.dart` (already done in Phase 8)
