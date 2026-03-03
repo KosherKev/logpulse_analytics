@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/log_filter.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_text_styles.dart';
 
 /// Filter Dialog for logs
 class FilterDialog extends StatefulWidget {
@@ -44,10 +45,7 @@ class _FilterDialogState extends State<FilterDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Service filter
-            const Text(
-              'Service',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('Service', style: AppTextStyles.bodyMedium),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: selectedService,
@@ -66,10 +64,7 @@ class _FilterDialogState extends State<FilterDialog> {
             const SizedBox(height: 16),
 
             // Level filter
-            const Text(
-              'Level',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('Level', style: AppTextStyles.bodyMedium),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: selectedLevel,
@@ -89,10 +84,7 @@ class _FilterDialogState extends State<FilterDialog> {
             const SizedBox(height: 16),
 
             // Status Code filter
-            const Text(
-              'Status Code',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('Status Code', style: AppTextStyles.bodyMedium),
             const SizedBox(height: 8),
             DropdownButtonFormField<int>(
               value: selectedStatus,
@@ -111,10 +103,7 @@ class _FilterDialogState extends State<FilterDialog> {
             const SizedBox(height: 16),
 
             // Date range
-            const Text(
-              'Date Range',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('Date Range', style: AppTextStyles.bodyMedium),
             const SizedBox(height: 8),
             Row(
               children: [

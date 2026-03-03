@@ -135,7 +135,7 @@ class TimelineTab extends StatelessWidget {
                   children: [
                     Text(
                       event.timestamp,
-                      style: AppTextStyles.codeSmall.copyWith(
+                      style: AppTextStyles.monoSm.copyWith(
                         color: secondaryTextColor,
                       ),
                     ),
@@ -256,7 +256,7 @@ class TimelineTab extends StatelessWidget {
               Text(label),
               Text(
                 '${FormatUtils.formatDuration(duration)} (${(percentage * 100).toStringAsFixed(1)}%)',
-                style: AppTextStyles.codeSmall.copyWith(
+                style: AppTextStyles.monoSm.copyWith(
                   color: secondaryTextColor,
                 ),
               ),

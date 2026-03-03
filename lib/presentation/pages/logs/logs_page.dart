@@ -422,9 +422,9 @@ class _LogsPageState extends ConsumerState<LogsPage> {
         children: [
           const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Error Loading Logs',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
           ),
           const SizedBox(height: 8),
           Text(error, textAlign: TextAlign.center),
@@ -450,16 +450,12 @@ class _LogsPageState extends ConsumerState<LogsPage> {
           const SizedBox(height: 16),
           Text(
             'No Logs Found',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
+            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
           ),
           const SizedBox(height: 8),
           Text(
             'Try adjusting your filters',
-            style: TextStyle(color: Colors.grey[600]),
+            style: AppTextStyles.body.copyWith(color: AppColors.of(context).textTertiary),
           ),
         ],
       ),

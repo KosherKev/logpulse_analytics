@@ -54,7 +54,7 @@ class ErrorGroupCard extends StatelessWidget {
                                 ),
                                 child: Text(
                                   group.errorCode!,
-                                  style: AppTextStyles.codeSmall.copyWith(
+                                  style: AppTextStyles.monoSm.copyWith(
                                     color: AppColors.textSecondary,
                                   ),
                                 ),

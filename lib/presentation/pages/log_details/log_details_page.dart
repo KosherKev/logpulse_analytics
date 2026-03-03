@@ -189,7 +189,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                   children: [
                     Text(
                       log.method!,
-                      style: AppTextStyles.codeSmall.copyWith(
+                      style: AppTextStyles.monoSm.copyWith(
                         color: isDark ? primaryTextColor : AppColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
@@ -198,7 +198,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                     Expanded(
                       child: Text(
                         log.path!,
-                        style: AppTextStyles.codeSmall.copyWith(
+                        style: AppTextStyles.monoSm.copyWith(
                           color: primaryTextColor,
                         ),
                         maxLines: 1,
@@ -253,7 +253,7 @@ class _LogDetailsPageState extends State<LogDetailsPage>
                   Expanded(
                     child: Text(
                       'Trace: ${log.traceId}',
-                      style: AppTextStyles.codeSmall.copyWith(
+                      style: AppTextStyles.monoSm.copyWith(
                         color: secondaryTextColor,
                       ),
                     ),

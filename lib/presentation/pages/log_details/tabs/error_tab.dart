@@ -20,22 +20,18 @@ class ErrorTab extends StatelessWidget {
         isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
 
     if (log.error == null) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
-            SizedBox(height: AppSpacing.md),
+            const Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'No Errors',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
             ),
-            SizedBox(height: AppSpacing.sm),
-            Text('This log entry has no error information'),
+            const SizedBox(height: AppSpacing.sm),
+            const Text('This log entry has no error information'),
           ],
         ),
       );
@@ -106,7 +102,7 @@ class ErrorTab extends StatelessWidget {
                   color: AppColors.darkSurface,
                   child: SelectableText(
                     log.error!.stack!,
-                    style: AppTextStyles.codeSmall.copyWith(
+                    style: AppTextStyles.monoSm.copyWith(
                       color: AppColors.darkTextPrimary,
                     ),
                   ),
@@ -176,7 +172,7 @@ class ErrorTab extends StatelessWidget {
         Expanded(
           child: SelectableText(
             value,
-            style: AppTextStyles.codeSmall.copyWith(
+            style: AppTextStyles.monoSm.copyWith(
               color: primaryTextColor,
             ),
           ),

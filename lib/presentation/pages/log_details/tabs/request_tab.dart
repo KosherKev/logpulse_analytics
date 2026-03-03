@@ -126,7 +126,7 @@ class _RequestTabState extends State<RequestTab> {
                       Expanded(
                         child: SelectableText(
                           entry.value.toString(),
-                          style: AppTextStyles.codeSmall.copyWith(
+                          style: AppTextStyles.monoSm.copyWith(
                             color: primaryTextColor,
                           ),
                         ),
@@ -198,7 +198,7 @@ class _RequestTabState extends State<RequestTab> {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: SelectableText(
               bodyText,
-              style: AppTextStyles.codeSmall.copyWith(
+              style: AppTextStyles.monoSm.copyWith(
                 color: primaryTextColor,
               ),
             ),

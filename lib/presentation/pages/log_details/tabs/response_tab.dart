@@ -168,7 +168,7 @@ class _ResponseTabState extends State<ResponseTab> {
                       Expanded(
                         child: SelectableText(
                           entry.value.toString(),
-                          style: AppTextStyles.codeSmall.copyWith(
+                          style: AppTextStyles.monoSm.copyWith(
                             color: primaryTextColor,
                           ),
                         ),
@@ -240,7 +240,7 @@ class _ResponseTabState extends State<ResponseTab> {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: SelectableText(
               bodyText,
-              style: AppTextStyles.codeSmall.copyWith(
+              style: AppTextStyles.monoSm.copyWith(
                 color: primaryTextColor,
               ),
             ),

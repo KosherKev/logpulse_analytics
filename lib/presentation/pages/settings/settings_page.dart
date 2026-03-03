@@ -356,7 +356,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Text(
         title.toUpperCase(),
-        style: AppTextStyles.overline.copyWith(
+        style: AppTextStyles.label.copyWith(
           color: Theme.of(context).brightness == Brightness.dark
               ? AppColors.darkTextSecondary
               : AppColors.textSecondary,
@@ -468,7 +468,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SnackBar(content: Text('Cache cleared')),
               );
             },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            child: Text('Clear', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
           ),
         ],
       ),
@@ -497,7 +497,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SnackBar(content: Text('Configuration cleared')),
               );
             },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            child: Text('Clear', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
           ),
         ],
       ),

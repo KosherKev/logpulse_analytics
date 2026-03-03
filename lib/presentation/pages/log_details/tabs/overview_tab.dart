@@ -150,7 +150,7 @@ class OverviewTab extends ConsumerWidget {
           Expanded(
             child: SelectableText(
               value,
-              style: AppTextStyles.codeSmall.copyWith(
+              style: AppTextStyles.monoSm.copyWith(
                 color: primaryTextColor,
               ),
             ),

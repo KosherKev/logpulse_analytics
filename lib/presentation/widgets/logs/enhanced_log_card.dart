@@ -118,7 +118,7 @@ class EnhancedLogCard extends StatelessWidget {
                     children: [
                       Text(
                         log.method!,
-                        style: AppTextStyles.codeSmall.copyWith(
+                        style: AppTextStyles.monoSm.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,
                         ),
@@ -127,7 +127,7 @@ class EnhancedLogCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           log.path!,
-                          style: AppTextStyles.codeSmall.copyWith(
+                          style: AppTextStyles.monoSm.copyWith(
                             color: Theme.of(context).brightness == Brightness.dark
                                 ? AppColors.darkTextPrimary
                                 : AppColors.textPrimary,

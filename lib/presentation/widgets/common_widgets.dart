@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
 
 /// Loading indicator widget
 class LoadingIndicator extends StatelessWidget {
@@ -46,20 +48,18 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: Colors.grey[400]),
+            Icon(icon, size: 64, color: AppColors.of(context).textTertiary),
             const SizedBox(height: 16),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: AppTextStyles.h3.copyWith(color: AppColors.of(context).textSecondary),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
               const SizedBox(height: 8),
               Text(
                 message!,
-                style: TextStyle(color: Colors.grey[600]),
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.of(context).textTertiary),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -95,17 +95,17 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(Icons.error_outline, size: 64, color: AppColors.of(context).error),
             const SizedBox(height: 16),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: AppTextStyles.h3.copyWith(color: AppColors.of(context).textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              style: TextStyle(color: Colors.grey[600]),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.of(context).textTertiary),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[

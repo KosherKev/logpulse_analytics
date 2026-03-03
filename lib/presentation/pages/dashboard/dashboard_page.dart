@@ -6,6 +6,7 @@ import '../../providers/api_config_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/errors_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/dashboard_stats.dart';
 import '../../../data/models/error_group.dart';
 import '../../widgets/dashboard/time_range_selector.dart';
@@ -96,9 +97,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         children: [
           const Icon(Icons.playlist_add, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Welcome to LogPulse',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
           ),
           const SizedBox(height: 8),
           const Text('Let’s add your first API connection in Settings'),
@@ -122,9 +123,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         children: [
           const Icon(Icons.settings, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'API Not Configured',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
           ),
           const SizedBox(height: 8),
           const Text('Please configure your API in Settings'),
@@ -148,9 +149,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         children: [
           const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'Error Loading Dashboard',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
           ),
           const SizedBox(height: 8),
           Text(error, textAlign: TextAlign.center),
@@ -199,7 +200,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           const SizedBox(height: 24),
           Text(
             'System Overview',
-            style: Theme.of(context).textTheme.titleLarge,
+            style: AppTextStyles.h2.copyWith(color: AppColors.of(context).textPrimary),
           ),
           const SizedBox(height: 16),
           StatsGrid(stats: stats),
