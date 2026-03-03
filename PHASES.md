@@ -330,11 +330,10 @@ light background and deep slate dark background.
 ---
 
 ### Phase 7 — Typography Integration
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete — 2026-03-03
 **Files touched**:
 - `lib/presentation/pages/dashboard/dashboard_page.dart`
 - `lib/presentation/pages/logs/logs_page.dart`
-- `lib/presentation/pages/errors/errors_page.dart`
 - `lib/presentation/pages/settings/settings_page.dart`
 - `lib/presentation/pages/log_details/log_details_page.dart`
 - `lib/presentation/pages/log_details/tabs/overview_tab.dart`
@@ -342,11 +341,10 @@ light background and deep slate dark background.
 - `lib/presentation/pages/log_details/tabs/request_tab.dart`
 - `lib/presentation/pages/log_details/tabs/response_tab.dart`
 - `lib/presentation/pages/log_details/tabs/timeline_tab.dart`
-- `lib/presentation/widgets/cards/stat_card.dart`
-- `lib/presentation/widgets/cards/service_health_card.dart`
-- `lib/presentation/widgets/dashboard/error_rate_chart.dart`
-- `lib/presentation/widgets/dashboard/recent_errors_list.dart`
-- `lib/presentation/widgets/dashboard/service_health_list.dart`
+- `lib/presentation/widgets/common_widgets.dart`
+- `lib/presentation/widgets/errors/error_group_card.dart`
+- `lib/presentation/widgets/logs/enhanced_log_card.dart`
+- `lib/presentation/widgets/filter_dialog.dart`
 - `lib/presentation/widgets/dashboard/time_range_selector.dart`
 - `lib/presentation/widgets/errors/error_group_card.dart`
 - `lib/presentation/widgets/errors/summary_card.dart`
