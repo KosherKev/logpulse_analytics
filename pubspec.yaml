@@ -48,6 +48,38 @@ dev_dependencies:
   build_runner: ^2.4.7
   json_serializable: ^6.7.1
   freezed: ^2.4.6
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/app_icon.png
+
+flutter_launcher_icons:
+  # Android
+  android: true
+  # iOS
+  ios: true
+  # Web
+  web:
+    generate: true
+    image_path: assets/app_icon.png
+    background_color: "#0D1117"
+    theme_color: "#2D7EFF"
+  # macOS
+  macos:
+    generate: true
+    image_path: assets/app_icon.png
+  # Windows
+  windows:
+    generate: true
+    image_path: assets/app_icon.png
+  # Shared icon path (Android + iOS)
+  image_path: assets/app_icon.png
+  # Android adaptive icon — use the full image as both foreground and keep dark bg
+  adaptive_icon_background: "#0D1117"
+  adaptive_icon_foreground: assets/app_icon.png
+  # Remove alpha (needed for iOS)
+  remove_alpha_ios: true
+  # Min SDK (Android)
+  min_sdk_android: 21
