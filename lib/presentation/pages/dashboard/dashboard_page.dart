@@ -22,10 +22,47 @@ class DashboardPage extends ConsumerStatefulWidget {
   ConsumerState<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends ConsumerState<DashboardPage> {
+class _DashboardPageState extends ConsumerState<DashboardPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _staggerCtrl;
+  bool _hasAnimated = false;
+  late Animation<double> _envFade;
+  late Animation<Offset> _envSlide;
+  late Animation<double> _rangeFade;
+  late Animation<Offset> _rangeSlide;
+  late Animation<double> _statsFade;
+  late Animation<Offset> _statsSlide;
+  late Animation<double> _chartFade;
+  late Animation<Offset> _chartSlide;
+  late Animation<double> _healthFade;
+  late Animation<Offset> _healthSlide;
+  late Animation<double> _errorsFade;
+  late Animation<Offset> _errorsSlide;
   @override
   void initState() {
     super.initState();
+    _staggerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _envFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.0, 0.2));
+    _envSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.0, 0.2)));
+    _rangeFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.1, 0.3));
+    _rangeSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.1, 0.3)));
+    _statsFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.2, 0.4));
+    _statsSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.2, 0.4)));
+    _chartFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.3, 0.5));
+    _chartSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.3, 0.5)));
+    _healthFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.4, 0.6));
+    _healthSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.4, 0.6)));
+    _errorsFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.5, 0.7));
+    _errorsSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.5, 0.7)));
   }
 
   @override
@@ -202,42 +239,77 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             g.severity == ErrorSeverity.high)
         .toList();
 
+    if (!_hasAnimated) {
+      _hasAnimated = true;
+      _staggerCtrl.forward();
+    }
+
     return RefreshIndicator(
       onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
-          // 1. ENV Switcher
-          const EnvSwitcherBar(),
-          const SizedBox(height: 16),
-
-          // 2. Time range pills
-          TimeRangeSelector(
-            selectedRange: state.timeRange,
-            onRangeChanged: (value) =>
-                ref.read(dashboardProvider.notifier).setTimeRange(value),
+          FadeTransition(
+            opacity: _envFade,
+            child: SlideTransition(
+              position: _envSlide,
+              child: const EnvSwitcherBar(),
+            ),
           ),
           const SizedBox(height: 16),
 
-          // 3. Stats 2×2 grid
-          StatsGrid(stats: stats),
+          FadeTransition(
+            opacity: _rangeFade,
+            child: SlideTransition(
+              position: _rangeSlide,
+              child: TimeRangeSelector(
+                selectedRange: state.timeRange,
+                onRangeChanged: (value) =>
+                    ref.read(dashboardProvider.notifier).setTimeRange(value),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
 
-          // 4. Combined traffic + errors chart
-          ErrorRateChart(
-            trafficPoints: trafficPoints,
-            errorPoints: errorPoints,
-            subtitle: _chartSubtitle(state.timeRange),
+          FadeTransition(
+            opacity: _statsFade,
+            child: SlideTransition(
+              position: _statsSlide,
+              child: StatsGrid(stats: stats),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          FadeTransition(
+            opacity: _chartFade,
+            child: SlideTransition(
+              position: _chartSlide,
+              child: ErrorRateChart(
+                trafficPoints: trafficPoints,
+                errorPoints: errorPoints,
+                subtitle: _chartSubtitle(state.timeRange),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
 
-          // 5. Service health
-          ServiceHealthList(serviceStats: stats.serviceStats),
+          FadeTransition(
+            opacity: _healthFade,
+            child: SlideTransition(
+              position: _healthSlide,
+              child: ServiceHealthList(serviceStats: stats.serviceStats),
+            ),
+          ),
           const SizedBox(height: 24),
 
-          // 6. Recent critical errors
           if (criticalErrors.isNotEmpty)
-            RecentErrorsList(errorGroups: criticalErrors),
+            FadeTransition(
+              opacity: _errorsFade,
+              child: SlideTransition(
+                position: _errorsSlide,
+                child: RecentErrorsList(errorGroups: criticalErrors),
+              ),
+            ),
         ],
       ),
     );

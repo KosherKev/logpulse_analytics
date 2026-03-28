@@ -29,7 +29,7 @@
 | 11 | Errors Screen Redesign | ✅ Complete | 2026-03-03 |
 | 12 | Log Detail Screen Redesign | ✅ Complete | 2026-03-03 |
 | 13 | Settings & ENV Switcher Redesign | ✅ Complete | 2026-03-03 |
-| 14 | Navigation & Shell Redesign | ⬜ Not Started | — |
+| 14 | Navigation & Shell Redesign | ✅ Complete | 2026-03-03 |
 | 15 | Animation & Micro-interactions | ⬜ Not Started | — |
 
 **Legend**: ⬜ Not Started | 🔄 In Progress | ✅ Complete | ⚠️ Blocked
@@ -83,6 +83,96 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
 - **Verify**: (how to confirm it worked)
 - **Next Step**: (what comes next)
 -->
+### [PHASE 1] — Secure Storage Migration
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added flutter_secure_storage dependency
+  - Initialized secure storage alongside SharedPreferences
+  - Moved API key storage to secure storage per-profile
+  - Updated configuration provider to read/write keys via secure storage
+  - Removed apiKey from profiles JSON serialization (runtime-only field)
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/pubspec.yaml
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/local_storage_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/service_providers.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/models/api_connection_profile.dart
+- **Verify**:
+  - Ran flutter pub get, flutter analyze (no new issues introduced)
+  - Ran flutter test: all tests passed
+  - On app run, configuration loads API key from secure storage using active profile ID
+- **Next Step**: Await approval to proceed to Phase 2
+
+### [PHASE 2] — Request Race-Condition & Cancellation
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added CancelToken tracking with keyed cancellation in ApiService
+  - Applied cancellation to stats and logs requests
+  - Added 300ms debounce in DashboardNotifier.setTimeRange
+  - Suppressed error state updates on cancelled requests
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/dashboard_provider.dart
+- **Verify**:
+  - flutter analyze: no new errors (warnings remain from baseline)
+  - flutter test: all tests passed
+  - Rapid time range changes cancel prior requests; only latest completes; no error state on cancel
+- **Next Step**: Await approval to proceed to Phase 3
+
+### [PHASE 3] — Config Boot & Migration Fix
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added storage version keys to AppConstants
+  - Implemented one-time migration of legacy api_url/api_key into profiles
+  - Removed default base URL auto-configuration; fresh installs start unconfigured
+  - Added isFirstRun flag to ApiConfigState and onboarding prompt on Dashboard
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/app_constants.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/service_providers.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/pages/dashboard/dashboard_page.dart
+- **Verify**:
+  - flutter analyze: no new errors vs baseline (warnings remain)
+  - flutter test: all tests passed
+  - Fresh state shows setup prompt; legacy state migrates once and persists version=2
+- **Next Step**: Await approval to proceed to Phase 4
+
+### [PHASE 4] — Error Handling Specificity
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Expanded Dio error handling with specific timeout messages and codes
+  - Added SSL/TLS specific handling using underlying error types
+  - Logged raw DioException runtimeType in error interceptor
+  - Added error code constants to AppConstants
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/app_constants.dart
+- **Verify**:
+  - flutter analyze: no new errors vs baseline (warnings remain)
+  - flutter test: all tests passed
+  - Misconfigured URL yields specific network messages instead of generic
+- **Next Step**: Await approval to proceed to Phase 5
+
+### [PHASE 5] — Time-Series Architecture Improvement
+- **Date**: 2026-03-03
+- **Tool**: Desktop Commander MCP
+- **Actions**:
+  - Added timeseries endpoint constant and query builder
+  - Implemented ApiService.getTimeSeries with 404 fallback to log-derived series
+  - Capped fallback fetch to 200 logs and added warning log
+  - Updated DashboardRepository to use ApiService.getTimeSeries
+- **Files Changed**:
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/api_endpoints.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/repositories/dashboard_repository.dart
+- **Verify**:
+  - flutter analyze: no new errors vs baseline (warnings remain)
+  - flutter test: all tests passed
+  - Timeseries requests use dedicated endpoint; fallback fetch limited to 200
+- **Next Step**: Await approval to proceed to Phase 6
+
 ### [PHASE 6] — Design Token System
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP
@@ -279,92 +369,19 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter analyze: no new errors vs baseline; tests pass
   - Navigation bar shows pill styling via theme; updated order; badge visible when errors exist
 - **Next Step**: Phase 15 — Animation & Micro-interactions
-### [PHASE 1] — Secure Storage Migration
-- **Date**: 2026-03-03
-- **Tool**: Desktop Commander MCP
-- **Actions**:
-  - Added flutter_secure_storage dependency
-  - Initialized secure storage alongside SharedPreferences
-  - Moved API key storage to secure storage per-profile
-  - Updated configuration provider to read/write keys via secure storage
-  - Removed apiKey from profiles JSON serialization (runtime-only field)
-- **Files Changed**:
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/pubspec.yaml
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/local_storage_service.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/service_providers.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/models/api_connection_profile.dart
-- **Verify**:
-  - Ran flutter pub get, flutter analyze (no new issues introduced)
-  - Ran flutter test: all tests passed
-  - On app run, configuration loads API key from secure storage using active profile ID
-- **Next Step**: Await approval to proceed to Phase 2
 
-### [PHASE 2] — Request Race-Condition & Cancellation
+### [PHASE 15] — Animation & Micro-interactions
 - **Date**: 2026-03-03
 - **Tool**: Desktop Commander MCP
 - **Actions**:
-  - Added CancelToken tracking with keyed cancellation in ApiService
-  - Applied cancellation to stats and logs requests
-  - Added 300ms debounce in DashboardNotifier.setTimeRange
-  - Suppressed error state updates on cancelled requests
+  - Added staggered Fade+Slide transitions for dashboard sections on initial load
+  - Confirmed env switcher pulse and service health pulse animations
+  - Prepared log card fade-in for initial list rendering
 - **Files Changed**:
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/dashboard_provider.dart
-- **Verify**:
-  - flutter analyze: no new errors (warnings remain from baseline)
-  - flutter test: all tests passed
-  - Rapid time range changes cancel prior requests; only latest completes; no error state on cancel
-- **Next Step**: Await approval to proceed to Phase 3
-
-### [PHASE 3] — Config Boot & Migration Fix
-- **Date**: 2026-03-03
-- **Tool**: Desktop Commander MCP
-- **Actions**:
-  - Added storage version keys to AppConstants
-  - Implemented one-time migration of legacy api_url/api_key into profiles
-  - Removed default base URL auto-configuration; fresh installs start unconfigured
-  - Added isFirstRun flag to ApiConfigState and onboarding prompt on Dashboard
-- **Files Changed**:
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/app_constants.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/providers/service_providers.dart
   - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/pages/dashboard/dashboard_page.dart
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/widgets/dashboard/env_switcher_bar.dart (pre-existing pulse)
+  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/presentation/widgets/cards/service_health_card.dart (pre-existing pulse)
 - **Verify**:
-  - flutter analyze: no new errors vs baseline (warnings remain)
-  - flutter test: all tests passed
-  - Fresh state shows setup prompt; legacy state migrates once and persists version=2
-- **Next Step**: Await approval to proceed to Phase 4
-
-### [PHASE 4] — Error Handling Specificity
-- **Date**: 2026-03-03
-- **Tool**: Desktop Commander MCP
-- **Actions**:
-  - Expanded Dio error handling with specific timeout messages and codes
-  - Added SSL/TLS specific handling using underlying error types
-  - Logged raw DioException runtimeType in error interceptor
-  - Added error code constants to AppConstants
-- **Files Changed**:
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/app_constants.dart
-- **Verify**:
-  - flutter analyze: no new errors vs baseline (warnings remain)
-  - flutter test: all tests passed
-  - Misconfigured URL yields specific network messages instead of generic
-- **Next Step**: Await approval to proceed to Phase 5
-
-### [PHASE 5] — Time-Series Architecture Improvement
-- **Date**: 2026-03-03
-- **Tool**: Desktop Commander MCP
-- **Actions**:
-  - Added timeseries endpoint constant and query builder
-  - Implemented ApiService.getTimeSeries with 404 fallback to log-derived series
-  - Capped fallback fetch to 200 logs and added warning log
-  - Updated DashboardRepository to use ApiService.getTimeSeries
-- **Files Changed**:
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/core/constants/api_endpoints.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/services/api_service.dart
-  - /Users/kevinafenyo/Documents/GitHub/logpulse_analytics/lib/data/repositories/dashboard_repository.dart
-- **Verify**:
-  - flutter analyze: no new errors vs baseline (warnings remain)
-  - flutter test: all tests passed
-  - Timeseries requests use dedicated endpoint; fallback fetch limited to 200
-- **Next Step**: Await approval to proceed to Phase 6
+  - flutter analyze: no new errors vs baseline; tests pass
+  - Dashboard sections fade/slide in on first load
+- **Next Step**: Review animations; finalize log card fade-in if desired
