@@ -49,6 +49,18 @@ class FormatUtils {
   static String prettyPrintJson(dynamic json) {
     try {
       const encoder = JsonEncoder.withIndent('  ');
+      // If the value is already a String, it may be a serialized JSON body
+      // (common when backends log response.body as a string). Attempt to decode
+      // it first so we pretty-print the parsed structure, not a JSON-of-a-string.
+      if (json is String) {
+        try {
+          final decoded = jsonDecode(json);
+          return encoder.convert(decoded);
+        } catch (_) {
+          // Not valid JSON — return the raw string as-is
+          return json;
+        }
+      }
       return encoder.convert(json);
     } catch (e) {
       return json.toString();

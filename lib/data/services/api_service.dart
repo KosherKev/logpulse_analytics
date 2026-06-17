@@ -104,7 +104,7 @@ class ApiService {
         search: filter.searchQuery,
       );
 
-      final cancelToken = _issueToken(endpoint);
+      final cancelToken = _issueToken(ApiEndpoints.logs);
       final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       final body = response.data;
 
@@ -184,7 +184,7 @@ class ApiService {
       _ensureConfigured();
 
       final endpoint = ApiEndpoints.buildStatsQuery(timeRange: timeRange);
-      final cancelToken = _issueToken(endpoint);
+      final cancelToken = _issueToken(ApiEndpoints.stats);
       final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return DashboardStats.fromApiJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -196,7 +196,7 @@ class ApiService {
     try {
       _ensureConfigured();
       final endpoint = ApiEndpoints.buildTimeseriesQuery(timeRange: timeRange);
-      final cancelToken = _issueToken(endpoint);
+      final cancelToken = _issueToken(ApiEndpoints.timeseries);
       final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return _parseTimeSeriesResponse(response.data);
     } on DioException catch (e) {
