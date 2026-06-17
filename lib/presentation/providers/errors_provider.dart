@@ -71,7 +71,7 @@ class ErrorsNotifier extends StateNotifier<ErrorsState> {
 
     // Group by error message
     for (final log in errorLogs) {
-      final message = log.error?.message ?? 'Unknown Error';
+      final message = log.displayError;
       grouped.putIfAbsent(message, () => []).add(log);
     }
 

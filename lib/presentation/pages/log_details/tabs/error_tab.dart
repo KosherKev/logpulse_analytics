@@ -13,7 +13,7 @@ class ErrorTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
 
-    if (log.error == null) {
+    if (!log.isError) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -39,13 +39,13 @@ class ErrorTab extends StatelessWidget {
           accentBorder: c.error,
           c: c,
           children: [
-            if (log.error!.message != null)
+            if (log.displayError.isNotEmpty)
               DetailKVRow(
                   label: 'Message',
-                  value: log.error!.message!,
+                  value: log.displayError,
                   valueColor: c.error,
                   c: c),
-            if (log.error!.code != null)
+            if (log.error?.code != null)
               DetailKVRow(label: 'Code', value: log.error!.code!, c: c),
             DetailKVRow(
                 label: 'Level',
@@ -56,7 +56,7 @@ class ErrorTab extends StatelessWidget {
         ),
 
         // Stack trace — dark terminal container
-        if (log.error!.stack != null) ...[
+        if (log.error?.stack != null) ...[
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(

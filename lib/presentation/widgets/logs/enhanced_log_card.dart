@@ -13,7 +13,7 @@ import '../../../data/models/log_entry.dart';
 ///   - Service name: JetBrains Mono 600
 ///   - Method + path row: accent method, mono path on surface2 bg
 ///   - Meta row: icon-text pairs (timestamp / duration / traceId)
-///   - Error preview pill at bottom when log.error?.message != null
+///   - Error preview pill at bottom when log.displayError has content and is an error log
 class EnhancedLogCard extends StatelessWidget {
   final LogEntry log;
   final VoidCallback onTap;
@@ -97,9 +97,9 @@ class EnhancedLogCard extends StatelessWidget {
               _MetaRow(log: log, c: c),
 
               // ── Row 4: Error preview pill ─────────────────────────────
-              if (log.error?.message != null) ...[
+              if (log.isError) ...[
                 const SizedBox(height: 8),
-                _ErrorPill(message: log.error!.message!, c: c),
+                _ErrorPill(message: log.displayError, c: c),
               ],
             ],
           ),
