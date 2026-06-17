@@ -474,3 +474,40 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
 ### Status: Complete fixes A and B. Ready to fix cache-keying.
 ### Open questions:
 - Are we ready to implement Fix C by modifying `_issueToken` to use a base-route string (e.g., `endpoint.split('?').first`) in all three methods?
+
+## [2026-06-17] — Fix C Implementation + Response/Timeline Investigation
+
+### Fix C — cache keying:
+- **Constants/keys used per method**:
+  - `getLogs` → `_issueToken(ApiEndpoints.logs)` (constant `/logs`)
+  - `getDashboardStats` → `_issueToken(ApiEndpoints.stats)` (constant `/logs/stats/summary`)
+  - `getTimeSeries` → `_issueToken(ApiEndpoints.timeseries)` (constant `/logs/stats/timeseries`)
+  - `getLogsByTraceId` left unchanged — each traceId is a genuinely unique request, not a filter on the same logical list.
+- **Cancel-vs-error handling confirmed in notifiers?**: Yes. `LogsNotifier.loadLogs` catches `AppException` where `e.code == 'CANCELLED'` is passed through the `ApiService._handleDioError` → `NetworkException(code: AppConstants.errCodeCancelled)` path. `DashboardNotifier.loadStats` does the same with `if (e.code == 'CANCELLED')`. In both cases, cancellation is silently swallowed (state is reset to `isLoading: false` with no error message set). No spurious toast or error state will appear on filter changes.
+- **Manual verification**: Not yet run on device — build was blocked by the missing `dart:convert` import (fixed immediately). `flutter analyze` now passes clean with zero errors. Will verify on next device run.
+
+### Response tab rendering:
+- **File/widget**: `lib/presentation/pages/log_details/tabs/detail_widgets.dart` → `DetailBodySection` (line 209). Called from `response_tab.dart` line 82 passing `body: widget.log.response!.body`.
+- **Value type read**: `dynamic` — the field declaration on `ResponseData` is `final dynamic body`. From real backend samples, this arrives as a `String` containing serialized JSON (e.g. `'{"message":"Network error..."}'`).
+- **Formatting call applied**: `FormatUtils.prettyPrintJson(body)` → which was calling `JsonEncoder.withIndent('  ').convert(body)` directly. When `body` is a `String`, `JsonEncoder.convert` encodes the String itself as a JSON string literal — producing `"\"Network error...\""` with outer quotes and escaped inner quotes. This is the double-encode bug.
+- **Confirmed double-encode bug?**: **Yes**. Fixed in the same pass: `prettyPrintJson` now checks `if (json is String)`, attempts `jsonDecode` first, and only calls `encoder.convert` on the decoded object. Falls back to raw string display if the body isn't valid JSON.
+
+### Timeline tab:
+- **File reviewed**: `lib/presentation/pages/log_details/tabs/timeline_tab.dart`
+- **Values displayed and their real source fields**:
+  - `TOTAL` duration card → `log.duration` ✅ (real field)
+  - "Request Received" timestamp → hardcoded `'0ms'` ⚠️ (not from data)
+  - "Request Received" detail → `log.method` + `log.path` ✅ (real fields)
+  - "Auth Validated" timestamp → hardcoded `'5ms'` ⚠️ **fabricated**
+  - "Request Validated" timestamp → hardcoded `'15ms'` ⚠️ **fabricated**
+  - Error event timestamp → `'${(total * 0.8).round()}ms'` ⚠️ **fabricated** (80% of total duration)
+  - "Response Sent" timestamp → `'${total}ms'` ✅ (equals `log.duration`)
+  - "Response Sent" detail → `log.statusCode` ✅ (real field)
+  - Performance Breakdown bars → hardcoded percentages: Request Processing 10%, Auth 5%, DB Query 70%, Response 15% ⚠️ **entirely fabricated**
+  - Bar ms values → `(duration * percentage).round()` ⚠️ **fabricated** (derived from hardcoded ratios)
+- **Any fabricated/interpolated values found?**: **Yes — extensively.** The "Auth Validated" (5ms) and "Request Validated" (15ms) events are hardcoded literals. The error event timestamp is `total × 0.8`, invented. The entire Performance Breakdown section uses fixed ratios (10/5/70/15%) applied to `log.duration` — there are no per-stage fields in the backend schema. Every millisecond value in PERFORMANCE BREAKDOWN is fabricated. The only real data in the tab is: the total `duration`, the `method`+`path` on the first event, and the final `statusCode`.
+
+### Status: Fix C complete, double-encode bug fixed (response body now decodes correctly before pretty-printing). Timeline tab confirmed to be showing fabricated data — no backend fields exist to populate it accurately.
+### Open questions:
+- Timeline tab: replace the fabricated stage breakdown with an honest single-row showing only real data (`method`, `path`, `duration`, `statusCode`), or hide the Performance Breakdown section entirely when no per-stage metadata is present? Recommend hiding it — fabricated percentages in a developer debugging tool are worse than showing nothing.
+- Fix C manual verification: do you want to run the app and confirm rapid filter changes produce no spurious errors before we close out?
