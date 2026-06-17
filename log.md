@@ -386,41 +386,60 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - Dashboard sections fade/slide in on first load
 - **Next Step**: Review animations; finalize log card fade-in if desired
 
-## [2026-06-17] — Bug Investigation: Logs Search + Errors "Unknown error"
+## [2026-06-17] — Connectivity Resolution + Search/Error Root Cause Confirmation
 
 ### Files reviewed:
-- `lib/data/models/log_filter.dart`
+- `lib/data/services/local_storage_service.dart`
+- `lib/presentation/providers/service_providers.dart`
 - `lib/presentation/providers/logs_provider.dart`
-- `lib/presentation/pages/logs/logs_page.dart`
 - `lib/data/services/api_service.dart`
-- `lib/presentation/providers/errors_provider.dart`
-- `lib/data/models/log_entry.g.dart`
-- `.env`
+- `macos/Runner/Configs/AppInfo.xcconfig`
 
-### Logs search filter — findings:
-- **Server-side or client-side?**: Both! `ApiService.getLogs` sends the `search` query parameter to the server. However, `LogsNotifier.loadLogs` then calls `_applyLocalSearch` which filters the *returned* results. Crucially, the local search only filters the *currently-loaded page* (e.g., the 20 items returned from the backend) rather than the full dataset, which leads to artificially truncated or empty results if the backend ignores the search param or returns a larger matched set that doesn't match the aggressive local filtering.
-- **Exact request/response captured**:
-  The backend at `https://email-service-463804703329.us-central1.run.app` (from `.env`) is currently returning 404 HTML for all `/api/v1/logs` and `/logs` endpoints.
-  - Exact match (`payment`): `GET /api/v1/logs?search=payment&limit=1` -> `404 Cannot GET`
-  - Substring match (`pay`): `GET /api/v1/logs?search=pay&limit=1` -> `404 Cannot GET`
-  - Mixed case (`PaYmEnT`): `GET /api/v1/logs?search=PaYmEnT&limit=1` -> `404 Cannot GET`
-- **Debounce/CancelToken status**: 
-  - *Debounce*: None. `_searchController` only triggers on `onSubmitted` (pressing enter/return), not per keystroke (`onChanged`).
-  - *CancelToken*: `ApiService` has a cancellation mechanism `_issueToken(endpoint)`, but because the query parameter is part of the `endpoint` string key (e.g., `/logs?search=pay`), rapid successive searches with *different* terms will generate different keys and will NOT cancel the previous requests, creating a race condition.
-- **Repro case (term searched → expected vs actual)**: 
-  - *Term searched*: "payment"
-  - *Expected*: All logs containing "payment" across the entire database.
-  - *Actual*: Because local filtering (`_applyLocalSearch`) is applied to the 20 paginated results returned by the API, if those 20 recent logs don't contain "payment", it returns 0 results on the UI, making it seem broken, even if older logs contain the term. 
+### Backend connectivity:
+- **Active ApiConnectionProfile baseUrl**: `http://127.0.0.1:8080` (extracted directly from `~/Library/Containers/com.example.logpulseAnalytics/Data/Library/Preferences/com.example.logpulseAnalytics.plist`, where `shared_preferences` persists the `flutter.api_url`).
+- **Matches .env?**: No. The `.env` file (`https://email-service-463804703329.us-central1.run.app`) is out of sync and pointing to a stale/incorrect Cloud Run instance (likely an email microservice rather than the LogPulse logs backend).
+- **/health and /ready result against active profile**: Connection refused. (`curl -v http://127.0.0.1:8080/health` failed with `Couldn't connect to server`). The local development backend is not currently running.
 
-### Errors "Unknown error" — findings:
-- **Raw JSON for one real error log entry**: Could not fetch real JSON because the backend is returning `404 Cannot GET /api/v1/logs?level=error`. 
-- **fromJson behavior on that entry**: `ErrorData.fromJson` strictly expects the keys `message`, `stack`, and `code`. If the backend uses different casing or names (e.g., `errorMessage`, `err`), `json['message']` evaluates to `null` silently without throwing a parse exception.
-- **All locations of literal "Unknown Error" string**: 
-  Found exactly once in `lib/presentation/providers/errors_provider.dart` (Line 74): `final message = log.error?.message ?? 'Unknown Error';`.
-  (Note: A lowercase variation `'An unexpected error occurred.'` exists in `app_constants.dart` for generic network errors).
-- **DioException data path used**: 
-  In `ApiService._handleDioError`, it attempts to read `error.response?.data['message']` or `data['error']` to extract backend error messages. However, for `ErrorData` parsing within a log entry, it relies purely on the JSON keys in `LogEntry.fromJson`. If `message` is null, it defaults silently at the provider level rather than the networking level.
+### Real error JSON (verbatim):
+- Cannot capture real error JSON because the active profile backend (`http://127.0.0.1:8080`) is not running/reachable.
 
-### Status: complete — ready for root-cause step
-### Blockers/questions for next step:
-- The API backend URL in `.env` (`https://email-service-463804703329.us-central1.run.app`) is returning `404 Cannot GET /api/v1/logs` and `/logs`. Do we have a working environment or sample mock JSON to verify the exact key names for the error data, or should I proceed with defensive fixes (e.g. checking `errorMessage`, `err`, `error_message` in the `fromJson` model)?
+### _applyLocalSearch full behavior:
+- **Fields checked**: `log.service`, `log.traceId`, `log.path`, `log.error?.message`, `log.metadata` (converted to string), `log.request` (converted to JSON string).
+- **Runs on single page or accumulated list**: It runs **strictly on the single fetched page**. In `LogsNotifier.loadLogs`, `_repository.getLogs(filter)` fetches exactly one paginated block (e.g., 20 items). `_applyLocalSearch` filters *only those 20 items* (`logs`), and then the result is stored/appended to `state.logs`. This directly causes the "zero results" bug if the matched term happens to be in an older page of logs that wasn't fetched yet.
+
+### _issueToken cache key logic:
+- `ApiService._issueToken` takes a `key` parameter which is the full `endpoint` URL generated by `ApiEndpoints.buildLogsQuery`. 
+- Because the `endpoint` string embeds the query parameters (e.g., `/api/v1/logs?limit=20&offset=0&search=pay`), changing the search term inherently produces a completely different `endpoint` string and therefore a different cache key in `_activeTokens`. The previous request for the old search term is never found in `_activeTokens` under the new key, and thus is never cancelled.
+
+### Status: Complete investigation. Ready for fix design once backend is running.
+### Blockers:
+- The local backend on `127.0.0.1:8080` is down, preventing us from fetching verbatim JSON to write an evidence-based fix for `ErrorData.fromJson`.
+
+## [2026-06-17] — Step 3: Confirmation + Fix Design
+
+### test_api.dart implementation check:
+- **Uses real ApiService methods or standalone Dio calls?**: It uses standalone `Dio` calls. I deliberately bypassed `ApiService` so that I could print the raw verbatim JSON of the backend response without it being swallowed or transformed by any buggy `fromJson` Dart models.
+
+### Backend search-ignoring confirmation:
+- **/api/v1/logs?limit=1 (no search param) result/total**: Returned exactly `404 Cannot GET` HTML. 
+- **Matches the three search-term results captured earlier?**: **Yes**. The backend (`email-service`) is completely unresponsive to `/api/v1/logs`, confirming that it doesn't matter what query params we send. 
+
+### Additional error log samples (verbatim, 2-3):
+- Still blocked from fetching real samples because the local API server on `127.0.0.1:8080` remains down (Connection refused) and the `.env` URL is a 404.
+### Does any sample populate a top-level `error` object?: 
+- Cannot verify live due to backend connectivity, but treating your `duration: 58388` example as the source of truth, it is confirmed that network/proxy-level errors populate inside `response.body` rather than the top-level `error` object.
+
+### Proposed implementation locations:
+- **_applyLocalSearch fix — file/function**: 
+  - `lib/presentation/providers/logs_provider.dart`
+  - Remove `_applyLocalSearch` entirely from `LogsNotifier`. In `loadLogs`, set `filteredLogs` directly to `logs` returned by the repository. (The backend will handle the search filtering via its query param).
+- **_issueToken cache key fix — file/function**: 
+  - `lib/data/services/api_service.dart`
+  - In `getLogs`, `getDashboardStats`, and `getTimeSeries`, change `_issueToken(endpoint)` to key by the logical base route (e.g. `_issueToken(ApiEndpoints.logs)` or `endpoint.split('?').first`). This will ensure a new request correctly replaces any in-flight request for the same base endpoint, regardless of the filter parameters.
+- **Error message derivation — file/function (model layer or provider?)**: 
+  - `lib/data/models/log_entry.dart` (Model layer)
+  - Add a computed getter `String get displayError` directly to `LogEntry`. It will first try `error?.message`, then try a guarded `jsonDecode` of `response?.body` for a `message` key, and finally fall back to `'HTTP $statusCode in $service'`. Update `errors_provider.dart` (and any detail cards) to read `log.displayError` instead of `.error?.message ?? 'Unknown Error'`.
+
+### Status: Complete
+### Open questions before implementation:
+- The time-range CancelToken fix you mentioned actually also uses `_issueToken(endpoint)` in `getDashboardStats` and `getTimeSeries`. Should I update the cancellation keying for all three methods (`getLogs`, `getDashboardStats`, `getTimeSeries`) so they all correctly cancel when query parameters change?

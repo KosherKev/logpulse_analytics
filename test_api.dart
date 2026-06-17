@@ -4,8 +4,8 @@ import 'dart:convert';
 
 void main() async {
   final dio = Dio();
-  final baseUrl = 'https://email-service-463804703329.us-central1.run.app';
-  final apiKey = 'd83dcd990886bdaf11dbba347ce84726dfa6fc953162794558591306cc3bd69d148a4d69a0a9b932a0167661b92b97abe2c8bd621bf526eac4567a1693f6162e';
+  final baseUrl = 'https://central-logging-service-858865328729.europe-west1.run.app/api/v1';
+  final apiKey = 'cls_RBA8xoVM16L7CNi8kubgQ5rgplv4gYVCNV_vNtoxW_k';
   
   dio.options.headers['X-API-Key'] = apiKey;
 
