@@ -385,3 +385,42 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
   - flutter analyze: no new errors vs baseline; tests pass
   - Dashboard sections fade/slide in on first load
 - **Next Step**: Review animations; finalize log card fade-in if desired
+
+## [2026-06-17] — Bug Investigation: Logs Search + Errors "Unknown error"
+
+### Files reviewed:
+- `lib/data/models/log_filter.dart`
+- `lib/presentation/providers/logs_provider.dart`
+- `lib/presentation/pages/logs/logs_page.dart`
+- `lib/data/services/api_service.dart`
+- `lib/presentation/providers/errors_provider.dart`
+- `lib/data/models/log_entry.g.dart`
+- `.env`
+
+### Logs search filter — findings:
+- **Server-side or client-side?**: Both! `ApiService.getLogs` sends the `search` query parameter to the server. However, `LogsNotifier.loadLogs` then calls `_applyLocalSearch` which filters the *returned* results. Crucially, the local search only filters the *currently-loaded page* (e.g., the 20 items returned from the backend) rather than the full dataset, which leads to artificially truncated or empty results if the backend ignores the search param or returns a larger matched set that doesn't match the aggressive local filtering.
+- **Exact request/response captured**:
+  The backend at `https://email-service-463804703329.us-central1.run.app` (from `.env`) is currently returning 404 HTML for all `/api/v1/logs` and `/logs` endpoints.
+  - Exact match (`payment`): `GET /api/v1/logs?search=payment&limit=1` -> `404 Cannot GET`
+  - Substring match (`pay`): `GET /api/v1/logs?search=pay&limit=1` -> `404 Cannot GET`
+  - Mixed case (`PaYmEnT`): `GET /api/v1/logs?search=PaYmEnT&limit=1` -> `404 Cannot GET`
+- **Debounce/CancelToken status**: 
+  - *Debounce*: None. `_searchController` only triggers on `onSubmitted` (pressing enter/return), not per keystroke (`onChanged`).
+  - *CancelToken*: `ApiService` has a cancellation mechanism `_issueToken(endpoint)`, but because the query parameter is part of the `endpoint` string key (e.g., `/logs?search=pay`), rapid successive searches with *different* terms will generate different keys and will NOT cancel the previous requests, creating a race condition.
+- **Repro case (term searched → expected vs actual)**: 
+  - *Term searched*: "payment"
+  - *Expected*: All logs containing "payment" across the entire database.
+  - *Actual*: Because local filtering (`_applyLocalSearch`) is applied to the 20 paginated results returned by the API, if those 20 recent logs don't contain "payment", it returns 0 results on the UI, making it seem broken, even if older logs contain the term. 
+
+### Errors "Unknown error" — findings:
+- **Raw JSON for one real error log entry**: Could not fetch real JSON because the backend is returning `404 Cannot GET /api/v1/logs?level=error`. 
+- **fromJson behavior on that entry**: `ErrorData.fromJson` strictly expects the keys `message`, `stack`, and `code`. If the backend uses different casing or names (e.g., `errorMessage`, `err`), `json['message']` evaluates to `null` silently without throwing a parse exception.
+- **All locations of literal "Unknown Error" string**: 
+  Found exactly once in `lib/presentation/providers/errors_provider.dart` (Line 74): `final message = log.error?.message ?? 'Unknown Error';`.
+  (Note: A lowercase variation `'An unexpected error occurred.'` exists in `app_constants.dart` for generic network errors).
+- **DioException data path used**: 
+  In `ApiService._handleDioError`, it attempts to read `error.response?.data['message']` or `data['error']` to extract backend error messages. However, for `ErrorData` parsing within a log entry, it relies purely on the JSON keys in `LogEntry.fromJson`. If `message` is null, it defaults silently at the provider level rather than the networking level.
+
+### Status: complete — ready for root-cause step
+### Blockers/questions for next step:
+- The API backend URL in `.env` (`https://email-service-463804703329.us-central1.run.app`) is returning `404 Cannot GET /api/v1/logs` and `/logs`. Do we have a working environment or sample mock JSON to verify the exact key names for the error data, or should I proceed with defensive fixes (e.g. checking `errorMessage`, `err`, `error_message` in the `fromJson` model)?
