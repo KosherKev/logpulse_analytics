@@ -70,21 +70,20 @@ class LogsNotifier extends StateNotifier<LogsState> {
     try {
       final filter = state.filter;
       final logs = await _repository.getLogs(filter);
-      final filteredLogs = _applyLocalSearch(logs, filter.searchQuery);
 
       if (refresh) {
         state = state.copyWith(
-          logs: filteredLogs,
+          logs: logs,
           isLoading: false,
-          hasMore: filteredLogs.length >= filter.limit,
-          totalCount: filteredLogs.length,
+          hasMore: logs.length >= filter.limit,
+          totalCount: logs.length,
         );
       } else {
         state = state.copyWith(
-          logs: [...state.logs, ...filteredLogs],
+          logs: [...state.logs, ...logs],
           isLoading: false,
-          hasMore: filteredLogs.length >= filter.limit,
-          totalCount: state.totalCount + filteredLogs.length,
+          hasMore: logs.length >= filter.limit,
+          totalCount: state.totalCount + logs.length,
         );
       }
     } on AppException catch (e) {
@@ -137,55 +136,6 @@ class LogsNotifier extends StateNotifier<LogsState> {
       offset: 0,
     );
     await applyFilter(filter);
-  }
-
-  List<LogEntry> _applyLocalSearch(
-    List<LogEntry> logs,
-    String? query,
-  ) {
-    if (query == null || query.trim().isEmpty) {
-      return logs;
-    }
-
-    final q = query.toLowerCase();
-
-    return logs.where((log) {
-      if (log.service.toLowerCase().contains(q)) {
-        return true;
-      }
-
-      if (log.traceId != null &&
-          log.traceId!.toLowerCase().contains(q)) {
-        return true;
-      }
-
-      if (log.path != null &&
-          log.path!.toLowerCase().contains(q)) {
-        return true;
-      }
-
-      if (log.error?.message != null &&
-          log.error!.message!.toLowerCase().contains(q)) {
-        return true;
-      }
-
-      if (log.metadata != null) {
-        final metaString = log.metadata.toString().toLowerCase();
-        if (metaString.contains(q)) {
-          return true;
-        }
-      }
-
-      if (log.request != null) {
-        final requestString =
-            log.request!.toJson().toString().toLowerCase();
-        if (requestString.contains(q)) {
-          return true;
-        }
-      }
-
-      return false;
-    }).toList();
   }
 }
 

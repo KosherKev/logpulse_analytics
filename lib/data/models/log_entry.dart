@@ -55,6 +55,33 @@ class LogEntry {
     if (statusCode! >= 200 && statusCode! < 300) return 'success';
     return 'other';
   }
+
+  /// Get the best available error message
+  String get displayError {
+    if (error?.message != null && error!.message!.isNotEmpty) {
+      return error!.message!;
+    }
+    
+    if (response?.body != null) {
+      try {
+        final bodyStr = response!.body is String ? response!.body as String : jsonEncode(response!.body);
+        final decoded = jsonDecode(bodyStr);
+        if (decoded is Map<String, dynamic>) {
+          if (decoded['message'] != null && decoded['message'].toString().isNotEmpty) {
+            return decoded['message'].toString();
+          }
+          if (decoded['error'] != null && decoded['error'].toString().isNotEmpty) {
+            return decoded['error'].toString();
+          }
+        }
+      } catch (_) {
+        // Fall through on parsing errors
+      }
+    }
+    
+    final statusPart = statusCode != null ? 'HTTP $statusCode' : 'Error';
+    return '$statusPart in $service';
+  }
 }
 
 /// Request data model

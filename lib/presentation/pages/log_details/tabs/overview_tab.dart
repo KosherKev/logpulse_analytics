@@ -48,20 +48,20 @@ class OverviewTab extends ConsumerWidget {
           ],
         ),
 
-        if (log.error != null) ...[
+        if (log.isError) ...[
           const SizedBox(height: 12),
           DetailSection(
             title: 'ERROR SUMMARY',
             accentBorder: c.error,
             c: c,
             children: [
-              if (log.error!.message != null)
+              if (log.displayError.isNotEmpty)
                 DetailKVRow(
-                    label: 'Message',
-                    value: log.error!.message!,
+                  label: 'Message',
+                  value: log.displayError,
                     valueColor: c.error,
                     c: c),
-              if (log.error!.code != null)
+              if (log.error?.code != null)
                 DetailKVRow(label: 'Code', value: log.error!.code!, c: c),
             ],
           ),

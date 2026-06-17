@@ -142,11 +142,11 @@ class TimelineTab extends StatelessWidget {
           isError: false,
         ),
       ],
-      if (log.error != null)
+      if (log.isError)
         _TimelineEvent(
           timestamp: '${(total * 0.8).round()}ms',
-          title: log.error!.message ?? 'Error Occurred',
-          detail: log.error!.code,
+          title: log.displayError,
+          detail: log.error?.code,
           isError: true,
         ),
       _TimelineEvent(

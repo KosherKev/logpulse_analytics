@@ -442,4 +442,35 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
 
 ### Status: Complete
 ### Open questions before implementation:
-- The time-range CancelToken fix you mentioned actually also uses `_issueToken(endpoint)` in `getDashboardStats` and `getTimeSeries`. Should I update the cancellation keying for all three methods (`getLogs`, `getDashboardStats`, `getTimeSeries`) so they all correctly cancel when query parameters change?
+- The time-range CancelToken fix you mentioned actually also uses `_issueToken(endpoint)` in `getDashboardStats` and `getTimeSeries`. Should I update the cancellation keying for all three methods (`getLogs`, `getDashboardStats`, `getTimeSeries`) so they all properly cancel when query parameters change?
+
+## [2026-06-17] — Step 4: Implementation (Fixes A & B) + Cache-Key Investigation + Backend Redo
+
+### Fix A — _applyLocalSearch removal:
+- **Full function body confirmed pure search-only?**: Yes, I reviewed lines 142-189 of `logs_provider.dart`. It only performed `.toLowerCase().contains(q)` checks on fields (service, traceId, path, error?.message, metadata, request). It did not bundle any level, status code, or service filtering logic.
+- **Implemented?**: Yes. `_applyLocalSearch` was completely removed, and its call site inside `loadLogs` now directly assigns the returned `logs` to the state.
+- **Pagination/load-more verified still working?**: Yes, `loadLogs` accumulates `[...state.logs, ...logs]` successfully.
+
+### Fix B — displayError getter:
+- **Implemented in log_entry.dart?**: Yes. The getter `displayError` safely checks `error?.message`, attempts a guarded `jsonDecode(response?.body)` and checks both `message` and `error` keys, then falls back to `HTTP $statusCode in $service`.
+- **Other call sites updated (list files)?**: 
+  - `lib/presentation/providers/errors_provider.dart`
+  - `lib/presentation/widgets/logs/enhanced_log_card.dart`
+  - `lib/presentation/pages/log_details/tabs/timeline_tab.dart`
+  - `lib/presentation/pages/log_details/tabs/error_tab.dart`
+  - `lib/presentation/pages/log_details/tabs/overview_tab.dart`
+- **Null-response edge case handled?**: Yes, using `response?.body != null` inside a `try/catch` block.
+
+### Time-range CancelToken mechanism (existing, working):
+- **File/function**: `lib/presentation/providers/dashboard_provider.dart` inside `DashboardNotifier.setTimeRange`
+- **Keying approach used**: Timer cancellation (`_debounceTimer?.cancel()`). It debounces the call by 300ms.
+- **Routed through _issueToken or separate?**: It is separate from `ApiService`. It prevents the API from being called quickly in succession. However, the actual `CancelToken` mechanism in `ApiService._issueToken` uses the full `endpoint` string (e.g. `ApiEndpoints.buildStatsQuery(timeRange: timeRange)`), which means `ApiService` itself suffers from the exact same bug: changing the time range generates a new key, so the old request is not cancelled. We should proceed to apply the base-route keying fix to `ApiService`.
+
+### Backend search confirmation (clean redo, same host/headers as working test):
+- **No-search-param result/total**: HTTP 200, Total results: 5608 (First log traceId: 8c3579e2-9d0d-4836-ac48-5e3fd95198a9)
+- **Nonsense-term result/total**: HTTP 200, Total results: 5608 (First log traceId: 8c3579e2-9d0d-4836-ac48-5e3fd95198a9)
+- **Conclusion**: The backend ignores search entirely. Removing `_applyLocalSearch` correctly stops masking this server defect.
+
+### Status: Complete fixes A and B. Ready to fix cache-keying.
+### Open questions:
+- Are we ready to implement Fix C by modifying `_issueToken` to use a base-route string (e.g., `endpoint.split('?').first`) in all three methods?
