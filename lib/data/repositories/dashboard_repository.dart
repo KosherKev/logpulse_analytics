@@ -1,3 +1,5 @@
+import 'package:logger/logger.dart' hide LogFilter;
+
 import '../models/dashboard_stats.dart';
 import '../models/service_metrics_entry.dart';
 import '../models/time_series_point.dart';
@@ -7,21 +9,41 @@ import '../../core/errors/exceptions.dart';
 /// Repository for dashboard operations
 class DashboardRepository {
   final ApiService _apiService;
-  
+  final Logger _logger = Logger();
+
   DashboardRepository(this._apiService);
-  
+
   /// Fetch dashboard statistics, merging log-derived request counts with
   /// optional per-service metrics from `GET /api/v1/metrics` (PR-24).
   ///
-  /// Both sources are fetched concurrently. Metrics soft-fail (empty list on
-  /// 404 inside [ApiService.getServiceMetrics]); log stats remain the source
-  /// of truth for request counts when metrics are absent.
+  /// Both sources are fetched concurrently. Metrics soft-fail at this layer:
+  /// any exception from [ApiService.getServiceMetrics] is logged and treated
+  /// as an empty list so log-derived stats still render. Log-stats failures
+  /// still fail the whole call — they are the primary data source.
+  ///
+  /// Note: [ApiService.getServiceMetrics] still soft-fails 404 itself and
+  /// propagates non-404 errors; this repository is where those real errors
+  /// are isolated from the overall dashboard load.
   Future<DashboardStats> getStats({String? timeRange}) async {
     try {
+      // Start both immediately so they run concurrently — do not await
+      // one before the other is in flight.
+      final statsFuture = _apiService.getDashboardStats(timeRange: timeRange);
+      final metricsFuture = _apiService.getServiceMetrics().catchError(
+        (Object error, StackTrace stackTrace) {
+          _logger.w(
+            'Service metrics fetch failed; continuing with log stats only. '
+            'error=$error',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          return const <ServiceMetricsEntry>[];
+        },
+      );
+
       final results = await Future.wait<Object>([
-        _apiService.getDashboardStats(timeRange: timeRange),
-        // Metrics is latest-snapshot only — no timeRange on the PR-24 route.
-        _apiService.getServiceMetrics(),
+        statsFuture,
+        metricsFuture,
       ]);
       final stats = results[0] as DashboardStats;
       final metrics = results[1] as List<ServiceMetricsEntry>;
@@ -120,7 +142,7 @@ class DashboardRepository {
 
     return merged;
   }
-  
+
   /// Check service health
   Future<bool> checkHealth() async {
     try {
@@ -153,5 +175,4 @@ class DashboardRepository {
         return 24;
     }
   }
-
 }
