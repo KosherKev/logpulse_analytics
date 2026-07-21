@@ -92,134 +92,143 @@ class _ServiceHealthCardState extends State<ServiceHealthCard>
     final showCustomMetrics = widget.stats.hasCustomMetrics;
     final lastReported = widget.stats.lastReportedAt;
 
+    // Left health accent is a separate strip (not Border.left) so we can keep
+    // borderRadius — Flutter forbids non-uniform border colors with radius.
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: healthColor, width: 2),
-          top: BorderSide(color: c.border, width: 1),
-          right: BorderSide(color: c.border, width: 1),
-          bottom: BorderSide(color: c.border, width: 1),
-        ),
+        border: Border.all(color: c.border, width: 1),
       ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: IntrinsicHeight(
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Pulsing status dot
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _scaleAnim.value,
-                      child: Opacity(
-                        opacity: _opacityAnim.value,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: healthColor,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: healthColor.withValues(alpha: 0.5),
-                                blurRadius: 4 * _scaleAnim.value,
-                                spreadRadius: 1,
+              Container(width: 2, color: healthColor),
+              Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Pulsing status dot
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: AnimatedBuilder(
+                          animation: _pulseController,
+                          builder: (context, child) {
+                            return Transform.scale(
+                              scale: _scaleAnim.value,
+                              child: Opacity(
+                                opacity: _opacityAnim.value,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: healthColor,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color:
+                                            healthColor.withValues(alpha: 0.5),
+                                        blurRadius: 4 * _scaleAnim.value,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Service name + detail row + optional chips / relative time
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    widget.serviceName,
+                                    style: AppTextStyles.monoMd.copyWith(
+                                      color: c.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (showInstanceBadge) ...[
+                                  const SizedBox(width: 8),
+                                  _InstanceBadge(
+                                    count: widget.stats.instanceCount!,
+                                    colors: c,
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _detailLine(widget.stats),
+                              style: AppTextStyles.monoSm.copyWith(
+                                color: c.textTertiary,
+                              ),
+                            ),
+                            if (lastReported != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _compactRelative(lastReported),
+                                style: AppTextStyles.monoSm.copyWith(
+                                  color: c.textTertiary,
+                                ),
                               ),
                             ],
-                          ),
+                            if (showCustomMetrics) ...[
+                              const SizedBox(height: 8),
+                              _CustomMetricsChips(
+                                metrics: widget.stats.customMetrics!,
+                                colors: c,
+                                maxChips: ServiceHealthCard.maxMetricChips,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
 
-              // Service name + detail row + optional chips / relative time
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            widget.serviceName,
-                            style: AppTextStyles.monoMd.copyWith(
-                              color: c.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      // Request count + chevron
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '${widget.stats.totalRequests}',
+                            style: AppTextStyles.monoMd
+                                .copyWith(color: c.textPrimary),
                           ),
-                        ),
-                        if (showInstanceBadge) ...[
-                          const SizedBox(width: 8),
-                          _InstanceBadge(
-                            count: widget.stats.instanceCount!,
-                            colors: c,
+                          Text(
+                            'req',
+                            style: AppTextStyles.monoSm
+                                .copyWith(color: c.textTertiary),
                           ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      widget.stats.hasHealthMetrics
-                          ? 'err ${widget.stats.errorRate!.toStringAsFixed(1)}%  ·  '
-                              '${widget.stats.avgLatency!.toStringAsFixed(0)}ms  ·  '
-                              'up ${widget.stats.formattedUptime}'
-                          : 'not reporting metrics yet',
-                      style: AppTextStyles.monoSm.copyWith(
-                        color: c.textTertiary,
                       ),
-                    ),
-                    if (lastReported != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        _compactRelative(lastReported),
-                        style: AppTextStyles.monoSm.copyWith(
-                          color: c.textTertiary,
-                        ),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(Icons.chevron_right,
+                            size: 18, color: c.textTertiary),
                       ),
                     ],
-                    if (showCustomMetrics) ...[
-                      const SizedBox(height: 8),
-                      _CustomMetricsChips(
-                        metrics: widget.stats.customMetrics!,
-                        colors: c,
-                        maxChips: ServiceHealthCard.maxMetricChips,
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
-
-              // Request count + chevron
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${widget.stats.totalRequests}',
-                    style: AppTextStyles.monoMd.copyWith(color: c.textPrimary),
-                  ),
-                  Text(
-                    'req',
-                    style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Icon(Icons.chevron_right, size: 18, color: c.textTertiary),
               ),
             ],
           ),
@@ -239,6 +248,27 @@ class _ServiceHealthCardState extends State<ServiceHealthCard>
       default:
         return c.border;
     }
+  }
+
+  /// Three-state detail line:
+  /// 1. Full numeric err/latency/uptime % when [ServiceStats.hasHealthMetrics]
+  /// 2. PR-24 health status + duration when [ServiceStats.hasReportedHealth]
+  /// 3. Honest "not reporting" when neither is present
+  static String _detailLine(ServiceStats stats) {
+    if (stats.hasHealthMetrics) {
+      return 'err ${stats.errorRate!.toStringAsFixed(1)}%  ·  '
+          '${stats.avgLatency!.toStringAsFixed(0)}ms  ·  '
+          'up ${stats.formattedUptime}';
+    }
+    if (stats.hasReportedHealth) {
+      final status = stats.reportedHealthStatus!;
+      final up = stats.formattedUptimeDuration;
+      if (stats.uptimeSeconds != null) {
+        return '$status  ·  up $up';
+      }
+      return status;
+    }
+    return 'not reporting metrics yet';
   }
 
   /// Compact relative label: "2m ago", "3h ago", etc.

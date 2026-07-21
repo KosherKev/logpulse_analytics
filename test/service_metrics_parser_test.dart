@@ -1,26 +1,27 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logpulse_analytics/data/models/dashboard_stats.dart';
 import 'package:logpulse_analytics/data/services/api_service.dart';
 
 void main() {
-  group('parseServiceMetricsResponse', () {
-    test('(a) well-formed merged response maps all fields', () {
+  group('parseServiceMetricsResponse (PR-24 shape)', () {
+    test('both health and metrics present', () {
       final data = {
         'success': true,
         'data': [
           {
             'appId': 'academicx',
-            'serviceName': 'academicx',
-            'errorRate': 0.5,
-            'avgLatency': 42,
-            'uptime': 99.9,
-            'errorCount': 1,
-            'instanceCount': 3,
-            'lastReportedAt': '2026-07-21T12:00:00.000Z',
+            'health': {
+              'status': 'ok',
+              'instanceId': 'rev-abc-1',
+              'uptimeSeconds': 86400,
+              'timestamp': '2026-07-21T11:00:00.000Z',
+            },
             'metrics': {
               'students': 120,
               'activeToday': 45,
               'extraUnknown': {'nested': true},
             },
+            'metricsReportedAt': '2026-07-21T12:00:00.000Z',
           },
         ],
       };
@@ -30,81 +31,209 @@ void main() {
       expect(entries, hasLength(1));
       final e = entries.first;
       expect(e.appId, 'academicx');
-      expect(e.serviceName, 'academicx');
-      expect(e.errorRate, 0.5);
-      expect(e.avgLatency, 42);
-      expect(e.uptime, 99.9);
-      expect(e.errorCount, 1);
-      expect(e.instanceCount, 3);
-      expect(e.lastReportedAt, isNotNull);
-      expect(e.lastReportedAt!.toUtc().toIso8601String(), '2026-07-21T12:00:00.000Z');
-      expect(e.customMetrics, isNotNull);
+      expect(e.reportedHealthStatus, 'ok');
+      expect(e.uptimeSeconds, 86400);
+      // Prefer metricsReportedAt over health.timestamp.
+      expect(
+        e.lastReportedAt!.toUtc().toIso8601String(),
+        '2026-07-21T12:00:00.000Z',
+      );
       expect(e.customMetrics!['students'], 120);
       expect(e.customMetrics!['activeToday'], 45);
-      // Unknown/extra fields pass through untouched.
       expect(e.customMetrics!['extraUnknown'], isA<Map>());
-      expect((e.customMetrics!['extraUnknown'] as Map)['nested'], true);
+      // Percentage uptime / errorRate never filled from PR-24.
+      expect(e.uptime, isNull);
+      expect(e.errorRate, isNull);
+      expect(e.avgLatency, isNull);
+      // Single instanceId must not become instanceCount.
+      expect(e.instanceCount, isNull);
     });
 
-    test('(a) bare list response is accepted', () {
+    test('health-only fixture (metrics null)', () {
+      final data = {
+        'data': [
+          {
+            'appId': 'health-only',
+            'health': {
+              'status': 'ok',
+              'instanceId': 'i-1',
+              'uptimeSeconds': 125,
+              'timestamp': '2026-07-21T10:00:00.000Z',
+            },
+            'metrics': null,
+            'metricsReportedAt': null,
+          },
+        ],
+      };
+
+      final entries = parseServiceMetricsResponse(data);
+      expect(entries, hasLength(1));
+      final e = entries.first;
+      expect(e.reportedHealthStatus, 'ok');
+      expect(e.uptimeSeconds, 125);
+      expect(e.customMetrics, isNull);
+      // Fall back to health.timestamp when metricsReportedAt is absent.
+      expect(
+        e.lastReportedAt!.toUtc().toIso8601String(),
+        '2026-07-21T10:00:00.000Z',
+      );
+    });
+
+    test('metrics-only fixture (health null)', () {
+      final data = {
+        'data': [
+          {
+            'appId': 'metrics-only',
+            'health': null,
+            'metrics': {'queueDepth': 7, 'deep': [1, 2, 3]},
+            'metricsReportedAt': '2026-07-21T09:00:00.000Z',
+          },
+        ],
+      };
+
+      final entries = parseServiceMetricsResponse(data);
+      expect(entries, hasLength(1));
+      final e = entries.first;
+      expect(e.reportedHealthStatus, isNull);
+      expect(e.uptimeSeconds, isNull);
+      expect(e.customMetrics!['queueDepth'], 7);
+      expect(e.customMetrics!['deep'], [1, 2, 3]);
+      expect(
+        e.lastReportedAt!.toUtc().toIso8601String(),
+        '2026-07-21T09:00:00.000Z',
+      );
+    });
+
+    test('neither health nor metrics present', () {
+      final data = {
+        'data': [
+          {
+            'appId': 'empty-app',
+            'health': null,
+            'metrics': null,
+            'metricsReportedAt': null,
+          },
+        ],
+      };
+
+      final entries = parseServiceMetricsResponse(data);
+      expect(entries, hasLength(1));
+      final e = entries.first;
+      expect(e.appId, 'empty-app');
+      expect(e.reportedHealthStatus, isNull);
+      expect(e.uptimeSeconds, isNull);
+      expect(e.customMetrics, isNull);
+      expect(e.lastReportedAt, isNull);
+    });
+
+    test('bare list response is accepted', () {
       final data = [
-        {'appId': 'svc-a', 'uptime': 100.0},
+        {
+          'appId': 'svc-a',
+          'health': {'status': 'ok', 'uptimeSeconds': 10},
+          'metrics': null,
+        },
       ];
       final entries = parseServiceMetricsResponse(data);
       expect(entries, hasLength(1));
       expect(entries.first.appId, 'svc-a');
-      expect(entries.first.uptime, 100.0);
+      expect(entries.first.reportedHealthStatus, 'ok');
+      expect(entries.first.uptimeSeconds, 10);
     });
 
-    test('(b) empty / missing envelope returns empty list (404 path shape)', () {
-      // When getServiceMetrics swallows a 404 it returns [] directly; the
-      // parser must also tolerate empty payloads without throwing.
+    test('empty / missing envelope returns empty list', () {
       expect(parseServiceMetricsResponse(null), isEmpty);
       expect(parseServiceMetricsResponse(<String, dynamic>{}), isEmpty);
       expect(parseServiceMetricsResponse({'data': null}), isEmpty);
       expect(parseServiceMetricsResponse({'data': <dynamic>[]}), isEmpty);
     });
 
-    test('(c) malformed / partial entry still parses what is present', () {
+    test('malformed / partial entries still parse what is present', () {
       final data = {
         'data': [
-          // Partial: health-ish fields only, no metrics map
+          // health.status wrong type — leave reportedHealthStatus null
           {
-            'appId': 'partial-app',
-            'uptime': '98.5', // string-encoded number
-            // no errorRate, avgLatency, metrics
+            'appId': 'bad-status',
+            'health': {
+              'status': 123,
+              'uptimeSeconds': '98', // string-encoded ok via readInt
+            },
           },
-          // Missing appId entirely — skipped
+          // Missing appId — skipped
           {
-            'uptime': 50.0,
+            'health': {'status': 'ok'},
             'metrics': {'x': 1},
           },
           // Non-map entry — skipped
           'not-a-map',
-          // Metrics only (no health numbers)
-          {
-            'appId': 'metrics-only',
-            'metrics': {'queueDepth': 7, 'deep': [1, 2, 3]},
-          },
         ],
       };
 
       final entries = parseServiceMetricsResponse(data);
+      expect(entries, hasLength(1));
+      final bad = entries.first;
+      expect(bad.appId, 'bad-status');
+      expect(bad.reportedHealthStatus, isNull);
+      expect(bad.uptimeSeconds, 98);
+    });
+  });
 
-      expect(entries, hasLength(2));
+  group('ServiceStats health derivation (Phase 20)', () {
+    test('hasReportedHealth true when status string present', () {
+      final s = ServiceStats(
+        serviceName: 'a',
+        totalRequests: 0,
+        errorRate: null,
+        avgLatency: null,
+        uptime: null,
+        errorCount: null,
+        reportedHealthStatus: 'ok',
+        uptimeSeconds: 3600,
+      );
+      expect(s.hasReportedHealth, isTrue);
+      expect(s.hasHealthMetrics, isFalse);
+      expect(s.healthStatus, HealthStatus.healthy);
+      expect(s.formattedUptimeDuration, '1h');
+    });
 
-      final partial = entries.firstWhere((e) => e.appId == 'partial-app');
-      expect(partial.uptime, 98.5);
-      expect(partial.errorRate, isNull);
-      expect(partial.avgLatency, isNull);
-      expect(partial.customMetrics, isNull);
-      expect(partial.instanceCount, isNull);
-      expect(partial.lastReportedAt, isNull);
+    test('unknown reported status maps to degraded', () {
+      final s = ServiceStats(
+        serviceName: 'a',
+        totalRequests: 0,
+        errorRate: null,
+        avgLatency: null,
+        uptime: null,
+        errorCount: null,
+        reportedHealthStatus: 'weird',
+      );
+      expect(s.healthStatus, HealthStatus.degraded);
+    });
 
-      final metricsOnly = entries.firstWhere((e) => e.appId == 'metrics-only');
-      expect(metricsOnly.customMetrics!['queueDepth'], 7);
-      expect(metricsOnly.customMetrics!['deep'], [1, 2, 3]);
-      expect(metricsOnly.uptime, isNull);
+    test('no reported health and no numerics → unknown', () {
+      final s = ServiceStats(
+        serviceName: 'a',
+        totalRequests: 5,
+        errorRate: null,
+        avgLatency: null,
+        uptime: null,
+        errorCount: null,
+      );
+      expect(s.hasReportedHealth, isFalse);
+      expect(s.healthStatus, HealthStatus.unknown);
+    });
+
+    test('numeric metrics still take priority over reported status', () {
+      final s = ServiceStats(
+        serviceName: 'a',
+        totalRequests: 5,
+        errorRate: 6.0,
+        avgLatency: 10,
+        uptime: 99.0,
+        errorCount: 1,
+        reportedHealthStatus: 'ok',
+      );
+      expect(s.hasHealthMetrics, isTrue);
+      expect(s.healthStatus, HealthStatus.unhealthy);
     });
   });
 }

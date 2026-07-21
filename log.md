@@ -659,3 +659,108 @@ None.
 
 ### Status
 DONE
+
+## Phase 20, Step 1 — Fix the request contract
+Completed: 2026-07-21 02:39 UTC
+Branch/commit: main / 883d7f8 (uncommitted)
+
+### What was done
+Changed `ApiEndpoints.metricsSummary` from `/metrics/summary` to `/metrics` to match PR-24's live route. Rewrote `buildMetricsSummaryQuery` to accept optional `appId` only and drop `timeRange` entirely (server has no time-range filter). Updated `ApiService.getServiceMetrics` and `DashboardRepository.getStats` to stop sending `timeRange` on the metrics call. Path still composes via `$_apiRoot$endpoint` like `/logs`.
+
+### Key facts for next step
+- Constant name kept as `metricsSummary` but value is now `/metrics`
+- Query builder signature: `buildMetricsSummaryQuery({String? appId})`
+- `getServiceMetrics({String? appId})` — no timeRange
+
+### Deviations from spec
+Also changed the method signature of `getServiceMetrics` (dropped `timeRange`, optional `appId`) so callers cannot accidentally reintroduce the misleading parameter. Spec only named the endpoints file; this is a necessary follow-on in the same step.
+
+### Status
+DONE
+
+## Phase 20, Step 2 — Rewrite response parser for PR-24 shape
+Completed: 2026-07-21 02:39 UTC
+Branch/commit: main / 883d7f8 (uncommitted)
+
+### What was done
+Rewrote `parseServiceMetricsResponse` to read nested `health.status`, `health.uptimeSeconds`, `health.timestamp`, top-level `metrics`, and top-level `metricsReportedAt`. Added `reportedHealthStatus` (raw wire string) and `uptimeSeconds` (raw int) to `ServiceMetricsEntry`. Percentage-typed `uptime` stays null — never aliases seconds into it. `lastReportedAt` prefers `metricsReportedAt`, falls back to `health.timestamp`. `health.instanceId` is intentionally not mapped to `instanceCount`.
+
+### Key facts for next step
+- New DTO fields: `reportedHealthStatus` (String?), `uptimeSeconds` (int?)
+- `lastReportedAt` still DateTime? on the entry
+- Custom `metrics` map path unchanged 1:1 with PR-24
+- Numeric errorRate/avgLatency/uptime/errorCount always null from this parser
+
+### Deviations from spec
+None material.
+
+### Status
+DONE
+
+## Phase 20, Step 3 — Thread fields through ServiceStats + merge
+Completed: 2026-07-21 02:39 UTC
+Branch/commit: main / 883d7f8 (uncommitted)
+
+### What was done
+Added `reportedHealthStatus` and `uptimeSeconds` to `ServiceStats` (constructor, `copyWith`, hand-updated `dashboard_stats.g.dart`). Extended both branches of `DashboardRepository._mergeServiceMetrics` (log-merge and metrics-only) to copy the two new fields with the same `entry.x ?? existing.x` pattern used for other metrics fields.
+
+### Key facts for next step
+- Same field names on ServiceStats as ServiceMetricsEntry
+- Merge still keyed by appId / serviceName (case-insensitive)
+
+### Deviations from spec
+None.
+
+### Status
+DONE
+
+## Phase 20, Step 4 — Health-status derivation logic
+Completed: 2026-07-21 02:39 UTC
+Branch/commit: main / 883d7f8 (uncommitted)
+
+### What was done
+Added `hasReportedHealth` getter (non-empty `reportedHealthStatus`). Updated `healthStatus` priority: (1) numeric `hasHealthMetrics` → errorRate thresholds, (2) else `hasReportedHealth` → map wire string, (3) else unknown. Mapping: `"ok"` → healthy; any other non-null string → degraded, with a TODO to revisit when the collector vocabulary is documented. Added `formattedUptimeDuration` for seconds → human duration (`1h 1m`, `45m`, `12s`, `2d 3h`).
+
+### Key facts for next step
+- Getters for UI: `hasReportedHealth`, `hasHealthMetrics`, `healthStatus`, `formattedUptimeDuration`, `reportedHealthStatus`
+- Do not use `formattedUptime` (percentage) for PR-24 data
+
+### Deviations from spec
+None — followed recommended ok→healthy / other→degraded mapping.
+
+### Status
+DONE
+
+## Phase 20, Step 5 — ServiceHealthCard three-state display
+Completed: 2026-07-21 02:39 UTC
+Branch/commit: main / 883d7f8 (uncommitted)
+
+### What was done
+Detail line is now three-state via `_detailLine`: full numeric err/latency/uptime% when `hasHealthMetrics`; raw status · `up {formattedUptimeDuration}` when `hasReportedHealth` only; else `"not reporting metrics yet"`. Dot color/pulse continue to use `healthStatus` (covers all three cases). Instance badge and custom-metric chips untouched; `instanceCount` still not derived from `health.instanceId`.
+
+### Key facts for next step
+- Middle-state example: `"ok  ·  up 1h 1m"`
+- Border paint fix: left accent is a 2px strip + uniform `Border.all` (Flutter forbids non-uniform Border colors with borderRadius — broke tests once real healthy status made the left edge green)
+
+### Deviations from spec
+Border implementation changed from multi-color `Border(...)` to strip + `Border.all` so healthy/degraded cards paint correctly under Flutter's borderRadius rules. Visual intent (2px left health accent) preserved.
+
+### Status
+DONE
+
+## Phase 20, Step 6 — Tests and verification
+Completed: 2026-07-21 02:39 UTC
+Branch/commit: main / 883d7f8 (uncommitted)
+
+### What was done
+Replaced guessed-contract fixtures with PR-24 shapes: both-present, health-only, metrics-only, neither-present, plus malformed/partial and empty envelope. Added unit tests for `hasReportedHealth` / `healthStatus` mapping / `formattedUptimeDuration`. Widget tests cover middle-state detail line, full numeric state, empty state, and that reported health alone does not show an instance badge. `flutter test test/service_metrics_parser_test.dart test/service_health_card_test.dart` → 24/24 pass. `flutter analyze lib test` → no errors (infos/warnings only, pre-existing noise).
+
+### Key facts for next step
+- Phase 20 complete; live dashboard should show real `health.status` + duration for apps reporting via PR-24
+- Remaining gap: multi-instance count still needs a server-side distinct count (documented, not fabricated client-side)
+
+### Deviations from spec
+None beyond the Step 5 border paint fix noted above.
+
+### Status
+DONE
