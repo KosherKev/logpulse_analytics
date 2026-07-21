@@ -846,3 +846,24 @@ None material — `hasHealthMetrics` deliberately dropped the uptime-% requireme
 
 ### Status
 DONE
+
+## App polish — auto-refresh, navigation, dead UI
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done
+1. **LP-08 Auto-refresh** — Added `AutoRefreshBinder` wrapping `HomePage`. When Settings auto-refresh is on and API is configured, periodically refreshes dashboard, logs (`refresh: true`), and errors. Interval clamped to AppConstants min/max; timer resyncs when toggle/interval/config changes.
+2. **LP-03 Recent errors** — Cards navigate to Errors tab; section header has “view all →”.
+3. **LP-01/02 AppBar** — Replaced dead bell with manual refresh; search jumps to Logs tab.
+4. **Nav bugfix** — `goToLogs`/`goToErrors` previously pointed at wrong indices after Phase 14 tab reorder (Dashboard, Logs, Errors, Settings). Introduced `NavIndex` constants aligned with `HomePage`.
+
+### Key facts for next step
+- Remaining LP: cleanup (dead Service models, docs sync, analyze noise, key_widgets paint)
+- Remaining CLS optional P2: error groups, services catalog
+- No new CLS dependency for current app polish
+
+### Deviations from spec
+Bell removed rather than left as a no-op (no notifications API). Refresh icon is the useful substitute.
+
+### Status
+DONE

@@ -101,16 +101,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
           ],
         ),
         actions: [
+          // Manual refresh (no notification backend yet — bell removed).
           _AppBarIconButton(
-            icon: Icons.notifications_outlined,
+            icon: Icons.refresh,
             color: c,
-            onTap: () {},
+            onTap: () {
+              ref.read(dashboardProvider.notifier).refresh();
+              ref.read(errorsProvider.notifier).loadErrors();
+            },
           ),
           const SizedBox(width: 8),
           _AppBarIconButton(
             icon: Icons.search,
             color: c,
-            onTap: () {},
+            onTap: () => ref.read(navigationProvider.notifier).goToLogs(),
           ),
           const SizedBox(width: 16),
         ],

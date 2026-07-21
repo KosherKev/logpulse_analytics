@@ -28,8 +28,8 @@
 | Per-service err% / latency line | **Wired** — object `byService` → `errorRate`/`avgLatency`/`errorCount` |
 | Logs list total count | **Wired** — envelope `total` / `pagination.hasMore` |
 | Service details screen | Empty folder + unused route |
-| Auto-refresh setting | UI only — not wired |
-| Several AppBar / list taps | Dead (`onTap: () {}`) |
+| Auto-refresh setting | **Wired** via `AutoRefreshBinder` |
+| AppBar / recent errors taps | **Wired** (refresh / Logs / Errors) |
 
 ---
 
@@ -39,9 +39,9 @@
 
 | ID | Priority | Item | Location | Notes |
 |----|----------|------|----------|-------|
-| LP-01 | P1 | Dashboard bell button | `dashboard_page.dart` | `onTap: () {}` — implement notifications or remove |
-| LP-02 | P1 | Dashboard search button | `dashboard_page.dart` | `onTap: () {}` — jump to Logs with focus, or remove |
-| LP-03 | P0 | Recent Critical Errors tap | `recent_errors_list.dart` | `onTap: () {}` — open Errors tab or same detail sheet as Errors page |
+| LP-01 | ~~P1~~ **DONE** | Dashboard bell → refresh | Replaced dead bell with manual refresh (no notification backend) |
+| LP-02 | ~~P1~~ **DONE** | Dashboard search | Navigates to Logs tab |
+| LP-03 | ~~P0~~ **DONE** | Recent Critical Errors tap | Navigates to Errors tab; added “view all →” |
 | LP-04 | P1 | “view all →” on Service Health | `service_health_list.dart` | Currently goes to Logs; should list all services or dedicated health view |
 | LP-05 | P1 | Service details route | `AppRoutes.serviceDetails`, empty `pages/service_details/` | Build page after CLS services API, or delete route + dead models |
 | LP-06 | P2 | Stat card deltas | `stats_grid.dart` | Always `delta: null`; needs previous-period stats (CLS or client compare) |
@@ -51,7 +51,7 @@
 
 | ID | Priority | Item | Location | Notes |
 |----|----------|------|----------|-------|
-| LP-08 | P0 | Auto-refresh | Settings + `settings_provider` | Toggle/interval persisted; nothing runs `Timer.periodic` for dashboard/logs |
+| LP-08 | ~~P0~~ **DONE** | Auto-refresh | `AutoRefreshBinder` on HomePage; refreshes dashboard + logs + errors when enabled |
 | LP-09 | P2 | `serviceHealthProvider` | `dashboard_provider.dart` | `checkHealth()` unused by UI |
 | LP-10 | P2 | `ApiEndpoints.ready` | constants only | Never called |
 | LP-11 | P1 | Errors page data model | `errors_provider.dart` | Client-side grouping of currently loaded logs — incomplete without CLS groups API |
@@ -949,12 +949,12 @@ components:
 | ✅ | **CLS-PS** | CLS | Per-service err%/latency on summary `byService` — shipped |
 | ✅ | **CLS-TC** | CLS | Log list `total` envelope — shipped |
 | ✅ | **LP-17 / LP-13** | LP | Object byService + logs total consumers — done |
-| **1 (next)** | **LP-08** | LP | Wire auto-refresh |
-| 2 | **LP-03** | LP | Recent errors navigation |
-| 3 | **CLS-EG** | CLS | Error groups API (§3.5) |
-| 4 | **LP-cleanup** | LP | Docs, dead code, analyze, tests (LP-20–26) |
-| 5 | **CLS-SV** | CLS | Services catalog (§3.6) → then LP service details |
-| 6 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
+| ✅ | **LP-08 / 03 / 01 / 02** | LP | Auto-refresh, recent errors nav, AppBar actions — done |
+| ✅ | **Nav index bugfix** | LP | `goToLogs`/`goToErrors` matched Phase 14 tab order |
+| **1 (next)** | **LP-cleanup** | LP | Docs, dead code, analyze, tests (LP-20–26) |
+| 2 | **CLS-EG** | CLS | Error groups API (§3.5) |
+| 3 | **CLS-SV** | CLS | Services catalog (§3.6) → then LP service details |
+| 4 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
 
 ---
 
