@@ -61,5 +61,46 @@ void main() {
       expect(one('stable').first.trend, TrendDirection.stable);
       expect(one('unknown').first.trend, TrendDirection.stable);
     });
+
+    test('HTTP class: API groups without status default to server', () {
+      final groups = parseErrorGroupsResponse({
+        'data': [
+          {
+            'id': 'a',
+            'message': 'Connection refused to redis',
+            'errorCode': 'ECONNREFUSED',
+            'count': 10,
+            'services': ['api'],
+            'firstSeen': '2026-07-21T08:00:00.000Z',
+            'lastSeen': '2026-07-21T12:00:00.000Z',
+          },
+          {
+            'id': 'b',
+            'message': 'HTTP 404 Not Found',
+            'errorCode': '404',
+            'count': 3,
+            'services': ['api'],
+            'firstSeen': '2026-07-21T08:00:00.000Z',
+            'lastSeen': '2026-07-21T12:00:00.000Z',
+          },
+          {
+            'id': 'c',
+            'message': 'Upstream failed',
+            'errorCode': '502',
+            'count': 2,
+            'services': ['api'],
+            'firstSeen': '2026-07-21T08:00:00.000Z',
+            'lastSeen': '2026-07-21T12:00:00.000Z',
+          },
+        ],
+      });
+
+      expect(groups[0].isServerErrorGroup, isTrue);
+      expect(groups[0].isClientErrorGroup, isFalse);
+      expect(groups[1].isClientErrorGroup, isTrue);
+      expect(groups[1].isServerErrorGroup, isFalse);
+      expect(groups[2].isServerErrorGroup, isTrue);
+      expect(groups[2].inferredStatusCode, 502);
+    });
   });
 }

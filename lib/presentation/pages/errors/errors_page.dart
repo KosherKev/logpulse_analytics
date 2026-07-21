@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../widgets/errors/summary_card.dart';
 import '../../widgets/errors/error_group_card.dart';
+import '../log_details/trace_logs_page.dart';
 
 class ErrorsPage extends ConsumerStatefulWidget {
   const ErrorsPage({super.key});
@@ -81,14 +82,11 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
       return _buildEmpty(c);
     }
 
-    // Compute summary counts
+    // Summary counts — server groups API has no instances[]; use ErrorGroup
+    // classifiers (instances, errorCode, message, else default to server).
     final all = state.errorGroups;
-    final serverGroups = all.where((g) => g.instances?.any(
-          (i) => i.statusCode != null && i.statusCode! >= 500,
-        ) ?? false).length;
-    final clientGroups = all.where((g) => g.instances?.any(
-          (i) => i.statusCode != null && i.statusCode! >= 400 && i.statusCode! < 500,
-        ) ?? false).length;
+    final serverGroups = all.where((g) => g.isServerErrorGroup).length;
+    final clientGroups = all.where((g) => g.isClientErrorGroup).length;
 
     // Apply local severity filter
     final filtered = _severityFilter == null
@@ -418,7 +416,7 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => _findSimilar(ctx, group),
                     icon: Icon(Icons.search, size: 16, color: c.accent),
                     label: Text(
                       'Find Similar',
@@ -438,16 +436,31 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: Icon(Icons.timeline, size: 16, color: c.accent),
+                    onPressed: _canViewTrace(group)
+                        ? () => _viewTrace(ctx, group)
+                        : null,
+                    icon: Icon(
+                      Icons.timeline,
+                      size: 16,
+                      color: _canViewTrace(group)
+                          ? c.accent
+                          : c.textTertiary,
+                    ),
                     label: Text(
                       'View Trace',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: c.accent),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: _canViewTrace(group)
+                            ? c.accent
+                            : c.textTertiary,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                          color: c.accent.withValues(alpha: 0.4)),
+                        color: (_canViewTrace(group)
+                                ? c.accent
+                                : c.textTertiary)
+                            .withValues(alpha: 0.4),
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -460,6 +473,50 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  // ── Sheet actions (mirror ErrorTab) ───────────────────────────────────────
+
+  bool _canViewTrace(ErrorGroup group) {
+    final id = group.sampleTraceId;
+    return id != null && id.isNotEmpty;
+  }
+
+  void _findSimilar(BuildContext sheetContext, ErrorGroup group) {
+    final raw = group.message.trim();
+    final isPlaceholder = raw.isEmpty ||
+        raw.toLowerCase() == 'unknown error' ||
+        raw.toLowerCase() == 'unknown';
+    String? query;
+    if (!isPlaceholder) {
+      query = raw.length > 120 ? raw.substring(0, 120) : raw;
+    } else if (group.errorCode != null && group.errorCode!.trim().isNotEmpty) {
+      query = group.errorCode!.trim();
+    }
+
+    final service =
+        group.services.length == 1 ? group.services.first : null;
+
+    Navigator.of(sheetContext).pop();
+    ref.read(logsProvider.notifier).applyFilter(
+          LogFilter(
+            searchQuery: query,
+            level: 'error',
+            service: service,
+          ),
+        );
+    ref.read(navigationProvider.notifier).goToLogs();
+  }
+
+  void _viewTrace(BuildContext sheetContext, ErrorGroup group) {
+    final id = group.sampleTraceId;
+    if (id == null || id.isEmpty) return;
+
+    Navigator.of(sheetContext).pop();
+    // Use the page context (not the dismissed sheet) for the push.
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TraceLogsPage(traceId: id)),
     );
   }
 

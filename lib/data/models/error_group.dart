@@ -102,6 +102,58 @@ class ErrorGroup {
     if (services.length == 2) return services.join(', ');
     return '${services.take(2).join(', ')}, +${services.length - 2} more';
   }
+
+  /// Best-effort HTTP status from client-side [instances] or code/message.
+  /// Server groups API does not ship per-group status codes.
+  int? get inferredStatusCode {
+    final fromInstances = instances
+        ?.map((i) => i.statusCode)
+        .whereType<int>()
+        .where((s) => s >= 400 && s < 600)
+        .toList();
+    if (fromInstances != null && fromInstances.isNotEmpty) {
+      final fiveXx = fromInstances.where((s) => s >= 500);
+      if (fiveXx.isNotEmpty) return fiveXx.first;
+      return fromInstances.first;
+    }
+
+    final code = errorCode?.trim();
+    if (code != null && code.isNotEmpty) {
+      final n = int.tryParse(code);
+      if (n != null && n >= 400 && n < 600) return n;
+    }
+
+    final httpMatch = RegExp(
+      r'(?:HTTP\s+|status(?:Code)?[:\s]+)([45]\d{2})\b',
+      caseSensitive: false,
+    ).firstMatch(message);
+    if (httpMatch != null) {
+      return int.tryParse(httpMatch.group(1)!);
+    }
+
+    final bare = RegExp(r'^([45]\d{2})\b').firstMatch(message.trim());
+    if (bare != null) return int.tryParse(bare.group(1)!);
+
+    return null;
+  }
+
+  /// True when this group is clearly a client HTTP error (4xx).
+  bool get isClientErrorGroup {
+    final status = inferredStatusCode;
+    if (status != null) return status >= 400 && status < 500;
+
+    if (instances != null && instances!.isNotEmpty) {
+      final has4xx = instances!.any((i) => i.isClientError);
+      final has5xx = instances!.any((i) => i.isServerError);
+      return has4xx && !has5xx;
+    }
+
+    return false;
+  }
+
+  /// Server / application errors. Default when not clearly 4xx so summary
+  /// cards stay meaningful for CLS groups that lack status codes.
+  bool get isServerErrorGroup => !isClientErrorGroup;
 }
 
 enum ErrorSeverity {
