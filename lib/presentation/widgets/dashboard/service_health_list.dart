@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/dashboard_stats.dart';
 import '../../pages/service_details/service_details_page.dart';
+import '../../providers/navigation_provider.dart';
 import '../cards/service_health_card.dart';
 
 /// "Service Health" section — header row with "view all →" + animated cards.
@@ -50,11 +51,8 @@ class ServiceHealthList extends ConsumerWidget {
             const Spacer(),
             if (entries.length > maxVisible)
               GestureDetector(
-                onTap: () {
-                  // Open the first overflow service's catalog view — full
-                  // services list can replace this when a dedicated tab exists.
-                  _openDetail(context, entries[maxVisible].key);
-                },
+                onTap: () =>
+                    ref.read(navigationProvider.notifier).goToServices(),
                 child: Text(
                   'view all →',
                   style: AppTextStyles.monoSm.copyWith(color: c.accent),

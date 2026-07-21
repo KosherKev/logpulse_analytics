@@ -935,3 +935,27 @@ None material. Tooltip interaction tested via pure lookup unit test (true % vs t
 
 ### Status
 DONE
+
+## Phase 23 — Dedicated Services tab
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done
+1. **Nav** — `NavIndex.services = 3`, `settings = 4`, `count = 5`; `goToServices()`; HomePage IndexedStack + NavigationBar with `dns_outlined`/`dns` icon, Settings still last.
+2. **ServicesPage** — loads `servicesListProvider`, pull-to-refresh, loading/error/empty states; rows via new `ServiceCatalogRow` (not ServiceHealthCard).
+3. **Status color (option a)** — `ServiceStats.healthFromErrorRate` shared thresholds; catalog row status strip/dot.
+4. **view all →** — `service_health_list` now `goToServices()`.
+5. **Auto-refresh** — includes `servicesListProvider.load()`.
+6. **Utils** — `DateUtils.formatCompactRelative` for lastSeen.
+
+### Key facts for next step
+- Row widget: `ServiceCatalogRow`
+- Health color: option (a) via `ServiceStats.healthFromErrorRate`
+- Nav icon: `Icons.dns_outlined` / `Icons.dns`
+- Tests: navigation_provider_test + services_page_test (empty, null rates, view all)
+
+### Deviations from spec
+None material.
+
+### Status
+DONE
