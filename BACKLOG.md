@@ -952,9 +952,10 @@ components:
 | ✅ | **LP-08 / 03 / 01 / 02** | LP | Auto-refresh, recent errors nav, AppBar actions — done |
 | ✅ | **Nav index bugfix** | LP | `goToLogs`/`goToErrors` matched Phase 14 tab order |
 | ✅ | **LP-cleanup** | LP | Dead models, deps, card paint, key_widgets, handoff — done |
-| **1 (next)** | **CLS-P2** | CLS | Error groups + services catalog — see `docs/CLS_P2_PR_BRIEF.md` |
-| 2 | **LP after P2** | LP | Server-backed Errors tab + service details page |
-| 3 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
+| ✅ | **CLS-P2** | CLS | Error groups + services catalog — shipped |
+| ✅ | **LP P2 consumers** | LP | ErrorsNotifier → groups API; ServiceDetailsPage; parsers/tests |
+| **1 (next)** | **CLS-ST** | CLS | Optional stage timings / timeline (§3.7) — only if product wants |
+| 2 | **LP** | LP | Optional: dedicated Services tab; build_runner regen |
 
 ---
 

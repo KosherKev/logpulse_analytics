@@ -3,9 +3,11 @@ import 'package:dio/dio.dart';
 import 'package:logger/logger.dart' hide LogFilter;
 import '../models/log_entry.dart';
 import '../models/dashboard_stats.dart';
+import '../models/error_group.dart';
 import '../models/log_filter.dart';
 import '../models/logs_page_result.dart';
 import '../models/service_metrics_entry.dart';
+import '../models/service_summary.dart';
 import '../models/time_series_point.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/api_endpoints.dart';
@@ -127,6 +129,65 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
     ));
   }
   return entries;
+}
+
+/// Parser for `GET /api/v1/logs/errors/groups`.
+List<ErrorGroup> parseErrorGroupsResponse(dynamic data) {
+  List<dynamic>? items;
+  if (data is List) {
+    items = data;
+  } else if (data is Map) {
+    final nested = Map<String, dynamic>.from(data)['data'];
+    if (nested is List) items = nested;
+  }
+  if (items == null) return const [];
+
+  final groups = <ErrorGroup>[];
+  for (final raw in items) {
+    if (raw is! Map) continue;
+    final g = ErrorGroup.fromApiJson(Map<String, dynamic>.from(raw));
+    if (g.id.isEmpty && g.message.isEmpty) continue;
+    groups.add(g);
+  }
+  return groups;
+}
+
+/// Parser for `GET /api/v1/services`.
+List<ServiceSummary> parseServicesListResponse(dynamic data) {
+  List<dynamic>? items;
+  if (data is List) {
+    items = data;
+  } else if (data is Map) {
+    final nested = Map<String, dynamic>.from(data)['data'];
+    if (nested is List) items = nested;
+  }
+  if (items == null) return const [];
+
+  final list = <ServiceSummary>[];
+  for (final raw in items) {
+    if (raw is! Map) continue;
+    final s = ServiceSummary.fromApiJson(Map<String, dynamic>.from(raw));
+    if (s.name.isEmpty) continue;
+    list.add(s);
+  }
+  return list;
+}
+
+/// Parser for `GET /api/v1/services/:name`.
+ServiceDetail parseServiceDetailResponse(dynamic data) {
+  Map<String, dynamic>? root;
+  if (data is Map) {
+    final map = Map<String, dynamic>.from(data);
+    if (map['data'] is Map) {
+      root = Map<String, dynamic>.from(map['data'] as Map);
+    } else {
+      root = map;
+    }
+  }
+  if (root == null) {
+    throw ParseException('Invalid response format for service detail');
+  }
+  return ServiceDetail.fromApiJson(root);
 }
 
 /// Defensive parser for `GET /api/v1/logs` list responses.
@@ -408,6 +469,60 @@ class ApiService {
       if (e.response?.statusCode == 404) {
         return const [];
       }
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Server-side error groups (CLS P2).
+  Future<List<ErrorGroup>> getErrorGroups({
+    String? timeRange,
+    String? service,
+    int? limit,
+  }) async {
+    try {
+      _ensureConfigured();
+      final endpoint = ApiEndpoints.buildErrorGroupsQuery(
+        timeRange: timeRange,
+        service: service,
+        limit: limit,
+      );
+      final cancelToken = _issueToken(ApiEndpoints.errorGroups);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      return parseErrorGroupsResponse(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Services catalog (CLS P2).
+  Future<List<ServiceSummary>> getServices({String? timeRange}) async {
+    try {
+      _ensureConfigured();
+      final endpoint = ApiEndpoints.buildServicesQuery(timeRange: timeRange);
+      final cancelToken = _issueToken(ApiEndpoints.services);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      return parseServicesListResponse(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Single service detail (CLS P2).
+  Future<ServiceDetail> getServiceDetail(
+    String name, {
+    String? timeRange,
+  }) async {
+    try {
+      _ensureConfigured();
+      final endpoint =
+          ApiEndpoints.buildServiceDetailQuery(name, timeRange: timeRange);
+      final cancelToken = _issueToken(ApiEndpoints.services);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      return parseServiceDetailResponse(response.data);
+    } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }

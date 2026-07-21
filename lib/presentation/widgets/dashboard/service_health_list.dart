@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/dashboard_stats.dart';
-import '../../../data/models/log_filter.dart';
+import '../../pages/service_details/service_details_page.dart';
 import '../cards/service_health_card.dart';
-import '../../providers/logs_provider.dart';
-import '../../providers/navigation_provider.dart';
 
 /// "Service Health" section — header row with "view all →" + animated cards.
 class ServiceHealthList extends ConsumerWidget {
@@ -20,6 +18,14 @@ class ServiceHealthList extends ConsumerWidget {
     required this.serviceStats,
     this.maxVisible = 3,
   });
+
+  void _openDetail(BuildContext context, String name) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ServiceDetailsPage(serviceName: name),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,7 +41,6 @@ class ServiceHealthList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Section header ─────────────────────────────────────────────────
         Row(
           children: [
             Text(
@@ -45,7 +50,11 @@ class ServiceHealthList extends ConsumerWidget {
             const Spacer(),
             if (entries.length > maxVisible)
               GestureDetector(
-                onTap: () => ref.read(navigationProvider.notifier).goToLogs(),
+                onTap: () {
+                  // Open the first overflow service's catalog view — full
+                  // services list can replace this when a dedicated tab exists.
+                  _openDetail(context, entries[maxVisible].key);
+                },
                 child: Text(
                   'view all →',
                   style: AppTextStyles.monoSm.copyWith(color: c.accent),
@@ -54,18 +63,11 @@ class ServiceHealthList extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-
-        // ── Cards ───────────────────────────────────────────────────────────
         ...visible.map(
           (entry) => ServiceHealthCard(
             serviceName: entry.key,
             stats: entry.value,
-            onTap: () {
-              ref
-                  .read(logsProvider.notifier)
-                  .applyFilter(LogFilter(service: entry.key));
-              ref.read(navigationProvider.notifier).goToLogs();
-            },
+            onTap: () => _openDetail(context, entry.key),
           ),
         ),
       ],

@@ -6,12 +6,20 @@ class ApiEndpoints {
   static const String timeseries = '/logs/stats/timeseries';
 
   /// Metrics read route (PR-24): `GET /api/v1/metrics?appId=<optional>`.
-  /// Latest-snapshot only — no server-side time-range filtering.
   static const String metricsSummary = '/metrics';
-  
+
+  /// Server-side error groups (CLS P2).
+  static const String errorGroups = '/logs/errors/groups';
+
+  /// Services catalog (CLS P2).
+  static const String services = '/services';
+
   // Logs
   static String logsByTraceId(String traceId) => '/logs?traceId=$traceId';
-  
+
+  static String serviceDetail(String name) =>
+      '/services/${Uri.encodeComponent(name)}';
+
   // Health
   static const String health = '/health';
   static const String ready = '/ready';
@@ -80,11 +88,37 @@ class ApiEndpoints {
   }
 
   /// Builds `GET /metrics` with optional `appId` only (PR-24 contract).
-  /// Does not accept `timeRange` — the server has no time-range filter.
   static String buildMetricsSummaryQuery({
     String? appId,
   }) {
     if (appId == null || appId.isEmpty) return metricsSummary;
     return '$metricsSummary?appId=${Uri.encodeComponent(appId)}';
+  }
+
+  static String buildErrorGroupsQuery({
+    String? timeRange,
+    String? service,
+    int? limit,
+  }) {
+    final params = <String, String>{};
+    if (timeRange != null) params['timeRange'] = timeRange;
+    if (service != null) params['service'] = service;
+    if (limit != null) params['limit'] = limit.toString();
+    if (params.isEmpty) return errorGroups;
+    final query = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    return '$errorGroups?$query';
+  }
+
+  static String buildServicesQuery({String? timeRange}) {
+    if (timeRange == null || timeRange.isEmpty) return services;
+    return '$services?timeRange=${Uri.encodeComponent(timeRange)}';
+  }
+
+  static String buildServiceDetailQuery(String name, {String? timeRange}) {
+    final base = serviceDetail(name);
+    if (timeRange == null || timeRange.isEmpty) return base;
+    return '$base?timeRange=${Uri.encodeComponent(timeRange)}';
   }
 }
