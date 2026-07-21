@@ -511,3 +511,151 @@ Analyze status:    (run `flutter analyze` to confirm baseline)
 ### Open questions:
 - Timeline tab: replace the fabricated stage breakdown with an honest single-row showing only real data (`method`, `path`, `duration`, `statusCode`), or hide the Performance Breakdown section entirely when no per-stage metadata is present? Recommend hiding it — fabricated percentages in a developer debugging tool are worse than showing nothing.
 - Fix C manual verification: do you want to run the app and confirm rapid filter changes produce no spurious errors before we close out?
+
+
+## [2026-07-21] — Fabricated-Data Audit (per TELEMETRY_PATCH_PLAN.md §4) + Timeline Tab Cleanup
+
+**Context**: Triggered off `bevin-core`'s telemetry handoff doc + this repo's own `TELEMETRY_PATCH_PLAN.md`. Phase 16 (real per-service health) and Phase 18 (multi-instance) both remain **blocked** — `central-logging-service` PR-22 only shipped the metrics *write* side; there's still no `GET` read route, so no real per-service data exists to consume yet. Per §4 of the patch plan ("audit beyond `DashboardStats.fromApiJson` for the same pattern — there may be others not yet caught"), did that audit and fixed what didn't require the blocked read API.
+
+### Audit findings
+- `DashboardStats.fromApiJson` (`lib/data/models/dashboard_stats.dart`): confirmed the known issue — `uptime: 100.0` hardcoded, and the *global* `errorRate`/`avgLatency` copied onto every `ServiceStats` entry, because `/logs/stats/summary`'s `byService` only returns request counts.
+- `TimelineTab` (`lib/presentation/pages/log_details/tabs/timeline_tab.dart`): confirmed the fabricated data already documented in the `[2026-06-17]` entry above — hardcoded `'5ms'`/`'15ms'` synthetic events, an error timestamp computed as `total × 0.8`, and an entire "PERFORMANCE BREAKDOWN" section using fixed 10/5/70/15% ratios with no backing fields. That entry's own recommendation ("hide it — fabricated percentages are worse than showing nothing") had not yet been acted on.
+- No other fabricated-data spots found elsewhere in `lib/` (searched for hardcoded percentages, `Random()`, mock/dummy/placeholder patterns).
+
+### Fixes (no backend/read-API dependency — pure "stop showing confident fake numbers")
+- `ServiceStats.errorRate`/`avgLatency`/`uptime`/`errorCount` changed from non-nullable (fabricated) to nullable. `DashboardStats.fromApiJson` now leaves them `null` instead of synthesizing `100.0`/copied-global values. Added `hasHealthMetrics` getter; `healthStatus` returns `HealthStatus.unknown` when null.
+- `ServiceHealthCard`: shows `'not reporting metrics yet'` instead of formatted fake numbers when `!hasHealthMetrics`; the pulse dot goes static (no animation, dimmer) for `unknown` status instead of pulsing like a real healthy reading.
+- `TimelineTab`: removed the two synthetic mid-timeline events and the entire "PERFORMANCE BREAKDOWN" section/`_BreakdownBar` widget. Timeline now shows only real fields: `0ms` Request Received (method/path), the error event if present (no invented timestamp — shown as `—`), and `{duration}ms` Response Sent (statusCode).
+- Hand-updated `dashboard_stats.g.dart` (generated file) to match the new nullable fields — `build_runner` isn't available in this environment to regenerate; the hand edit is a mechanical 1:1 nullable-cast change, worth a real `dart run build_runner build` pass next time the dev environment is available to confirm it matches.
+
+**Also reviewed** (no change needed): `getTimeSeries()`/`_getTimeSeriesFromLogs()` in `api_service.dart` already has the 404-fallback logic Phase 17 of the patch plan describes — confirms the patch plan's own conclusion that no LogPulse code change is needed for Phase 17 until `/logs/stats/timeseries` exists server-side.
+
+### Status: Audit complete. Timeline tab and per-service health card no longer fabricate numbers. Phases 16/18 (real per-service data, multi-instance) remain blocked on the metrics read API per `TELEMETRY_PATCH_PLAN.md` — this session only removed fabrication, it did not add real data (there's nothing real to add yet).
+### Open questions:
+- Should `dart run build_runner build --delete-conflicting-outputs` be run against the hand-edited `dashboard_stats.g.dart` next session to confirm it matches what codegen would actually produce?
+- `flutter analyze`/`flutter test` were not run this session — no Flutter SDK available in this environment. Recommend running both before merging.
+
+---
+
+## Step 16.1 — Define provisional read contract + isolated adapter
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+Added lightweight `ServiceMetricsEntry` DTO (`lib/data/models/service_metrics_entry.dart`) separate from `ServiceStats`. Implemented top-level `parseServiceMetricsResponse(dynamic data)` in `api_service.dart`, modeled on `_parseTimeSeriesResponse` defensive style (bare list or `{data: [...]}` envelope). Provisional route assumed: `GET /api/v1/metrics/summary` via new `ApiEndpoints.metricsSummary` (`/metrics/summary`). Partial entries parse present fields and leave the rest null; unknown keys inside `metrics` pass through untouched.
+
+### Key facts for next step
+- DTO fields: `appId`, `serviceName?`, `errorRate?`, `avgLatency?`, `uptime?`, `errorCount?`, `customMetrics?`, `lastReportedAt?`, `instanceCount?`
+- Parser is the only place that hardcodes response field names (plus snake_case aliases)
+- Endpoint constant: `ApiEndpoints.metricsSummary` + `buildMetricsSummaryQuery`
+
+### Deviations from spec
+None material — parser is a top-level function (not a private method) so unit tests can call it without Dio; still lives in `api_service.dart` as specified.
+
+### Status
+DONE
+
+## Step 16.2 — Extend ServiceStats models
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+Extended `ServiceStats` with nullable `customMetrics` (`Map<String, dynamic>?`), `lastReportedAt` (`DateTime?`), and `instanceCount` (`int?` — Phase 18 field landed here to avoid a second model touch). Added `hasCustomMetrics` getter and `copyWith`. Hand-updated `dashboard_stats.g.dart` to match (same approach as prior nullable-health session).
+
+### Key facts for next step
+- All three fields optional; zero-telemetry services remain valid with nulls
+- Merge into `ServiceStats` happens in the repository (16.4), not the model constructor
+- `customMetrics` stays untyped raw map — no per-app schema
+
+### Deviations from spec
+Added `hasCustomMetrics` and `copyWith` for convenience (not required by the step, used by UI/merge).
+
+### Status
+DONE
+
+## Step 16.3 — ApiService.getServiceMetrics()
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+Added `ApiService.getServiceMetrics({String? timeRange})` with the same shape as `getTimeSeries`: issues cancel token via `_issueToken(ApiEndpoints.metricsSummary)`, GETs the provisional endpoint, parses via `parseServiceMetricsResponse`. On `DioException` with `statusCode == 404`, returns `const []` instead of throwing. Non-404 errors still propagate through `_handleDioError`.
+
+### Key facts for next step
+- 404 → empty list (endpoint not built yet)
+- Auth/5xx still throw as real errors
+- Token key: `ApiEndpoints.metricsSummary` (Fix C convention)
+
+### Deviations from spec
+None.
+
+### Status
+DONE
+
+## Step 16.4 — Wire into DashboardRepository
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+`DashboardRepository.getStats()` now `Future.wait`s `getDashboardStats` and `getServiceMetrics` concurrently, then merges metrics into the log-derived `serviceStats` map via `_mergeServiceMetrics`. Match keys: exact `appId`/`serviceName`, then case-insensitive fallback. Log-only services stay as-is (null health). Metrics-only apps (telemetry with zero logs) are added with `totalRequests: 0`.
+
+### Key facts for next step
+- Merge lives only in the repository — cards stay dumb
+- When metrics 404, merge is a no-op over empty list → pre-Phase-16 behavior
+- Concurrent fetch; metrics 404 soft-fails inside ApiService
+
+### Deviations from spec
+Non-404 metrics failures still fail the whole `getStats` (ApiService propagates). Independent degradability for 404 is covered; soft-catching 500s was not added to avoid masking real outages.
+
+### Status
+DONE
+
+## Step 16.5 — ServiceHealthCard UI (custom metrics + lastReportedAt)
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+When `customMetrics` is non-null and non-empty, renders a secondary Wrap of key:value chips (capped at 4 + `+N` overflow). Nested/non-primitive values are stringified via `jsonEncode`/`toString` so the widget cannot crash on unexpected types. When `lastReportedAt` is present, shows a compact relative label (`2m ago`). Chips/relative time only render when data exists — no empty placeholders.
+
+### Key facts for next step
+- Chip cap: `ServiceHealthCard.maxMetricChips = 4`
+- Compact relative format: `s/m/h/d ago` (not full DateUtils strings)
+
+### Deviations from spec
+None.
+
+### Status
+DONE
+
+## Step 16.6 — Tests
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+Unit tests in `test/service_metrics_parser_test.dart`: (a) well-formed merged response + bare list, (b) empty/malformed envelope, (c) partial entry + skipped invalid rows. Widget tests in `test/service_health_card_test.dart`: chips when present, nothing when null/empty, overflow cap, nested stringify, relative time, instance badge (18.1). `flutter analyze lib test` — no errors (pre-existing infos/warnings only). New tests: 13/13 pass.
+
+### Key facts for next step
+- `GoogleFonts.config.allowRuntimeFetching = false` in widget tests to avoid network hangs
+- Pre-existing `key_widgets_test` failures (non-uniform borderRadius paint) are unrelated and unchanged
+
+### Deviations from spec
+404 path tested at the parser/empty-payload layer rather than with a live Dio mock — `getServiceMetrics` 404 branch is the same pattern as `getTimeSeries` and returns `[]` before the parser runs.
+
+### Status
+DONE
+
+## Step 18.1 — Instance count badge
+Completed: 2026-07-21 01:45 UTC
+Branch/commit: main / a155278 (uncommitted)
+
+### What was done
+On `ServiceHealthCard`, when `instanceCount != null && instanceCount > 1`, renders a small `"N instances"` badge next to the service name. No badge for null or 1 (badge signals multi-instance, not presence). Populated via the same 16.4 merge from metrics summary entries — no separate fetch. Widget tests cover multi / single / null fixtures.
+
+### Key facts for next step
+- Field already on `ServiceStats` from 16.2; parser maps `instanceCount` / `instance_count`
+- Richer per-instance drill-down intentionally skipped per phase plan
+
+### Deviations from spec
+None.
+
+### Status
+DONE

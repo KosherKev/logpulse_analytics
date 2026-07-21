@@ -67,59 +67,20 @@ class TimelineTab extends StatelessWidget {
           );
         }),
 
-        const SizedBox(height: 20),
-
-        // ── Performance breakdown ────────────────────────────────────────
-        Text('PERFORMANCE BREAKDOWN',
-            style: AppTextStyles.label.copyWith(color: c.textTertiary)),
-        const SizedBox(height: 12),
-
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: c.border),
-          ),
-          child: Column(
-            children: [
-              _BreakdownBar(
-                label: 'Request Processing',
-                percentage: 0.10,
-                color: c.accent,
-                duration: log.duration!,
-                c: c,
-              ),
-              const SizedBox(height: 12),
-              _BreakdownBar(
-                label: 'Authentication',
-                percentage: 0.05,
-                color: c.success,
-                duration: log.duration!,
-                c: c,
-              ),
-              const SizedBox(height: 12),
-              _BreakdownBar(
-                label: 'Database Query',
-                percentage: 0.70,
-                color: c.warning,
-                duration: log.duration!,
-                c: c,
-              ),
-              const SizedBox(height: 12),
-              _BreakdownBar(
-                label: 'Response Generation',
-                percentage: 0.15,
-                color: c.info,
-                duration: log.duration!,
-                c: c,
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
+
+  // NOTE: this tab previously also rendered a "PERFORMANCE BREAKDOWN" section
+  // (fixed 10/5/70/15% stage split applied to log.duration) and two synthetic
+  // mid-timeline events ("Auth Validated" @ 5ms, "Request Validated" @ 15ms,
+  // and an error event at total*0.8ms). None of these have a backing field —
+  // the backend has no per-stage timing data. Per the 2026-06-17 log entry's
+  // own conclusion ("fabricated percentages... are worse than showing
+  // nothing"), these were removed rather than kept as confident-looking fake
+  // numbers. Only real fields are shown below: method/path, duration,
+  // statusCode, and (when present) the error itself — without inventing a
+  // timestamp for it.
 
   List<_TimelineEvent> _generateEvents() {
     final total = log.duration ?? 0;
@@ -130,21 +91,12 @@ class TimelineTab extends StatelessWidget {
         detail: '${log.method ?? ''} ${log.path ?? ''}',
         isError: false,
       ),
-      if (total > 10) ...[
-        _TimelineEvent(
-          timestamp: '5ms',
-          title: 'Auth Validated',
-          isError: false,
-        ),
-        _TimelineEvent(
-          timestamp: '15ms',
-          title: 'Request Validated',
-          isError: false,
-        ),
-      ],
       if (log.isError)
         _TimelineEvent(
-          timestamp: '${(total * 0.8).round()}ms',
+          // No real per-stage timestamp exists for when the error occurred
+          // within the request lifecycle — show it unordered by time rather
+          // than inventing one.
+          timestamp: null,
           title: log.displayError,
           detail: log.error?.code,
           isError: true,
@@ -225,7 +177,7 @@ class _TimelineEventRow extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        event.timestamp,
+                        event.timestamp ?? '—',
                         style: AppTextStyles.monoSm
                             .copyWith(color: c.textTertiary),
                       ),
@@ -273,64 +225,6 @@ class _TimelineEventRow extends StatelessWidget {
   }
 }
 
-// ── Breakdown bar ─────────────────────────────────────────────────────────────
-
-class _BreakdownBar extends StatelessWidget {
-  const _BreakdownBar({
-    required this.label,
-    required this.percentage,
-    required this.color,
-    required this.duration,
-    required this.c,
-  });
-
-  final String label;
-  final double percentage;
-  final Color color;
-  final int duration;
-  final AppColorTokens c;
-
-  @override
-  Widget build(BuildContext context) {
-    final ms = (duration * percentage).round();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(label,
-                  style: AppTextStyles.monoSm.copyWith(color: c.textSecondary)),
-            ),
-            Text(
-              '${FormatUtils.formatDuration(ms)} · ${(percentage * 100).toStringAsFixed(0)}%',
-              style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        // Progress bar — themed colors, no hardcoded Flutter Colors
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: Stack(
-            children: [
-              Container(
-                height: 6,
-                width: double.infinity,
-                color: c.surface2,
-              ),
-              FractionallySizedBox(
-                widthFactor: percentage,
-                child: Container(height: 6, color: color),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── Model ─────────────────────────────────────────────────────────────────────
 
 class _TimelineEvent {
@@ -341,7 +235,10 @@ class _TimelineEvent {
     required this.isError,
   });
 
-  final String timestamp;
+  /// Null when no real timestamp is known for this event (e.g. an error
+  /// with no per-stage timing data) — shown as an em dash rather than a
+  /// made-up value.
+  final String? timestamp;
   final String title;
   final String? detail;
   final bool isError;
