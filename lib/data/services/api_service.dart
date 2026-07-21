@@ -4,6 +4,7 @@ import 'package:logger/logger.dart' hide LogFilter;
 import '../models/log_entry.dart';
 import '../models/dashboard_stats.dart';
 import '../models/log_filter.dart';
+import '../models/logs_page_result.dart';
 import '../models/service_metrics_entry.dart';
 import '../models/time_series_point.dart';
 import '../../core/constants/app_constants.dart';
@@ -128,6 +129,56 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
   return entries;
 }
 
+/// Defensive parser for `GET /api/v1/logs` list responses.
+///
+/// Accepts bare `List` (legacy) or envelope:
+/// `{ success, data: [...], total?, meta?, pagination? }`.
+LogsPageResult parseLogsPageResponse(dynamic data) {
+  List<dynamic>? items;
+  int? total;
+  bool? hasMore;
+
+  if (data is List) {
+    items = data;
+  } else if (data is Map) {
+    final map = Map<String, dynamic>.from(data);
+    final nested = map['data'];
+    if (nested is List) {
+      items = nested;
+    }
+    // Prefer top-level total; fall back to pagination.total
+    final t = map['total'];
+    if (t is num) {
+      total = t.toInt();
+    } else if (t is String) {
+      total = int.tryParse(t);
+    }
+    final pagination = map['pagination'];
+    if (pagination is Map) {
+      final p = Map<String, dynamic>.from(pagination);
+      if (total == null) {
+        final pt = p['total'];
+        if (pt is num) total = pt.toInt();
+        if (pt is String) total = int.tryParse(pt);
+      }
+      final hm = p['hasMore'];
+      if (hm is bool) hasMore = hm;
+    }
+  }
+
+  if (items == null) {
+    throw ParseException('Invalid response format for logs');
+  }
+
+  final logs = items.map((raw) {
+    final map = Map<String, dynamic>.from(raw as Map);
+    map['id'] ??= map['_id']?.toString();
+    return LogEntry.fromJson(map);
+  }).toList();
+
+  return LogsPageResult(logs: logs, total: total, hasMore: hasMore);
+}
+
 /// Defensive parser for `GET /api/v1/logs/stats/timeseries` (P0 CLS shape).
 ///
 /// Accepts a bare `List` or `{ "success", "data": [...], "meta": {...} }`.
@@ -240,8 +291,8 @@ class ApiService {
     return token;
   }
   
-  /// Fetch logs with filters
-  Future<List<LogEntry>> getLogs(LogFilter filter) async {
+  /// Fetch logs with filters. Prefer envelope with `total` / `pagination`.
+  Future<LogsPageResult> getLogs(LogFilter filter) async {
     try {
       _ensureConfigured();
 
@@ -258,24 +309,7 @@ class ApiService {
 
       final cancelToken = _issueToken(ApiEndpoints.logs);
       final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
-      final body = response.data;
-
-      List<dynamic>? items;
-      if (body is List) {
-        items = body;
-      } else if (body is Map<String, dynamic> && body['data'] is List) {
-        items = body['data'] as List<dynamic>;
-      }
-
-      if (items == null) {
-        throw ParseException('Invalid response format for logs');
-      }
-
-      return items.map((raw) {
-        final map = Map<String, dynamic>.from(raw as Map);
-        map['id'] ??= map['_id']?.toString();
-        return LogEntry.fromJson(map);
-      }).toList();
+      return parseLogsPageResponse(response.data);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -393,7 +427,8 @@ class ApiService {
       limit: 200,
       offset: 0,
     );
-    final logs = await getLogs(filter);
+    final page = await getLogs(filter);
+    final logs = page.logs;
     if (logs.isEmpty) return [];
     final totalMillis = now.millisecondsSinceEpoch - from.millisecondsSinceEpoch;
     final bucketMillis = bucket.inMilliseconds;

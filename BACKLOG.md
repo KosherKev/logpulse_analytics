@@ -25,7 +25,8 @@
 | Real timeseries chart | **CLS live** — LP parser verified; 404 fallback kept as safety net |
 | Multi-instance badge | **Wired** — parses top-level `instanceCount`; badge when `> 1` |
 | Health status colors | Full vocab: `ok`/`error`/`degraded`/`starting`/`stopping` |
-| Per-service err% / latency line | UI ready, never populated — **next CLS P1** |
+| Per-service err% / latency line | **Wired** — object `byService` → `errorRate`/`avgLatency`/`errorCount` |
+| Logs list total count | **Wired** — envelope `total` / `pagination.hasMore` |
 | Service details screen | Empty folder + unused route |
 | Auto-refresh setting | UI only — not wired |
 | Several AppBar / list taps | Dead (`onTap: () {}`) |
@@ -55,7 +56,7 @@
 | LP-10 | P2 | `ApiEndpoints.ready` | constants only | Never called |
 | LP-11 | P1 | Errors page data model | `errors_provider.dart` | Client-side grouping of currently loaded logs — incomplete without CLS groups API |
 | LP-12 | P2 | `ErrorGroup.isResolved` | model | Always false; no resolve UX |
-| LP-13 | P1 | Logs `totalCount` | `logs_provider` | Set to page length, not server total — needs CLS total (see §3.4) |
+| LP-13 | ~~P1~~ **DONE** | Logs `totalCount` | Uses server `total` when present; bare list falls back to page length |
 | LP-14 | P2 | Metrics soft-fail visibility | after Phase 21 | Failures only log a warning; optional “metrics unavailable” chip on dashboard |
 
 ### 2.3 Honest-but-thin UX (depends on CLS for richness)
@@ -64,7 +65,7 @@
 |----|----------|------|------------|
 | LP-15 | ~~P0~~ **DONE** | Traffic & Errors chart accuracy | CLS timeseries live; `parseTimeSeriesResponse` + 404 fallback retained |
 | LP-16 | ~~P1~~ **DONE** | Instance badge on `ServiceHealthCard` | Parses top-level `instanceCount`; never from `health.instanceId` |
-| LP-17 | P1 | Full numeric health line (`err% · ms · up%`) | CLS per-service aggregates (§3.3) — **next** |
+| LP-17 | ~~P1~~ **DONE** | Full numeric health line (`err% · ms`) | Object `byService`; uptime % optional; may pair with metrics duration |
 | LP-18 | P2 | Timeline performance breakdown | Only if CLS adds real stage spans — do **not** re-fabricate |
 | LP-19 | ~~P2~~ **DONE** | Health status color mapping | `ok`→healthy, `error`→unhealthy, `degraded`/`starting`/`stopping`→degraded |
 
@@ -945,15 +946,15 @@ components:
 | ✅ | **CLS-IC** | CLS | `instanceCount` + `instances[]` on `GET /metrics` — shipped |
 | ✅ | **CLS-HV** | CLS | Health status write-validated + docs — shipped |
 | ✅ | **LP-15/16/19** | LP | Timeseries verify, instanceCount parse, full health map — done |
-| **1 (next)** | **CLS-PS** | CLS | Per-service err%/latency on summary or by-service (§3.3) |
-| 2 | **CLS-TC** | CLS | Log list `total` (§3.4) |
-| 3 | **LP-17** | LP | Parse object-shaped `byService` after CLS-PS |
-| 4 | **LP-08** | LP | Wire auto-refresh |
-| 5 | **LP-03** | LP | Recent errors navigation |
-| 6 | **CLS-EG** | CLS | Error groups API (§3.5) |
-| 7 | **LP-cleanup** | LP | Docs, dead code, analyze, tests (LP-20–26) |
-| 8 | **CLS-SV** | CLS | Services catalog (§3.6) → then LP service details |
-| 9 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
+| ✅ | **CLS-PS** | CLS | Per-service err%/latency on summary `byService` — shipped |
+| ✅ | **CLS-TC** | CLS | Log list `total` envelope — shipped |
+| ✅ | **LP-17 / LP-13** | LP | Object byService + logs total consumers — done |
+| **1 (next)** | **LP-08** | LP | Wire auto-refresh |
+| 2 | **LP-03** | LP | Recent errors navigation |
+| 3 | **CLS-EG** | CLS | Error groups API (§3.5) |
+| 4 | **LP-cleanup** | LP | Docs, dead code, analyze, tests (LP-20–26) |
+| 5 | **CLS-SV** | CLS | Services catalog (§3.6) → then LP service details |
+| 6 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
 
 ---
 
@@ -986,8 +987,9 @@ components:
 | 20 | PR-24 path/shape reconcile, three-state health card |
 | 21 | Metrics fetch isolation in `DashboardRepository.getStats` |
 | **LP P0 consumers** | `parseTimeSeriesResponse` public + CLS fixture tests; parse top-level `instanceCount`; full health vocab map (`error`→unhealthy); 404 timeseries fallback retained |
+| **LP P1 consumers** | Object `byService` → err%/latency/errorCount; `hasHealthMetrics` no longer requires uptime %; `LogsPageResult` + `total`/`hasMore`; card detail line combines numerics + uptimeSeconds |
 | Earlier | Fabrication audit (null health, honest timeline) |
 
 ---
 
-*Last updated: 2026-07-21 — LP P0 consumers after CLS P0 read API landed.*
+*Last updated: 2026-07-21 — LP P1 consumers after CLS P1 summary/total landed.*

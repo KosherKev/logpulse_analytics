@@ -250,21 +250,28 @@ class _ServiceHealthCardState extends State<ServiceHealthCard>
     }
   }
 
-  /// Three-state detail line:
-  /// 1. Full numeric err/latency/uptime % when [ServiceStats.hasHealthMetrics]
-  /// 2. PR-24 health status + duration when [ServiceStats.hasReportedHealth]
+  /// Detail line priority:
+  /// 1. Log numerics (err% · latency) when [ServiceStats.hasHealthMetrics],
+  ///    plus uptime % or uptime duration when available
+  /// 2. Reported health status + duration when only PR-24 health exists
   /// 3. Honest "not reporting" when neither is present
   static String _detailLine(ServiceStats stats) {
     if (stats.hasHealthMetrics) {
-      return 'err ${stats.errorRate!.toStringAsFixed(1)}%  ·  '
-          '${stats.avgLatency!.toStringAsFixed(0)}ms  ·  '
-          'up ${stats.formattedUptime}';
+      final parts = <String>[
+        'err ${stats.errorRate!.toStringAsFixed(1)}%',
+        '${stats.avgLatency!.toStringAsFixed(0)}ms',
+      ];
+      if (stats.uptime != null) {
+        parts.add('up ${stats.formattedUptime}');
+      } else if (stats.uptimeSeconds != null) {
+        parts.add('up ${stats.formattedUptimeDuration}');
+      }
+      return parts.join('  ·  ');
     }
     if (stats.hasReportedHealth) {
       final status = stats.reportedHealthStatus!;
-      final up = stats.formattedUptimeDuration;
       if (stats.uptimeSeconds != null) {
-        return '$status  ·  up $up';
+        return '$status  ·  up ${stats.formattedUptimeDuration}';
       }
       return status;
     }
