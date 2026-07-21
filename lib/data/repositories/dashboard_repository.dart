@@ -1,4 +1,5 @@
 import '../models/dashboard_stats.dart';
+import '../models/service_metrics_entry.dart';
 import '../models/time_series_point.dart';
 import '../services/api_service.dart';
 import '../../core/errors/exceptions.dart';
@@ -9,19 +10,32 @@ class DashboardRepository {
   
   DashboardRepository(this._apiService);
   
-  /// Fetch dashboard statistics
+  /// Fetch dashboard statistics, merging log-derived request counts with
+  /// optional per-service metrics from the provisional metrics summary route.
+  ///
+  /// Both sources are fetched concurrently. Metrics soft-fail (empty list on
+  /// 404 inside [ApiService.getServiceMetrics]); log stats remain the source
+  /// of truth for request counts when metrics are absent.
   Future<DashboardStats> getStats({String? timeRange}) async {
     try {
-      final stats = await _apiService.getDashboardStats(timeRange: timeRange);
+      final results = await Future.wait<Object>([
+        _apiService.getDashboardStats(timeRange: timeRange),
+        _apiService.getServiceMetrics(timeRange: timeRange),
+      ]);
+      final stats = results[0] as DashboardStats;
+      final metrics = results[1] as List<ServiceMetricsEntry>;
+
       final range = timeRange ?? 'last_24h';
       final hours = _hoursForRange(range);
-      final reqPerHour = hours > 0 ? (stats.totalLogs / hours).round() : stats.totalLogs;
+      final reqPerHour =
+          hours > 0 ? (stats.totalLogs / hours).round() : stats.totalLogs;
+
       return DashboardStats(
         totalLogs: stats.totalLogs,
         errorRate: stats.errorRate,
         avgLatency: stats.avgLatency,
         requestsPerHour: reqPerHour,
-        serviceStats: stats.serviceStats,
+        serviceStats: _mergeServiceMetrics(stats.serviceStats, metrics),
         errorsByLevel: stats.errorsByLevel,
         requestsByStatus: stats.requestsByStatus,
       );
@@ -29,6 +43,76 @@ class DashboardRepository {
       if (e is AppException) rethrow;
       throw AppException('Failed to fetch dashboard stats: ${e.toString()}');
     }
+  }
+
+  /// Merge log-derived [ServiceStats] (real request counts, null health) with
+  /// metrics-summary entries keyed by appId / serviceName.
+  ///
+  /// - Log-only service → unchanged (null health, "not reporting").
+  /// - Metrics-only app (telemetry with zero logs) → new entry, totalRequests: 0.
+  /// - Both → health/custom fields filled from metrics, counts kept from logs.
+  Map<String, ServiceStats>? _mergeServiceMetrics(
+    Map<String, ServiceStats>? logDerived,
+    List<ServiceMetricsEntry> metrics,
+  ) {
+    if ((logDerived == null || logDerived.isEmpty) && metrics.isEmpty) {
+      return logDerived;
+    }
+
+    final merged = <String, ServiceStats>{
+      if (logDerived != null) ...logDerived,
+    };
+
+    // Index existing keys lowercased for tolerant matching (appId vs service name).
+    String? findExistingKey(String appId, String? serviceName) {
+      if (merged.containsKey(appId)) return appId;
+      if (serviceName != null && merged.containsKey(serviceName)) {
+        return serviceName;
+      }
+      final appLower = appId.toLowerCase();
+      final serviceLower = serviceName?.toLowerCase();
+      for (final key in merged.keys) {
+        final k = key.toLowerCase();
+        if (k == appLower || (serviceLower != null && k == serviceLower)) {
+          return key;
+        }
+      }
+      return null;
+    }
+
+    for (final entry in metrics) {
+      final existingKey = findExistingKey(entry.appId, entry.serviceName);
+      if (existingKey != null) {
+        final existing = merged[existingKey]!;
+        merged[existingKey] = ServiceStats(
+          serviceName: existing.serviceName,
+          totalRequests: existing.totalRequests,
+          errorRate: entry.errorRate ?? existing.errorRate,
+          avgLatency: entry.avgLatency ?? existing.avgLatency,
+          uptime: entry.uptime ?? existing.uptime,
+          errorCount: entry.errorCount ?? existing.errorCount,
+          customMetrics: entry.customMetrics ?? existing.customMetrics,
+          lastReportedAt: entry.lastReportedAt ?? existing.lastReportedAt,
+          instanceCount: entry.instanceCount ?? existing.instanceCount,
+        );
+      } else {
+        // Telemetry-only: app reports metrics but has produced zero logs.
+        final name = entry.resolvedName;
+        merged[name] = ServiceStats(
+          serviceName: name,
+          totalRequests: 0,
+          errorRate: entry.errorRate,
+          avgLatency: entry.avgLatency,
+          uptime: entry.uptime,
+          errorCount: entry.errorCount,
+          customMetrics: entry.customMetrics,
+          lastReportedAt: entry.lastReportedAt,
+          instanceCount: entry.instanceCount,
+        );
+      }
+    }
+
+    return merged;
   }
   
   /// Check service health

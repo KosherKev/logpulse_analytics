@@ -4,10 +4,96 @@ import 'package:logger/logger.dart' hide LogFilter;
 import '../models/log_entry.dart';
 import '../models/dashboard_stats.dart';
 import '../models/log_filter.dart';
+import '../models/service_metrics_entry.dart';
 import '../models/time_series_point.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/errors/exceptions.dart';
+
+/// Defensive parser for the provisional `GET /api/v1/metrics/summary` response.
+///
+/// Isolated so that when the real read contract lands, only this function
+/// changes — nothing downstream hardcodes response field names.
+///
+/// Accepts either a bare `List` or a `{ "data": [...] }` envelope (same style
+/// as [_parseTimeSeriesResponse] / logs list parsing).
+///
+/// Partial entries (e.g. health present, no metric doc) parse what is present
+/// and leave the rest null. Unknown keys inside `metrics` pass through untouched.
+List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
+  List<dynamic>? items;
+  if (data is List) {
+    items = data;
+  } else if (data is Map) {
+    final map = Map<String, dynamic>.from(data);
+    final nested = map['data'];
+    if (nested is List) {
+      items = nested;
+    }
+  }
+  if (items == null) {
+    // Malformed envelope — treat as no metrics rather than crashing the
+    // dashboard (endpoint is provisional and may evolve).
+    return const [];
+  }
+
+  final entries = <ServiceMetricsEntry>[];
+  for (final raw in items) {
+    if (raw is! Map) continue;
+    final m = Map<String, dynamic>.from(raw);
+
+    final appId = (m['appId'] ?? m['app_id'] ?? m['serviceName'] ?? m['service'])
+        ?.toString();
+    if (appId == null || appId.isEmpty) continue;
+
+    final serviceName = (m['serviceName'] ?? m['service'])?.toString();
+
+    double? readDouble(dynamic v) {
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v);
+      return null;
+    }
+
+    int? readInt(dynamic v) {
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v);
+      return null;
+    }
+
+    DateTime? readDate(dynamic v) {
+      if (v is String && v.isNotEmpty) {
+        try {
+          return DateTime.parse(v).toUtc();
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    Map<String, dynamic>? customMetrics;
+    final metricsRaw = m['metrics'] ?? m['customMetrics'] ?? m['custom_metrics'];
+    if (metricsRaw is Map) {
+      // Pass through every key/value — no fixed schema.
+      customMetrics = Map<String, dynamic>.from(metricsRaw);
+    }
+
+    entries.add(ServiceMetricsEntry(
+      appId: appId,
+      serviceName: serviceName,
+      errorRate: readDouble(m['errorRate'] ?? m['error_rate']),
+      avgLatency: readDouble(m['avgLatency'] ?? m['avg_latency'] ?? m['avgDuration']),
+      uptime: readDouble(m['uptime']),
+      errorCount: readInt(m['errorCount'] ?? m['error_count']),
+      customMetrics: customMetrics,
+      lastReportedAt: readDate(
+        m['lastReportedAt'] ?? m['last_reported_at'] ?? m['timestamp'],
+      ),
+      instanceCount: readInt(m['instanceCount'] ?? m['instance_count']),
+    ));
+  }
+  return entries;
+}
 
 class ApiService {
   final Dio _dio;
@@ -202,6 +288,27 @@ class ApiService {
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return _getTimeSeriesFromLogs(timeRange: timeRange);
+      }
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Fetch per-service health + custom metrics from the provisional
+  /// `GET /api/v1/metrics/summary` route.
+  ///
+  /// Returns an empty list on 404 (endpoint not built yet) so Phase 16 can
+  /// ship before the real contract exists. Non-404 errors still propagate —
+  /// "not built yet" must not be conflated with "broken."
+  Future<List<ServiceMetricsEntry>> getServiceMetrics({String? timeRange}) async {
+    try {
+      _ensureConfigured();
+      final endpoint = ApiEndpoints.buildMetricsSummaryQuery(timeRange: timeRange);
+      final cancelToken = _issueToken(ApiEndpoints.metricsSummary);
+      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      return parseServiceMetricsResponse(response.data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return const [];
       }
       throw _handleDioError(e);
     }

@@ -4,6 +4,10 @@ class ApiEndpoints {
   static const String logs = '/logs';
   static const String stats = '/logs/stats/summary';
   static const String timeseries = '/logs/stats/timeseries';
+
+  /// Provisional metrics summary (symmetric with [stats]).
+  /// Not built server-side yet — callers must tolerate 404.
+  static const String metricsSummary = '/metrics/summary';
   
   // Logs
   static String logsByTraceId(String traceId) => '/logs?traceId=$traceId';
@@ -73,5 +77,17 @@ class ApiEndpoints {
         .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
         .join('&');
     return '$timeseries?$query';
+  }
+
+  static String buildMetricsSummaryQuery({
+    String? timeRange,
+  }) {
+    final params = <String, String>{};
+    if (timeRange != null) params['timeRange'] = timeRange;
+    if (params.isEmpty) return metricsSummary;
+    final query = params.entries
+        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    return '$metricsSummary?$query';
   }
 }
