@@ -217,7 +217,6 @@ class ApiService {
   final Logger _logger = Logger();
 
   String? _baseUrl;
-  String? _apiKey;
   final Map<String, CancelToken> _activeTokens = {};
 
   ApiService({Dio? dio}) : _dio = dio ?? Dio() {
@@ -262,10 +261,8 @@ class ApiService {
 
     final trimmedKey = apiKey?.trim();
     if (trimmedKey != null && trimmedKey.isNotEmpty) {
-      _apiKey = trimmedKey;
       _dio.options.headers['X-API-Key'] = trimmedKey;
     } else {
-      _apiKey = null;
       _dio.options.headers.remove('X-API-Key');
     }
   }

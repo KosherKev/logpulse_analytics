@@ -92,9 +92,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 
   Future<void> clearCache() async {
-    final storage = await LocalStorageService.getInstance();
-    // Clear only cache, not settings
-    // Implementation depends on cache strategy
+    // No client-side log cache layer yet — settings/profile storage is
+    // intentionally preserved. Hook real cache eviction here when added.
   }
 }
 

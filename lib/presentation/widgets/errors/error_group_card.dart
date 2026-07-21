@@ -32,103 +32,112 @@ class ErrorGroupCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: severityColor, width: 3),
-          top: BorderSide(color: c.border, width: 1),
-          right: BorderSide(color: c.border, width: 1),
-          bottom: BorderSide(color: c.border, width: 1),
-        ),
+        border: Border.all(color: c.border, width: 1),
       ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Row 1: code · message · count ───────────────────────
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (group.errorCode != null)
-                          Text(
-                            group.errorCode!,
-                            style: AppTextStyles.label.copyWith(
-                              color: severityColor,
+              Container(width: 3, color: severityColor),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Row 1: code · message · count ───────────────────────
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (group.errorCode != null)
+                                  Text(
+                                    group.errorCode!,
+                                    style: AppTextStyles.label.copyWith(
+                                      color: severityColor,
+                                    ),
+                                  ),
+                                if (group.errorCode != null)
+                                  const SizedBox(height: 4),
+                                Text(
+                                  group.message,
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: c.textPrimary,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
-                        if (group.errorCode != null)
-                          const SizedBox(height: 4),
-                        Text(
-                          group.message,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: c.textPrimary,
+                          const SizedBox(width: 12),
+                          // Count badge
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: severityColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${group.count}',
+                                  style: AppTextStyles.monoSm.copyWith(
+                                    color: severityColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              _TrendChip(trend: group.trend, c: c),
+                            ],
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Count badge
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: severityColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '${group.count}',
-                          style: AppTextStyles.monoSm.copyWith(
-                            color: severityColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      _TrendChip(trend: group.trend, c: c),
+
+                      const SizedBox(height: 10),
+
+                      // ── Row 2: services · last seen ──────────────────────────
+                      Row(
+                        children: [
+                          Icon(Icons.dns_outlined,
+                              size: 12, color: c.textTertiary),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              group.formattedServices,
+                              style: AppTextStyles.monoSm.copyWith(
+                                color: c.textTertiary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Icons.access_time,
+                              size: 12, color: c.textTertiary),
+                          const SizedBox(width: 4),
+                          Text(
+                            date_utils.DateUtils.formatRelative(group.lastSeen),
+                            style: AppTextStyles.monoSm
+                                .copyWith(color: c.textTertiary),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              // ── Row 2: services · last seen ──────────────────────────
-              Row(
-                children: [
-                  Icon(Icons.dns_outlined, size: 12, color: c.textTertiary),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      group.formattedServices,
-                      style: AppTextStyles.monoSm.copyWith(
-                        color: c.textTertiary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.access_time, size: 12, color: c.textTertiary),
-                  const SizedBox(width: 4),
-                  Text(
-                    date_utils.DateUtils.formatRelative(group.lastSeen),
-                    style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
-                  ),
-                ],
+                ),
               ),
             ],
           ),

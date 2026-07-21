@@ -867,3 +867,29 @@ Bell removed rather than left as a no-op (no notifications API). Refresh icon is
 
 ### Status
 DONE
+
+## LP-cleanup + CLS P2 brief
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done (LP-cleanup)
+- Removed unused `Service` / `EndpointStats` models and empty `service_details` / `charts` dirs
+- Dropped unused `provider` and `http` dependencies from pubspec
+- Removed dead `serviceDetails` routes from `AppRoutes`
+- Fixed non-uniform Border + borderRadius paint on StatCard, EnhancedLogCard, ErrorGroupCard, ErrorSummaryCard, SkeletonLogCard, Timeline total card (accent strip pattern)
+- Updated `key_widgets_test` to match real labels ("TOTAL LOGS", "1.0K", "No data")
+- Removed unused `_apiKey` field; stubbed clearCache comment
+- Rewrote `handoff_context.md` to current state
+
+### CLS P2 brief
+- Wrote `docs/CLS_P2_PR_BRIEF.md` — error groups + services list/detail for CLS to implement next
+
+### Key facts for next step
+- Full suite of related tests: 52 passed
+- After CLS P2: reintroduce Service model from catalog API; switch ErrorsNotifier to groups endpoint
+
+### Deviations
+Naming rename of metricsSummary deferred (LP-27). build_runner regen still manual.
+
+### Status
+DONE

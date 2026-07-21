@@ -5,7 +5,7 @@ import '../../../core/theme/app_text_styles.dart';
 /// Neo-Terminal StatCard.
 ///
 /// Design:
-///   - Left 3px accent border (color-coded by [accentColor])
+///   - Left 3px accent strip (color-coded by [accentColor])
 ///   - [label] in JetBrains Mono uppercase overline (textTertiary)
 ///   - [value] in Syne display bold
 ///   - Optional [delta] row in JetBrains Mono with directional color
@@ -45,80 +45,76 @@ class StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: borderColor, width: 3),
-          top: BorderSide(color: c.border, width: 1),
-          right: BorderSide(color: c.border, width: 1),
-          bottom: BorderSide(color: c.border, width: 1),
-        ),
+        border: Border.all(color: c.border, width: 1),
       ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: AppTextStyles.label.copyWith(color: c.textTertiary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: AppTextStyles.displaySm.copyWith(color: c.textPrimary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (effectiveDelta != null) ...[
-            const SizedBox(height: 6),
-            _DeltaRow(delta: effectiveDelta, isPositive: isPositive, c: c),
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 3, color: borderColor),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: AppTextStyles.label.copyWith(color: c.textTertiary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      value,
+                      style: AppTextStyles.displaySm
+                          .copyWith(color: c.textPrimary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (effectiveDelta != null) ...[
+                      const SizedBox(height: 6),
+                      _DeltaRow(
+                        delta: effectiveDelta,
+                        isPositive: isPositive,
+                        c: c,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
 class _DeltaRow extends StatelessWidget {
+  final String delta;
+  final bool? isPositive;
+  final AppColorTokens c;
+
   const _DeltaRow({
     required this.delta,
     required this.isPositive,
     required this.c,
   });
 
-  final String delta;
-  final bool? isPositive;
-  final AppColorTokens c;
-
   @override
   Widget build(BuildContext context) {
-    final Color color;
-    final IconData? iconData;
+    Color color = c.textTertiary;
+    if (isPositive == true) color = c.success;
+    if (isPositive == false) color = c.error;
 
-    if (isPositive == null) {
-      color = c.textTertiary;
-      iconData = null;
-    } else if (isPositive!) {
-      color = c.success;
-      iconData = Icons.arrow_upward_rounded;
-    } else {
-      color = c.error;
-      iconData = Icons.arrow_downward_rounded;
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (iconData != null) ...[
-          Icon(iconData, size: 12, color: color),
-          const SizedBox(width: 3),
-        ],
-        Text(
-          delta,
-          style: AppTextStyles.monoSm.copyWith(color: color),
-        ),
-      ],
+    return Text(
+      delta,
+      style: AppTextStyles.monoSm.copyWith(color: color),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }
