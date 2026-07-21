@@ -1,31 +1,25 @@
-/// Lightweight DTO for one per-appId row from the provisional metrics summary
-/// read route (`GET /api/v1/metrics/summary`).
+/// Lightweight DTO for one per-appId row from
+/// `GET /api/v1/metrics` (central-logging-service PR-24).
 ///
 /// Kept separate from [ServiceStats] so parsing and domain modeling stay
 /// independent: the repository merges this into [ServiceStats], not the model
 /// constructor.
 ///
-/// Provisional contract (server may still change — only [parseServiceMetricsResponse]
-/// should hardcode field names):
+/// Real response shape (per entry):
 /// ```json
 /// {
-///   "data": [
-///     {
-///       "appId": "academicx",
-///       "serviceName": "academicx",
-///       "errorRate": 0.5,
-///       "avgLatency": 42,
-///       "uptime": 99.9,
-///       "errorCount": 1,
-///       "instanceCount": 3,
-///       "lastReportedAt": "2026-07-21T12:00:00.000Z",
-///       "metrics": { "students": 120, "activeToday": 45 }
-///     }
-///   ]
+///   "appId": "academicx",
+///   "health": {
+///     "status": "ok",
+///     "instanceId": "rev-abc-xyz",
+///     "uptimeSeconds": 86400,
+///     "timestamp": "2026-07-21T12:00:00.000Z"
+///   },
+///   "metrics": { "students": 120, "activeToday": 45 },
+///   "metricsReportedAt": "2026-07-21T12:01:00.000Z"
 /// }
 /// ```
-/// Health (`kind: 'health'`) and custom metric (`kind: 'metric'`) documents are
-/// expected to already be merged server-side into each entry.
+/// `health` and `metrics` are independent — either may be null.
 class ServiceMetricsEntry {
   /// Collector app id — primary merge key against log-derived service names.
   final String appId;
@@ -33,17 +27,35 @@ class ServiceMetricsEntry {
   /// Optional display/alias name; falls back to [appId] when absent.
   final String? serviceName;
 
+  /// Numeric request-health fields. PR-24 does not provide these; they remain
+  /// null unless a future contract adds them. Kept for forward compatibility.
   final double? errorRate;
   final double? avgLatency;
+
+  /// Percentage-typed uptime. PR-24 does **not** compute a percentage —
+  /// this stays null. Do not alias [uptimeSeconds] into this field.
   final double? uptime;
   final int? errorCount;
 
-  /// Free-form custom metrics from `kind: 'metric'` docs. No fixed schema —
-  /// unknown keys must pass through untouched.
+  /// Free-form custom metrics from the top-level `metrics` object. No fixed
+  /// schema — unknown keys must pass through untouched.
   final Map<String, dynamic>? customMetrics;
 
+  /// Prefer `metricsReportedAt`; fall back to `health.timestamp` when only a
+  /// health document exists.
   final DateTime? lastReportedAt;
+
+  /// Distinct instance count when the server provides one. PR-24 returns a
+  /// single `health.instanceId`, not a count — leave null (do not fabricate).
   final int? instanceCount;
+
+  /// Raw wire value of `health.status` (e.g. `"ok"`). Named distinctly from
+  /// the derived [HealthStatus] enum / getter used for display.
+  final String? reportedHealthStatus;
+
+  /// Raw wire value of `health.uptimeSeconds`. Separate from percentage
+  /// [uptime] so formatters never render seconds as `"up 86400.0%"`.
+  final int? uptimeSeconds;
 
   const ServiceMetricsEntry({
     required this.appId,
@@ -55,6 +67,8 @@ class ServiceMetricsEntry {
     this.customMetrics,
     this.lastReportedAt,
     this.instanceCount,
+    this.reportedHealthStatus,
+    this.uptimeSeconds,
   });
 
   /// Resolved name for UI / merge map keys.

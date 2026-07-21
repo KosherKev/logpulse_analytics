@@ -17,6 +17,8 @@ void main() {
     double? errorRate,
     double? avgLatency,
     double? uptime,
+    String? reportedHealthStatus,
+    int? uptimeSeconds,
   }) {
     return ServiceStats(
       serviceName: 'academicx',
@@ -28,6 +30,8 @@ void main() {
       customMetrics: customMetrics,
       lastReportedAt: lastReportedAt,
       instanceCount: instanceCount,
+      reportedHealthStatus: reportedHealthStatus,
+      uptimeSeconds: uptimeSeconds,
     );
   }
 
@@ -77,7 +81,7 @@ void main() {
         (tester) async {
       await pumpCard(tester, baseStats(customMetrics: {}));
 
-      expect(find.textContaining(':'), findsNothing);
+      expect(find.textContaining('students:'), findsNothing);
     });
 
     testWidgets('caps chips and shows overflow indicator', (tester) async {
@@ -130,6 +134,47 @@ void main() {
     });
   });
 
+  group('ServiceHealthCard three-state detail line (Phase 20)', () {
+    testWidgets('middle state: reported health without numeric metrics',
+        (tester) async {
+      await pumpCard(
+        tester,
+        baseStats(
+          reportedHealthStatus: 'ok',
+          uptimeSeconds: 3661, // 1h 1m
+        ),
+      );
+
+      expect(find.text('not reporting metrics yet'), findsNothing);
+      expect(find.textContaining('err '), findsNothing);
+      expect(find.textContaining('ok'), findsOneWidget);
+      expect(find.textContaining('up 1h 1m'), findsOneWidget);
+    });
+
+    testWidgets('full numeric state still renders when hasHealthMetrics',
+        (tester) async {
+      await pumpCard(
+        tester,
+        baseStats(
+          errorRate: 0.5,
+          avgLatency: 42,
+          uptime: 99.9,
+        ),
+      );
+
+      expect(find.textContaining('err 0.5%'), findsOneWidget);
+      expect(find.textContaining('42ms'), findsOneWidget);
+      expect(find.text('not reporting metrics yet'), findsNothing);
+    });
+
+    testWidgets('empty state when neither numerics nor reported health',
+        (tester) async {
+      await pumpCard(tester, baseStats());
+
+      expect(find.text('not reporting metrics yet'), findsOneWidget);
+    });
+  });
+
   group('ServiceHealthCard instance badge (Phase 18)', () {
     testWidgets('shows badge when instanceCount > 1', (tester) async {
       await pumpCard(tester, baseStats(instanceCount: 3));
@@ -145,6 +190,21 @@ void main() {
 
     testWidgets('hides badge when instanceCount is 1', (tester) async {
       await pumpCard(tester, baseStats(instanceCount: 1));
+
+      expect(find.textContaining('instances'), findsNothing);
+    });
+
+    testWidgets('does not show badge from reported health alone (no count)',
+        (tester) async {
+      // PR-24 gives instanceId, not instanceCount — badge stays hidden.
+      await pumpCard(
+        tester,
+        baseStats(
+          reportedHealthStatus: 'ok',
+          uptimeSeconds: 100,
+          instanceCount: null,
+        ),
+      );
 
       expect(find.textContaining('instances'), findsNothing);
     });

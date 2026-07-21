@@ -11,7 +11,7 @@ class DashboardRepository {
   DashboardRepository(this._apiService);
   
   /// Fetch dashboard statistics, merging log-derived request counts with
-  /// optional per-service metrics from the provisional metrics summary route.
+  /// optional per-service metrics from `GET /api/v1/metrics` (PR-24).
   ///
   /// Both sources are fetched concurrently. Metrics soft-fail (empty list on
   /// 404 inside [ApiService.getServiceMetrics]); log stats remain the source
@@ -20,7 +20,8 @@ class DashboardRepository {
     try {
       final results = await Future.wait<Object>([
         _apiService.getDashboardStats(timeRange: timeRange),
-        _apiService.getServiceMetrics(timeRange: timeRange),
+        // Metrics is latest-snapshot only — no timeRange on the PR-24 route.
+        _apiService.getServiceMetrics(),
       ]);
       final stats = results[0] as DashboardStats;
       final metrics = results[1] as List<ServiceMetricsEntry>;
@@ -46,7 +47,7 @@ class DashboardRepository {
   }
 
   /// Merge log-derived [ServiceStats] (real request counts, null health) with
-  /// metrics-summary entries keyed by appId / serviceName.
+  /// metrics entries keyed by appId / serviceName.
   ///
   /// - Log-only service → unchanged (null health, "not reporting").
   /// - Metrics-only app (telemetry with zero logs) → new entry, totalRequests: 0.
@@ -94,6 +95,9 @@ class DashboardRepository {
           customMetrics: entry.customMetrics ?? existing.customMetrics,
           lastReportedAt: entry.lastReportedAt ?? existing.lastReportedAt,
           instanceCount: entry.instanceCount ?? existing.instanceCount,
+          reportedHealthStatus:
+              entry.reportedHealthStatus ?? existing.reportedHealthStatus,
+          uptimeSeconds: entry.uptimeSeconds ?? existing.uptimeSeconds,
         );
       } else {
         // Telemetry-only: app reports metrics but has produced zero logs.
@@ -108,6 +112,8 @@ class DashboardRepository {
           customMetrics: entry.customMetrics,
           lastReportedAt: entry.lastReportedAt,
           instanceCount: entry.instanceCount,
+          reportedHealthStatus: entry.reportedHealthStatus,
+          uptimeSeconds: entry.uptimeSeconds,
         );
       }
     }

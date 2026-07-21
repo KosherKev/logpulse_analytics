@@ -94,23 +94,62 @@ Numbered starting at 16 to continue LogPulse's own `log.md` phase sequence (last
 
 **Remaining, smaller question:** when the read API is designed, confirm what auth it expects — if it reuses the existing flat `/logs` key (likely, since LogPulse already has a working settings screen for that), no LogPulse change is needed at all; only revisit `api_connection_profile.dart` if the read API turns out to need something else.
 
-### Phase 20 — Reconcile with the real read API (PR-24) — **NEW, supersedes "blocked" status on Phase 16/18**
+### Phase 20 — Reconcile with the real read API (PR-24) — **DONE (2026-07-21), see `log.md` Steps 1-6**
 
-**Not blocked anymore.** `GET /api/v1/metrics?appId=<optional>` is live (PR-24, 2026-07-20). But the Phase 16/18 code already in this repo (`ServiceMetricsEntry`, `ApiEndpoints.metricsSummary`, `parseServiceMetricsResponse()`, `DashboardRepository._mergeServiceMetrics()`) was written against a guessed contract that differs from what actually shipped. Concretely, today, this code silently gets zero metrics forever — not because of a server error, but because it requests the wrong path and reads the wrong field names, and its own 404-tolerant design swallows the mismatch as "no metrics yet."
+**Not blocked anymore.** `GET /api/v1/metrics?appId=<optional>` is live (PR-24, 2026-07-20). But the Phase 16/18 code already in this repo (`ServiceMetricsEntry`, `ApiEndpoints.metricsSummary`, `parseServiceMetricsResponse()`, `DashboardRepository._mergeServiceMetrics()`, `ServiceStats`, `ServiceHealthCard`) was written against a guessed contract that differs from what actually shipped. Full field diff: `central-logging-service/docs/METRICS_READ_CONTRACT.md`.
 
-Full diff in `central-logging-service/docs/METRICS_READ_CONTRACT.md`. Summary of what needs to change:
+**UI-impact finding (this is the part a naive path/field-name fix misses):** `ServiceHealthCard` is the *only* consumer of the health fields (confirmed by grep — nothing else in `lib/` reads `stats.errorRate`/`avgLatency`/`uptime`/`healthStatus`), so the blast radius is one file. But `ServiceStats.hasHealthMetrics` requires `errorRate`, `avgLatency`, **and** `uptime` all non-null, and `ServiceStats.healthStatus` (the getter that drives the card's dot color and pulse) is derived *entirely* from `errorRate` thresholds. PR-24 never returns `errorRate` or `avgLatency` — it only returns `health.status` ("ok") and `health.uptimeSeconds` (a raw duration, not a percentage). **A path/field-name-only fix would leave the card permanently stuck on "not reporting metrics yet" and a grey `HealthStatus.unknown` dot, even for an app that is successfully sending real health pings** — because there's no field to carry the real status string, and no code path maps it to a color. Additionally, blindly assigning `health.uptimeSeconds` into the existing `uptime` field (typed and formatted as a percentage — `formattedUptime` does `'${uptime}%'`) would render something like "up 86400.0%".
 
-- `ApiEndpoints.metricsSummary`: `/metrics/summary` → `/metrics` (the real route has no `/summary` suffix)
-- `buildMetricsSummaryQuery`'s `timeRange` param: drop it — the real route only accepts optional `appId`, no time range (latest-snapshot only, no history)
-- `parseServiceMetricsResponse()`: read the real nested shape — `health.status`, `health.uptimeSeconds`, `health.instanceId`, `health.timestamp`, top-level `metrics` (this one already matches), and `metricsReportedAt` (not `lastReportedAt`/`timestamp`)
-- `errorRate`, `avgLatency`, `errorCount`, `instanceCount`, and `uptime`-as-percentage genuinely don't exist server-side yet — PR-24 only returns latest raw health/metric docs, no computed aggregates. These stay `null` until/unless a v2 collector aggregation is scoped. Recommend: don't block on this — ship the path/field-name fix now (lights up real `status` + custom `metrics`), leave the rest as a known, documented gap rather than fabricated or guessed values.
+**Data-layer changes:**
+
+- `ApiEndpoints.metricsSummary`: `/metrics/summary` → `/metrics` (no `/summary` suffix)
+- `buildMetricsSummaryQuery`'s `timeRange` param: drop — the real route only accepts optional `appId`, latest-snapshot only, no history
+- `ServiceMetricsEntry`: add `String? healthStatusLabel` (raw `health.status`, e.g. `"ok"`) and `int? uptimeSeconds` (raw `health.uptimeSeconds`) as new fields, **separate from** the existing `uptime` (percentage, stays null — nothing computes it server-side)
+- `parseServiceMetricsResponse()`: read `health.status` → `healthStatusLabel`, `health.uptimeSeconds` → `uptimeSeconds` (int, not the `uptime` double), `health.instanceId` (informational only, no field consumes it yet), and `metricsReportedAt` for `lastReportedAt` — falling back to `health.timestamp` when `metricsReportedAt` is absent but health is present, since either kind can be null independently
+- `ServiceStats`: mirror the two new fields (`healthStatusLabel`, `uptimeSeconds`), thread them through `copyWith` and `DashboardRepository._mergeServiceMetrics()` the same way the existing fields are threaded
+
+**Model logic changes (`dashboard_stats.dart`):**
+
+- New getter `bool get hasRealHealthStatus => healthStatusLabel != null;` — true when the collector has a real health ping, independent of whether numeric err/latency/uptime% exist
+- `healthStatus` getter: check `hasHealthMetrics` first (unchanged, for if/when the collector ever computes real error rates); if false, fall back to mapping `healthStatusLabel` directly (`"ok"` → `HealthStatus.healthy`, anything else non-null → `HealthStatus.degraded` as a conservative default — collector doesn't emit a richer status vocabulary today, revisit if it does) before finally returning `HealthStatus.unknown`
+- New getter `String? get formattedUptimeDuration` — formats `uptimeSeconds` as `"3h 12m"` style (reuse `ServiceHealthCard._compactRelative`'s duration-bucketing logic, or a shared helper), distinct from `formattedUptime` (percentage, stays `'—'` since it's never populated)
+
+**UI changes (`service_health_card.dart`) — three states instead of two:**
+
+1. No data (`!hasHealthMetrics && !hasRealHealthStatus`) → unchanged: `"not reporting metrics yet"`, grey static dot
+2. **New middle state** — real health ping, no computed numbers (`hasRealHealthStatus && !hasHealthMetrics`, the case PR-24 actually produces today): show `"status: ${healthStatusLabel} · up ${formattedUptimeDuration}"`, colored/pulsing dot driven by the fallback `healthStatus` mapping above
+3. Full numeric metrics (`hasHealthMetrics`, unchanged) → existing `"err X% · Yms · up Z%"` line — kept for if/when the collector gains computed aggregates later, not reachable with PR-24 as it stands today
+
+Instance badge (`instanceCount`) and custom-metric chips need no UI changes — chips already work once `metrics` is read correctly (path fix alone is sufficient there); the instance badge correctly stays hidden since PR-24 doesn't compute a distinct-instance count (see METRICS_READ_CONTRACT.md §4.4) — this is a real, still-open gap, not a bug to fix in this phase.
 
 **Plan:**
-- Fix `ApiEndpoints` + `parseServiceMetricsResponse()` per above
-- Re-run the 13 existing tests for this area (still not run in this environment — no Flutter SDK available); add a test fixture matching PR-24's actual response shape
-- Confirm `ServiceHealthCard` degrades sensibly when `errorRate`/`avgLatency`/`instanceCount` are `null` (should already, per Phase 16's "not reporting yet" design) — just verify against real field names, not guessed ones
+- Data-layer changes above (`ApiEndpoints`, `ServiceMetricsEntry`, `parseServiceMetricsResponse`, `ServiceStats`, `_mergeServiceMetrics`)
+- Model logic changes above (`hasRealHealthStatus`, revised `healthStatus`, `formattedUptimeDuration`)
+- `ServiceHealthCard`'s three-state detail line and dot-color mapping
+- Re-run/extend the 13 existing tests for this area (still not run in this environment — no Flutter SDK available) with a fixture matching PR-24's actual response shape, plus new cases for the middle state
+- `flutter analyze` clean
 
-**Verify:** point at a real `central-logging-service` instance (or a fixture matching PR-24's exact JSON), confirm `health.status` and custom `metrics` render; confirm the still-missing fields (`errorRate` etc.) show the existing "not reporting" state rather than `null`-crashing or silently blank.
+**Verify:** against a fixture matching PR-24's exact JSON (`{appId, health: {status, instanceId, uptimeSeconds, timestamp}, metrics, metricsReportedAt}`) — confirm the card shows the new middle state (`"status: ok · up ...`") with a colored dot, not "not reporting"; confirm custom-metric chips render from `metrics`; confirm a service with truly no `health`/`metrics` docs still shows the original "not reporting" state; confirm no `%` sign appears next to a raw seconds value anywhere.
+
+**Explicitly out of scope for this phase (real gaps, not bugs):** `errorRate`, `avgLatency`, `errorCount`, `instanceCount`, and `uptime`-as-percentage — none of these are computed by the collector today (see METRICS_READ_CONTRACT.md §4 for the v2-aggregation discussion). Phase 20 makes the UI honestly reflect what PR-24 actually provides; it does not add new server-side computation.
+
+**Implementation notes (verified against the actual diff, not just the log entries):**
+- `ServiceStats.reportedHealthStatus` / `uptimeSeconds` / `hasReportedHealth` / `formattedUptimeDuration` all landed exactly as specced; `errorRate`/`avgLatency`/`uptime`(%) confirmed still null everywhere — no fabrication crept in.
+- One real deviation, and a legitimate one: the card's left health-accent border used to be a per-side `Border(left: ..., top: ..., right: ..., bottom: ...)` with different colors, which Flutter disallows once `borderRadius` is set (non-uniform border colors + radius is an unsupported combination). The secondary AI caught this once a real `healthy`/`degraded` color started actually rendering (previously always `unknown`/grey, so the bug was latent) and fixed it by painting a separate 2px color strip alongside a uniform `Border.all`, clipped to the same radius. Correct fix, worth remembering if this pattern gets copied elsewhere in the app.
+- `instanceCount` confirmed never derived from `health.instanceId` anywhere in the diff — the fabrication-risk comment from this spec made it into the code as an explicit guard comment.
+
+---
+
+### Phase 21 — Isolate metrics-fetch failures from `getStats()` — spec ready, not yet implemented
+
+`DashboardRepository.getStats()` still wraps both `getDashboardStats()` and `getServiceMetrics()`
+in one `Future.wait` + one `catch`, so a non-404 metrics error (500, timeout, malformed
+response) fails the entire dashboard fetch, not just the health-card portion. Full spec, written
+for the CLI to implement directly: `PHASE_21_SPEC.md`. Recommended fix: catch the metrics
+future's failure at the repository layer (not by broadening `ApiService.getServiceMetrics()`'s
+own error-swallowing, which would destroy the useful "missing route vs. broken route"
+distinction it already correctly makes) — log a warning, default to `[]`, let `getDashboardStats()`
+keep failing loudly on its own errors as it does today.
 
 ---
 

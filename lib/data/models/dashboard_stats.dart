@@ -125,10 +125,9 @@ class DashboardStats {
 class ServiceStats {
   final String serviceName;
   final int totalRequests;
-  // errorRate/avgLatency/uptime/errorCount are nullable because there is no
-  // real per-service source for them yet (see DashboardStats.fromApiJson).
-  // A non-null value here means it came from real backend data; null means
-  // "not reporting" and should be shown honestly, not defaulted to a number.
+  // errorRate/avgLatency/uptime/errorCount are nullable because /logs/stats
+  // does not provide them and PR-24 metrics also do not. A non-null value
+  // means real backend data; null means "not reporting" (show honestly).
   final double? errorRate;
   final double? avgLatency;
   final double? uptime;
@@ -142,8 +141,16 @@ class ServiceStats {
   final DateTime? lastReportedAt;
 
   /// Distinct instanceIds reporting for this appId (Phase 18). Null = unknown
-  /// (no metrics), not "zero instances."
+  /// (no metrics), not "zero instances." PR-24 does not provide a count.
   final int? instanceCount;
+
+  /// Raw wire value of `health.status` from PR-24 (e.g. `"ok"`). Distinct
+  /// from the derived [healthStatus] enum used for display.
+  final String? reportedHealthStatus;
+
+  /// Raw wire value of `health.uptimeSeconds`. Not a percentage — see
+  /// [formattedUptimeDuration]. Never alias into [uptime].
+  final int? uptimeSeconds;
   
   ServiceStats({
     required this.serviceName,
@@ -155,30 +162,85 @@ class ServiceStats {
     this.customMetrics,
     this.lastReportedAt,
     this.instanceCount,
+    this.reportedHealthStatus,
+    this.uptimeSeconds,
   });
   
   factory ServiceStats.fromJson(Map<String, dynamic> json) => _$ServiceStatsFromJson(json);
   Map<String, dynamic> toJson() => _$ServiceStatsToJson(this);
 
-  /// Whether this service has real health metrics reported, as opposed to
-  /// no data at all.
+  /// Whether numeric request-health fields (errorRate/avgLatency/uptime %)
+  /// are all present. PR-24 does not supply these, so this is typically false
+  /// even when [hasReportedHealth] is true.
   bool get hasHealthMetrics => errorRate != null && avgLatency != null && uptime != null;
+
+  /// Whether the collector reported a real `health.status` string (PR-24).
+  /// Independent of the numeric [hasHealthMetrics] fields.
+  bool get hasReportedHealth =>
+      reportedHealthStatus != null && reportedHealthStatus!.isNotEmpty;
 
   /// Whether free-form custom metrics exist and are non-empty.
   bool get hasCustomMetrics =>
       customMetrics != null && customMetrics!.isNotEmpty;
   
-  /// Get health status based on error rate. Returns [HealthStatus.unknown]
-  /// when no real metrics have been reported for this service yet.
+  /// Display health for the card dot/pulse.
+  ///
+  /// Priority:
+  /// 1. Numeric metrics present → derive from [errorRate] thresholds
+  /// 2. Else raw reported status present → map wire string
+  /// 3. Else → [HealthStatus.unknown]
   HealthStatus get healthStatus {
-    if (!hasHealthMetrics) return HealthStatus.unknown;
-    if (errorRate! < 1.0) return HealthStatus.healthy;
-    if (errorRate! < 5.0) return HealthStatus.degraded;
-    return HealthStatus.unhealthy;
+    if (hasHealthMetrics) {
+      if (errorRate! < 1.0) return HealthStatus.healthy;
+      if (errorRate! < 5.0) return HealthStatus.degraded;
+      return HealthStatus.unhealthy;
+    }
+    if (hasReportedHealth) {
+      return _mapReportedHealthStatus(reportedHealthStatus!);
+    }
+    return HealthStatus.unknown;
+  }
+
+  /// Maps the collector's raw health-status string to a display enum.
+  ///
+  /// TODO: revisit once central-logging-service documents the full status
+  /// vocabulary. Today only `"ok"` is known from code/tests — map that to
+  /// healthy; any other non-null string → degraded (not healthy: hide risk;
+  /// not unhealthy: avoid false alarms).
+  static HealthStatus _mapReportedHealthStatus(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'ok':
+        return HealthStatus.healthy;
+      default:
+        return HealthStatus.degraded;
+    }
   }
   
-  /// Get formatted uptime percentage, or an em dash when not reporting.
+  /// Formatted uptime **percentage**, or an em dash when not reporting.
+  /// Do not use for PR-24's seconds-based uptime.
   String get formattedUptime => uptime == null ? '—' : '${uptime!.toStringAsFixed(1)}%';
+
+  /// Human-readable duration from [uptimeSeconds] (e.g. `2h 15m`, `45m`, `12s`).
+  /// Em dash when [uptimeSeconds] is null.
+  String get formattedUptimeDuration {
+    final seconds = uptimeSeconds;
+    if (seconds == null) return '—';
+    if (seconds < 0) return '—';
+    if (seconds < 60) return '${seconds}s';
+    final minutes = seconds ~/ 60;
+    if (minutes < 60) {
+      final rem = seconds % 60;
+      return rem == 0 ? '${minutes}m' : '${minutes}m ${rem}s';
+    }
+    final hours = minutes ~/ 60;
+    final remMin = minutes % 60;
+    if (hours < 48) {
+      return remMin == 0 ? '${hours}h' : '${hours}h ${remMin}m';
+    }
+    final days = hours ~/ 24;
+    final remHours = hours % 24;
+    return remHours == 0 ? '${days}d' : '${days}d ${remHours}h';
+  }
 
   ServiceStats copyWith({
     String? serviceName,
@@ -190,9 +252,13 @@ class ServiceStats {
     Map<String, dynamic>? customMetrics,
     DateTime? lastReportedAt,
     int? instanceCount,
+    String? reportedHealthStatus,
+    int? uptimeSeconds,
     bool clearCustomMetrics = false,
     bool clearLastReportedAt = false,
     bool clearInstanceCount = false,
+    bool clearReportedHealthStatus = false,
+    bool clearUptimeSeconds = false,
   }) {
     return ServiceStats(
       serviceName: serviceName ?? this.serviceName,
@@ -209,6 +275,12 @@ class ServiceStats {
       instanceCount: clearInstanceCount
           ? null
           : (instanceCount ?? this.instanceCount),
+      reportedHealthStatus: clearReportedHealthStatus
+          ? null
+          : (reportedHealthStatus ?? this.reportedHealthStatus),
+      uptimeSeconds: clearUptimeSeconds
+          ? null
+          : (uptimeSeconds ?? this.uptimeSeconds),
     );
   }
 }

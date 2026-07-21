@@ -10,16 +10,23 @@ import '../../core/constants/app_constants.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/errors/exceptions.dart';
 
-/// Defensive parser for the provisional `GET /api/v1/metrics/summary` response.
+/// Defensive parser for `GET /api/v1/metrics` (PR-24 response shape).
 ///
-/// Isolated so that when the real read contract lands, only this function
-/// changes — nothing downstream hardcodes response field names.
+/// Isolated so contract changes only touch this function — nothing downstream
+/// hardcodes response field names.
 ///
 /// Accepts either a bare `List` or a `{ "data": [...] }` envelope (same style
-/// as [_parseTimeSeriesResponse] / logs list parsing).
+/// as timeseries / logs list parsing).
 ///
-/// Partial entries (e.g. health present, no metric doc) parse what is present
-/// and leave the rest null. Unknown keys inside `metrics` pass through untouched.
+/// Per entry (PR-24):
+/// - nested `health: { status, instanceId, uptimeSeconds, timestamp } | null`
+/// - top-level `metrics: { ...free-form... } | null`
+/// - top-level `metricsReportedAt: ISO string | null`
+///
+/// Partial entries (health-only or metrics-only) parse what is present and
+/// leave the rest null. Unknown keys inside `metrics` pass through untouched.
+/// Percentage-typed [ServiceMetricsEntry.uptime] is never filled from
+/// `uptimeSeconds` — those are different units.
 List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
   List<dynamic>? items;
   if (data is List) {
@@ -33,7 +40,7 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
   }
   if (items == null) {
     // Malformed envelope — treat as no metrics rather than crashing the
-    // dashboard (endpoint is provisional and may evolve).
+    // dashboard.
     return const [];
   }
 
@@ -47,12 +54,6 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
     if (appId == null || appId.isEmpty) continue;
 
     final serviceName = (m['serviceName'] ?? m['service'])?.toString();
-
-    double? readDouble(dynamic v) {
-      if (v is num) return v.toDouble();
-      if (v is String) return double.tryParse(v);
-      return null;
-    }
 
     int? readInt(dynamic v) {
       if (v is num) return v.toInt();
@@ -71,25 +72,51 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
       return null;
     }
 
+    // Nested health object (may be null when app never called reportHealth).
+    String? reportedHealthStatus;
+    int? uptimeSeconds;
+    DateTime? healthTimestamp;
+    final healthRaw = m['health'];
+    if (healthRaw is Map) {
+      final health = Map<String, dynamic>.from(healthRaw);
+      final statusRaw = health['status'];
+      // Only accept a non-empty string — do not coerce other types.
+      if (statusRaw is String && statusRaw.isNotEmpty) {
+        reportedHealthStatus = statusRaw;
+      }
+      uptimeSeconds = readInt(health['uptimeSeconds'] ?? health['uptime_seconds']);
+      healthTimestamp = readDate(health['timestamp']);
+      // Note: health.instanceId is a single latest instance, not a count.
+      // Do not set instanceCount from it (fabrication risk).
+    }
+
     Map<String, dynamic>? customMetrics;
-    final metricsRaw = m['metrics'] ?? m['customMetrics'] ?? m['custom_metrics'];
+    final metricsRaw = m['metrics'];
     if (metricsRaw is Map) {
       // Pass through every key/value — no fixed schema.
       customMetrics = Map<String, dynamic>.from(metricsRaw);
     }
 
+    // Prefer metricsReportedAt; fall back to health.timestamp when only
+    // a health document exists.
+    final lastReportedAt = readDate(
+          m['metricsReportedAt'] ?? m['metrics_reported_at'],
+        ) ??
+        healthTimestamp;
+
     entries.add(ServiceMetricsEntry(
       appId: appId,
       serviceName: serviceName,
-      errorRate: readDouble(m['errorRate'] ?? m['error_rate']),
-      avgLatency: readDouble(m['avgLatency'] ?? m['avg_latency'] ?? m['avgDuration']),
-      uptime: readDouble(m['uptime']),
-      errorCount: readInt(m['errorCount'] ?? m['error_count']),
+      // PR-24 does not provide these numeric fields — leave null.
+      errorRate: null,
+      avgLatency: null,
+      uptime: null,
+      errorCount: null,
       customMetrics: customMetrics,
-      lastReportedAt: readDate(
-        m['lastReportedAt'] ?? m['last_reported_at'] ?? m['timestamp'],
-      ),
-      instanceCount: readInt(m['instanceCount'] ?? m['instance_count']),
+      lastReportedAt: lastReportedAt,
+      instanceCount: null,
+      reportedHealthStatus: reportedHealthStatus,
+      uptimeSeconds: uptimeSeconds,
     ));
   }
   return entries;
@@ -293,16 +320,16 @@ class ApiService {
     }
   }
 
-  /// Fetch per-service health + custom metrics from the provisional
-  /// `GET /api/v1/metrics/summary` route.
+  /// Fetch per-service health + custom metrics from
+  /// `GET /api/v1/metrics` (PR-24). Optional [appId] filters to one app.
   ///
-  /// Returns an empty list on 404 (endpoint not built yet) so Phase 16 can
-  /// ship before the real contract exists. Non-404 errors still propagate —
-  /// "not built yet" must not be conflated with "broken."
-  Future<List<ServiceMetricsEntry>> getServiceMetrics({String? timeRange}) async {
+  /// Returns an empty list on 404 so older backends degrade cleanly.
+  /// Non-404 errors still propagate — "missing route" must not be conflated
+  /// with "broken."
+  Future<List<ServiceMetricsEntry>> getServiceMetrics({String? appId}) async {
     try {
       _ensureConfigured();
-      final endpoint = ApiEndpoints.buildMetricsSummaryQuery(timeRange: timeRange);
+      final endpoint = ApiEndpoints.buildMetricsSummaryQuery(appId: appId);
       final cancelToken = _issueToken(ApiEndpoints.metricsSummary);
       final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return parseServiceMetricsResponse(response.data);

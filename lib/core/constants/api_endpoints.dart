@@ -5,9 +5,9 @@ class ApiEndpoints {
   static const String stats = '/logs/stats/summary';
   static const String timeseries = '/logs/stats/timeseries';
 
-  /// Provisional metrics summary (symmetric with [stats]).
-  /// Not built server-side yet — callers must tolerate 404.
-  static const String metricsSummary = '/metrics/summary';
+  /// Metrics read route (PR-24): `GET /api/v1/metrics?appId=<optional>`.
+  /// Latest-snapshot only — no server-side time-range filtering.
+  static const String metricsSummary = '/metrics';
   
   // Logs
   static String logsByTraceId(String traceId) => '/logs?traceId=$traceId';
@@ -79,15 +79,12 @@ class ApiEndpoints {
     return '$timeseries?$query';
   }
 
+  /// Builds `GET /metrics` with optional `appId` only (PR-24 contract).
+  /// Does not accept `timeRange` — the server has no time-range filter.
   static String buildMetricsSummaryQuery({
-    String? timeRange,
+    String? appId,
   }) {
-    final params = <String, String>{};
-    if (timeRange != null) params['timeRange'] = timeRange;
-    if (params.isEmpty) return metricsSummary;
-    final query = params.entries
-        .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
-        .join('&');
-    return '$metricsSummary?$query';
+    if (appId == null || appId.isEmpty) return metricsSummary;
+    return '$metricsSummary?appId=${Uri.encodeComponent(appId)}';
   }
 }
