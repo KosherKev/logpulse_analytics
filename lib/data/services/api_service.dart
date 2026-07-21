@@ -10,7 +10,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/errors/exceptions.dart';
 
-/// Defensive parser for `GET /api/v1/metrics` (PR-24 response shape).
+/// Defensive parser for `GET /api/v1/metrics` (PR-24 + multi-instance).
 ///
 /// Isolated so contract changes only touch this function — nothing downstream
 /// hardcodes response field names.
@@ -18,13 +18,15 @@ import '../../core/errors/exceptions.dart';
 /// Accepts either a bare `List` or a `{ "data": [...] }` envelope (same style
 /// as timeseries / logs list parsing).
 ///
-/// Per entry (PR-24):
+/// Per entry:
 /// - nested `health: { status, instanceId, uptimeSeconds, timestamp } | null`
 /// - top-level `metrics: { ...free-form... } | null`
 /// - top-level `metricsReportedAt: ISO string | null`
+/// - top-level `instanceCount` — distinct instances in the window (not from
+///   `health.instanceId` alone)
+/// - top-level `instances[]` — optional; ignored for now (drill-down later)
 ///
-/// Partial entries (health-only or metrics-only) parse what is present and
-/// leave the rest null. Unknown keys inside `metrics` pass through untouched.
+/// Partial entries parse what is present and leave the rest null.
 /// Percentage-typed [ServiceMetricsEntry.uptime] is never filled from
 /// `uptimeSeconds` — those are different units.
 List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
@@ -86,8 +88,8 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
       }
       uptimeSeconds = readInt(health['uptimeSeconds'] ?? health['uptime_seconds']);
       healthTimestamp = readDate(health['timestamp']);
-      // Note: health.instanceId is a single latest instance, not a count.
-      // Do not set instanceCount from it (fabrication risk).
+      // health.instanceId is a single latest instance — never invent a count
+      // from it. Only the top-level server field `instanceCount` is used.
     }
 
     Map<String, dynamic>? customMetrics;
@@ -104,22 +106,59 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
         ) ??
         healthTimestamp;
 
+    // Explicit server-computed distinct count (P0 multi-instance).
+    final instanceCount =
+        readInt(m['instanceCount'] ?? m['instance_count']);
+
     entries.add(ServiceMetricsEntry(
       appId: appId,
       serviceName: serviceName,
-      // PR-24 does not provide these numeric fields — leave null.
+      // Request-level aggregates are not on this route — leave null.
       errorRate: null,
       avgLatency: null,
       uptime: null,
       errorCount: null,
       customMetrics: customMetrics,
       lastReportedAt: lastReportedAt,
-      instanceCount: null,
+      instanceCount: instanceCount,
       reportedHealthStatus: reportedHealthStatus,
       uptimeSeconds: uptimeSeconds,
     ));
   }
   return entries;
+}
+
+/// Defensive parser for `GET /api/v1/logs/stats/timeseries` (P0 CLS shape).
+///
+/// Accepts a bare `List` or `{ "success", "data": [...], "meta": {...} }`.
+/// Point fields: `timestamp`, `totalCount` (alias `total`), `errorCount`
+/// (alias `errors`). `meta` is ignored by the client.
+List<TimeSeriesPoint> parseTimeSeriesResponse(dynamic data) {
+  List<dynamic>? items;
+  if (data is List) {
+    items = data;
+  } else if (data is Map) {
+    final map = Map<String, dynamic>.from(data);
+    final nested = map['data'];
+    if (nested is List) {
+      items = nested;
+    }
+  }
+  if (items == null) {
+    throw ParseException('Invalid response format for timeseries');
+  }
+  return items.map((raw) {
+    final m = Map<String, dynamic>.from(raw as Map);
+    final tsStr = m['timestamp'] as String?;
+    final ts =
+        tsStr != null ? DateTime.parse(tsStr).toUtc() : DateTime.now().toUtc();
+    final total =
+        (m['totalCount'] as num?)?.toInt() ?? (m['total'] as num?)?.toInt() ?? 0;
+    final errors = (m['errorCount'] as num?)?.toInt() ??
+        (m['errors'] as num?)?.toInt() ??
+        0;
+    return TimeSeriesPoint(timestamp: ts, totalCount: total, errorCount: errors);
+  }).toList();
 }
 
 class ApiService {
@@ -311,8 +350,9 @@ class ApiService {
       final endpoint = ApiEndpoints.buildTimeseriesQuery(timeRange: timeRange);
       final cancelToken = _issueToken(ApiEndpoints.timeseries);
       final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
-      return _parseTimeSeriesResponse(response.data);
+      return parseTimeSeriesResponse(response.data);
     } on DioException catch (e) {
+      // Keep client fallback until the real endpoint is stable in prod.
       if (e.response?.statusCode == 404) {
         return _getTimeSeriesFromLogs(timeRange: timeRange);
       }
@@ -339,26 +379,6 @@ class ApiService {
       }
       throw _handleDioError(e);
     }
-  }
-  
-  List<TimeSeriesPoint> _parseTimeSeriesResponse(dynamic data) {
-    List<dynamic>? items;
-    if (data is List) {
-      items = data;
-    } else if (data is Map<String, dynamic> && data['data'] is List) {
-      items = data['data'] as List<dynamic>;
-    }
-    if (items == null) {
-      throw ParseException('Invalid response format for timeseries');
-    }
-    return items.map((raw) {
-      final m = Map<String, dynamic>.from(raw as Map);
-      final tsStr = m['timestamp'] as String?;
-      final ts = tsStr != null ? DateTime.parse(tsStr).toUtc() : DateTime.now().toUtc();
-      final total = (m['totalCount'] as num?)?.toInt() ?? (m['total'] as num?)?.toInt() ?? 0;
-      final errors = (m['errorCount'] as num?)?.toInt() ?? (m['errors'] as num?)?.toInt() ?? 0;
-      return TimeSeriesPoint(timestamp: ts, totalCount: total, errorCount: errors);
-    }).toList();
   }
   
   Future<List<TimeSeriesPoint>> _getTimeSeriesFromLogs({String? timeRange}) async {

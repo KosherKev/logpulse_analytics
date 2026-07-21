@@ -88,6 +88,7 @@ List<ServiceMetricsEntry> _sampleMetrics() {
       uptimeSeconds: 3600,
       customMetrics: {'students': 12},
       lastReportedAt: DateTime.utc(2026, 7, 21, 12),
+      instanceCount: 3,
     ),
   ];
 }
@@ -182,6 +183,7 @@ void main() {
         expect(academicx.uptimeSeconds, 3600);
         expect(academicx.customMetrics!['students'], 12);
         expect(academicx.hasReportedHealth, isTrue);
+        expect(academicx.instanceCount, 3);
 
         // Unmatched log service stays without metrics fields.
         final other = result.serviceStats!['other-svc']!;

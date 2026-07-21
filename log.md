@@ -799,3 +799,26 @@ Added a fifth case (metrics-only app when metrics succeed) as a small merge regr
 
 ### Status
 DONE
+
+## LP P0 consumers — timeseries verify + instanceCount + health vocab
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done
+After central-logging-service shipped P0 read API (timeseries + multi-instance metrics + write-validated health vocabulary), wired LogPulse consumers:
+
+1. **Timeseries** — Extracted public `parseTimeSeriesResponse()` (same defensive envelope style as metrics). Path was already `GET /logs/stats/timeseries`. Accepts `{ success, data, meta }` with `totalCount`/`errorCount`/`timestamp`. 404 client fallback retained as safety net.
+2. **instanceCount** — `parseServiceMetricsResponse` now reads top-level `instanceCount` (never from `health.instanceId`). Merge already threaded the field; badge still shows only when `> 1`.
+3. **Health vocabulary** — `_mapReportedHealthStatus`: `ok`→healthy, `error`→unhealthy, `degraded`/`starting`/`stopping`→degraded, unknown→degraded.
+
+### Key facts for next step
+- Tests: service_metrics_parser + dashboard_repository + service_health_card all green (35)
+- `instances[]` not stored on DTO yet (optional drill-down later)
+- **Next CLS slice (P1):** enriched `byService` on summary (`errorRate`/`avgDuration`/`errorCount`) + optional log list `total`
+- **Next LP after that:** parse object-shaped `byService` into `ServiceStats` numerics (LP-17)
+
+### Deviations from spec
+None.
+
+### Status
+DONE
