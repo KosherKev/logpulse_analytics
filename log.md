@@ -893,3 +893,25 @@ Naming rename of metricsSummary deferred (LP-27). build_runner regen still manua
 
 ### Status
 DONE
+
+## LP P2 consumers — error groups + services catalog
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done
+After CLS P2 landed (`/logs/errors/groups`, `/services`, `/services/:name`):
+
+1. **Error groups** — `parseErrorGroupsResponse`, `ApiService.getErrorGroups`, `ErrorsRepository` (404 → client-side fallback). `ErrorsNotifier` no longer depends on loading the full logs list. `ErrorGroup` gains `sampleTraceId` + `fromApiJson`; dropped obsolete `error_group.g.dart`.
+2. **Services** — `ServiceSummary` / `ServiceDetail` / `EndpointStats` / `ServiceInstance` models; list + detail parsers and API methods; `ServicesRepository` + providers.
+3. **UI** — `ServiceDetailsPage` (overview, health, metrics, instances, top endpoints). Service health cards open detail. Error sheet shows TRACE + "Open in Logs" when `sampleTraceId` present.
+
+### Key facts for next step
+- Auto-refresh still calls `loadErrors()` which now hits the groups API (lighter than re-fetching logs).
+- Service detail uses same cancel token key as services list (`ApiEndpoints.services`).
+- Optional next: dedicated Services tab listing catalog; timeline stage timings only if CLS P3.
+
+### Deviations
+Removed json_serializable from ErrorGroup (hand-written API factory only) — simpler than regenerating .g.dart for server-only shape.
+
+### Status
+DONE

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/errors_provider.dart';
+import '../../providers/logs_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../../data/models/error_group.dart';
+import '../../../data/models/log_filter.dart';
 import '../../../core/utils/date_utils.dart' as date_utils;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -351,6 +354,31 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
               value: group.formattedServices,
               c: c,
             ),
+            if (group.sampleTraceId != null) ...[
+              _DetailRow(
+                label: 'TRACE',
+                value: group.sampleTraceId!,
+                c: c,
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    ref.read(logsProvider.notifier).applyFilter(
+                          LogFilter(searchQuery: group.sampleTraceId),
+                        );
+                    ref.read(navigationProvider.notifier).goToLogs();
+                  },
+                  icon: Icon(Icons.timeline, size: 16, color: c.accent),
+                  label: Text(
+                    'Open in Logs',
+                    style: AppTextStyles.monoSm.copyWith(color: c.accent),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
 
             // Stack trace — dark terminal container

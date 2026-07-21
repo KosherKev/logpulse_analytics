@@ -6,6 +6,8 @@ import '../../data/models/api_connection_profile.dart';
 import '../../data/services/local_storage_service.dart';
 import '../../data/repositories/logs_repository.dart';
 import '../../data/repositories/dashboard_repository.dart';
+import '../../data/repositories/errors_repository.dart';
+import '../../data/repositories/services_repository.dart';
 import '../../core/constants/app_constants.dart';
 
 /// API Service Provider
@@ -28,6 +30,18 @@ final logsRepositoryProvider = Provider<LogsRepository>((ref) {
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   return DashboardRepository(apiService);
+});
+
+/// Errors Repository Provider
+final errorsRepositoryProvider = Provider<ErrorsRepository>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return ErrorsRepository(apiService);
+});
+
+/// Services Repository Provider
+final servicesRepositoryProvider = Provider<ServicesRepository>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return ServicesRepository(apiService);
 });
 
 /// API Configuration State Provider

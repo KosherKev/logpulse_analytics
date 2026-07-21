@@ -1,62 +1,59 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/error_group.dart';
-import '../../data/models/log_entry.dart';
-import 'logs_provider.dart';
+import '../../data/repositories/errors_repository.dart';
+import 'service_providers.dart';
 
-/// Errors Provider - Groups and manages errors
-final errorsProvider = StateNotifierProvider<ErrorsNotifier, ErrorsState>((ref) {
-  final logsNotifier = ref.watch(logsProvider.notifier);
-  return ErrorsNotifier(logsNotifier);
+/// Errors Provider — loads server-side groups (CLS P2) with client fallback.
+final errorsProvider =
+    StateNotifierProvider<ErrorsNotifier, ErrorsState>((ref) {
+  final repository = ref.watch(errorsRepositoryProvider);
+  return ErrorsNotifier(repository);
 });
 
-/// Errors State
 class ErrorsState {
   final List<ErrorGroup> errorGroups;
   final bool isLoading;
   final String? error;
+  final String timeRange;
 
   ErrorsState({
     this.errorGroups = const [],
     this.isLoading = false,
     this.error,
+    this.timeRange = 'last_24h',
   });
 
   ErrorsState copyWith({
     List<ErrorGroup>? errorGroups,
     bool? isLoading,
     String? error,
+    String? timeRange,
   }) {
     return ErrorsState(
       errorGroups: errorGroups ?? this.errorGroups,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      timeRange: timeRange ?? this.timeRange,
     );
   }
 }
 
-/// Errors Notifier
 class ErrorsNotifier extends StateNotifier<ErrorsState> {
-  final LogsNotifier _logsNotifier;
+  final ErrorsRepository _repository;
 
-  ErrorsNotifier(this._logsNotifier) : super(ErrorsState());
+  ErrorsNotifier(this._repository) : super(ErrorsState());
 
-  Future<void> loadErrors() async {
+  Future<void> loadErrors({String? timeRange}) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      await _logsNotifier.applyFilter(
-        _logsNotifier.state.filter.copyWith(level: null),
-      );
-
-      final errorLogs =
-          _logsNotifier.state.logs.where((log) => log.isError).toList();
-
-      // Group errors by message (simplified grouping)
-      final groups = _groupErrors(errorLogs);
+      final range = timeRange ?? state.timeRange;
+      final groups = await _repository.getErrorGroups(timeRange: range);
 
       state = state.copyWith(
         errorGroups: groups,
         isLoading: false,
+        timeRange: range,
       );
     } catch (e) {
       state = state.copyWith(
@@ -64,50 +61,5 @@ class ErrorsNotifier extends StateNotifier<ErrorsState> {
         error: e.toString(),
       );
     }
-  }
-
-  List<ErrorGroup> _groupErrors(List<LogEntry> errorLogs) {
-    final Map<String, List<LogEntry>> grouped = {};
-
-    // Group by error message
-    for (final log in errorLogs) {
-      final message = log.displayError;
-      grouped.putIfAbsent(message, () => []).add(log);
-    }
-
-    // Create error groups
-    return grouped.entries.map((entry) {
-      final instances = entry.value;
-      final services = instances.map((e) => e.service).toSet().toList();
-
-      return ErrorGroup(
-        id: entry.key.hashCode.toString(),
-        message: entry.key,
-        errorCode: instances.first.error?.code,
-        count: instances.length,
-        services: services,
-        firstSeen: instances.last.timestamp,
-        lastSeen: instances.first.timestamp,
-        stackTrace: instances.first.error?.stack,
-        instances: instances,
-        trend: _calculateTrend(instances),
-      );
-    }).toList()
-      ..sort((a, b) => b.lastSeen.compareTo(a.lastSeen));
-  }
-
-  TrendDirection _calculateTrend(List<LogEntry> instances) {
-    if (instances.length < 2) return TrendDirection.stable;
-
-    final recentCount = instances
-        .where((e) => 
-            DateTime.now().difference(e.timestamp).inHours < 1)
-        .length;
-    
-    final olderCount = instances.length - recentCount;
-
-    if (recentCount > olderCount) return TrendDirection.increasing;
-    if (recentCount < olderCount) return TrendDirection.decreasing;
-    return TrendDirection.stable;
   }
 }
