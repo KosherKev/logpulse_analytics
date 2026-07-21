@@ -203,14 +203,19 @@ class ServiceStats {
 
   /// Maps the collector's raw health-status string to a display enum.
   ///
-  /// TODO: revisit once central-logging-service documents the full status
-  /// vocabulary. Today only `"ok"` is known from code/tests — map that to
-  /// healthy; any other non-null string → degraded (not healthy: hide risk;
-  /// not unhealthy: avoid false alarms).
+  /// Write-validated vocabulary on `POST /metrics/health` (CLS P0):
+  /// `ok | degraded | error | starting | stopping`.
+  /// Unknown non-empty values → degraded (conservative: not healthy).
   static HealthStatus _mapReportedHealthStatus(String raw) {
     switch (raw.toLowerCase()) {
       case 'ok':
         return HealthStatus.healthy;
+      case 'error':
+        return HealthStatus.unhealthy;
+      case 'degraded':
+      case 'starting':
+      case 'stopping':
+        return HealthStatus.degraded;
       default:
         return HealthStatus.degraded;
     }

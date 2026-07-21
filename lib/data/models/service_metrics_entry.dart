@@ -16,10 +16,14 @@
 ///     "timestamp": "2026-07-21T12:00:00.000Z"
 ///   },
 ///   "metrics": { "students": 120, "activeToday": 45 },
-///   "metricsReportedAt": "2026-07-21T12:01:00.000Z"
+///   "metricsReportedAt": "2026-07-21T12:01:00.000Z",
+///   "instanceCount": 3,
+///   "instances": [ { "instanceId", "lastSeen", "status?", "uptimeSeconds?" } ]
 /// }
 /// ```
 /// `health` and `metrics` are independent — either may be null.
+/// `instanceCount` is server-computed distinct IDs in the window; never derived
+/// from `health.instanceId` alone.
 class ServiceMetricsEntry {
   /// Collector app id — primary merge key against log-derived service names.
   final String appId;
@@ -45,8 +49,9 @@ class ServiceMetricsEntry {
   /// health document exists.
   final DateTime? lastReportedAt;
 
-  /// Distinct instance count when the server provides one. PR-24 returns a
-  /// single `health.instanceId`, not a count — leave null (do not fabricate).
+  /// Distinct instance count from top-level `instanceCount` (CLS multi-instance).
+  /// Null when omitted; badge hidden when null or ≤ 1. Never derived from
+  /// `health.instanceId` alone.
   final int? instanceCount;
 
   /// Raw wire value of `health.status` (e.g. `"ok"`). Named distinctly from

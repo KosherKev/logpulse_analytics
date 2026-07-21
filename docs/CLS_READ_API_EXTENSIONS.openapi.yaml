@@ -1,0 +1,742 @@
+# central-logging-service — proposed READ API extensions
+# Source of truth for field names expected by logpulse_analytics.
+# Full product context: ../BACKLOG.md §3
+#
+# Base URL path prefix: /api/v1
+# Auth (read): X-API-Key  (same flat key as GET /logs — confirm in deployment)
+#
+# Priority order for implementation:
+#   1. GET /logs/stats/timeseries          (P0 — dashboard chart)
+#   2. GET /metrics  (+ instanceCount)     (P0 — multi-instance badge)
+#   3. GET /logs/stats/summary  byService  (P1 — per-service err%/latency)
+#   4. GET /logs  total in envelope        (P1 — correct result counts)
+#   5. GET /logs/errors/groups             (P2 — Errors tab)
+#   6. GET /services , /services/{name}    (P2 — service details page)
+#
+# OpenAPI 3.0.3 — merge into the collector's main OpenAPI doc or publish as-is.
+
+openapi: 3.0.3
+info:
+  title: central-logging-service Read API Extensions
+  version: 1.1.0-draft
+  description: |
+    Draft contracts for LogPulse Analytics consumers.
+    Existing PR-24 GET /metrics fields are preserved; new fields are additive.
+
+servers:
+  - url: /api/v1
+    description: API v1 relative to service origin
+
+tags:
+  - name: Logs Stats
+  - name: Metrics
+  - name: Logs
+  - name: Services
+
+paths:
+  /logs/stats/timeseries:
+    get:
+      operationId: getLogsStatsTimeseries
+      tags: [Logs Stats]
+      summary: Bucketed request and error counts over a time window
+      description: |
+        LogPulse calls this for the Traffic & Errors chart. Today the route 404s
+        and the client falls back to bucketing ≤200 raw logs.
+        Return buckets ordered ascending by timestamp (bucket start, UTC).
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+        - $ref: '#/components/parameters/ServiceFilter'
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Optional absolute window start (ISO-8601)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Optional absolute window end (default now)
+      responses:
+        '200':
+          description: Timeseries buckets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeseriesResponse'
+              example:
+                success: true
+                data:
+                  - timestamp: '2026-07-21T00:00:00.000Z'
+                    totalCount: 120
+                    errorCount: 4
+                  - timestamp: '2026-07-21T01:00:00.000Z'
+                    totalCount: 98
+                    errorCount: 1
+                meta:
+                  bucketMs: 3600000
+                  timeRange: last_24h
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /metrics:
+    get:
+      operationId: getMetricsSnapshot
+      tags: [Metrics]
+      summary: Latest health + free-form metrics per appId
+      description: |
+        PR-24 baseline plus multi-instance extensions.
+        health and metrics may each be null independently.
+        Do NOT treat health.instanceId alone as instanceCount=1 for clients —
+        expose an explicit instanceCount computed over a recent window.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: appId
+          in: query
+          schema:
+            type: string
+          description: If omitted, one row per known appId
+        - name: instanceWindowSeconds
+          in: query
+          schema:
+            type: integer
+            minimum: 60
+            maximum: 86400
+            default: 900
+          description: Window for distinct instanceId counting (default 15m)
+      responses:
+        '200':
+          description: Per-app snapshots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsListResponse'
+              example:
+                success: true
+                data:
+                  - appId: academicx
+                    health:
+                      status: ok
+                      instanceId: rev-abc-xyz
+                      uptimeSeconds: 86400
+                      timestamp: '2026-07-21T12:00:00.000Z'
+                    metrics:
+                      students: 120
+                      activeToday: 45
+                    metricsReportedAt: '2026-07-21T12:01:00.000Z'
+                    instanceCount: 3
+                    instances:
+                      - instanceId: rev-abc-xyz
+                        lastSeen: '2026-07-21T12:00:00.000Z'
+                        status: ok
+                        uptimeSeconds: 86400
+                      - instanceId: rev-def-uvw
+                        lastSeen: '2026-07-21T11:58:00.000Z'
+                        status: ok
+                        uptimeSeconds: 1200
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /logs/stats/summary:
+    get:
+      operationId: getLogsStatsSummary
+      tags: [Logs Stats]
+      summary: Aggregate log stats (global + per service)
+      description: |
+        Existing route. Enrich byService values from bare integers to objects
+        so LogPulse can show per-service errorRate / avgLatency honestly.
+        Bare integer values remain valid for backward compatibility.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+        - $ref: '#/components/parameters/ServiceFilter'
+      responses:
+        '200':
+          description: Summary aggregates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogsStatsSummaryResponse'
+              example:
+                success: true
+                data:
+                  totalLogs: 1520
+                  errorRate: '2.50'
+                  avgDuration: 42
+                  byLevel:
+                    info: 1200
+                    warn: 80
+                    error: 40
+                  byStatusCode:
+                    '200': 1400
+                    '500': 40
+                  byService:
+                    academicx:
+                      totalRequests: 800
+                      errorCount: 12
+                      errorRate: 1.5
+                      avgDuration: 38
+                    payments-api:
+                      totalRequests: 720
+                      errorCount: 28
+                      errorRate: 3.9
+                      avgDuration: 51
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /logs:
+    get:
+      operationId: getLogs
+      tags: [Logs]
+      summary: List / filter logs (existing) with optional total
+      description: |
+        Prefer envelope with total for accurate "N results" in LogPulse.
+        Bare array remains acceptable (total omitted → client uses page length).
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: service
+          in: query
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+        - name: statusCode
+          in: query
+          schema:
+            type: integer
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: skip
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset (LogPulse sends skip, not offset)
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: traceId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Log page
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      type: object
+                  - $ref: '#/components/schemas/LogsPageResponse'
+
+  /logs/errors/groups:
+    get:
+      operationId: getErrorGroups
+      tags: [Logs]
+      summary: Fingerprinted error groups over a time window
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+        - $ref: '#/components/parameters/ServiceFilter'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: Error groups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorGroupsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /logs/stats/by-service:
+    get:
+      operationId: getLogsStatsByService
+      tags: [Logs Stats]
+      summary: Per-service aggregates (optional alternative to enriched summary)
+      description: Use only if keeping summary byService as bare counts.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ByServiceStatsResponse'
+
+  /services:
+    get:
+      operationId: listServices
+      tags: [Services]
+      summary: Known services with rollups
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+
+  /services/{name}:
+    get:
+      operationId: getService
+      tags: [Services]
+      summary: Single service detail + endpoint rollups
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDetailResponse'
+        '404':
+          description: Unknown service
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        Flat read key (LogPulse settings). Distinct from per-app metrics
+        write keys (sk_live_ / sk_test_).
+
+  parameters:
+    TimeRange:
+      name: timeRange
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [last_hour, last_24h, last_7d, last_30d]
+        default: last_24h
+      description: Preset window ending at "now"
+    ServiceFilter:
+      name: service
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Filter to one service / app name
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    ServerError:
+      description: Internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+
+    # ── Timeseries ──────────────────────────────────────────────────────────
+    TimeseriesBucket:
+      type: object
+      required: [timestamp, totalCount, errorCount]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Bucket start (UTC)
+        totalCount:
+          type: integer
+          minimum: 0
+        errorCount:
+          type: integer
+          minimum: 0
+        avgDuration:
+          type: number
+          description: Optional mean duration ms
+      # Aliases accepted by LogPulse today if you must use shorter names:
+      # total -> totalCount, errors -> errorCount
+
+    TimeseriesResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeseriesBucket'
+        meta:
+          type: object
+          properties:
+            bucketMs:
+              type: integer
+              description: |
+                Suggested defaults:
+                last_hour=300000 (5m), last_24h=3600000 (1h),
+                last_7d=43200000 (12h), last_30d=86400000 (1d)
+            timeRange:
+              type: string
+
+    # ── Metrics (PR-24 + extensions) ────────────────────────────────────────
+    HealthStatus:
+      type: string
+      description: |
+        Canonical health.status values. LogPulse maps "ok" → healthy;
+        document others so clients can map colors accurately.
+      enum: [ok, degraded, error, starting, stopping]
+
+    HealthDoc:
+      type: object
+      nullable: true
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+        instanceId:
+          type: string
+          description: Latest reporting instance (not a count)
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+        timestamp:
+          type: string
+          format: date-time
+
+    InstanceSnapshot:
+      type: object
+      required: [instanceId, lastSeen]
+      properties:
+        instanceId:
+          type: string
+        lastSeen:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+        uptimeSeconds:
+          type: integer
+          minimum: 0
+
+    MetricsAppSnapshot:
+      type: object
+      required: [appId]
+      properties:
+        appId:
+          type: string
+        health:
+          $ref: '#/components/schemas/HealthDoc'
+        metrics:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Free-form kind=metric payload
+        metricsReportedAt:
+          type: string
+          format: date-time
+          nullable: true
+        instanceCount:
+          type: integer
+          minimum: 0
+          description: Distinct instanceIds in instanceWindowSeconds (NEW)
+        instances:
+          type: array
+          items:
+            $ref: '#/components/schemas/InstanceSnapshot'
+          description: Optional breakdown (NEW)
+
+    MetricsListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsAppSnapshot'
+
+    # ── Summary byService enrichment ────────────────────────────────────────
+    ServiceStatsBucketObject:
+      type: object
+      required: [totalRequests]
+      properties:
+        totalRequests:
+          type: integer
+          minimum: 0
+        errorCount:
+          type: integer
+          minimum: 0
+        errorRate:
+          type: number
+          description: Percentage 0–100
+        avgDuration:
+          type: number
+          description: Mean duration ms (LogPulse maps to avgLatency)
+        uptimePercent:
+          type: number
+          description: Omit if not honestly computable
+
+    ServiceStatsBucket:
+      oneOf:
+        - type: integer
+          minimum: 0
+          description: Legacy bare request count
+        - $ref: '#/components/schemas/ServiceStatsBucketObject'
+
+    LogsStatsSummaryData:
+      type: object
+      properties:
+        totalLogs:
+          type: integer
+        errorRate:
+          oneOf:
+            - type: number
+            - type: string
+        avgDuration:
+          type: number
+        byLevel:
+          type: object
+          additionalProperties:
+            type: integer
+        byStatusCode:
+          type: object
+          additionalProperties:
+            type: integer
+        byService:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceStatsBucket'
+
+    LogsStatsSummaryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/LogsStatsSummaryData'
+
+    # ── Logs page total ─────────────────────────────────────────────────────
+    LogsPageResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+          minimum: 0
+          description: Total matching documents (not page size)
+        meta:
+          type: object
+          properties:
+            limit:
+              type: integer
+            skip:
+              type: integer
+
+    # ── Error groups ────────────────────────────────────────────────────────
+    ErrorGroup:
+      type: object
+      required: [id, message, count, firstSeen, lastSeen]
+      properties:
+        id:
+          type: string
+        message:
+          type: string
+        errorCode:
+          type: string
+          nullable: true
+        count:
+          type: integer
+          minimum: 1
+        services:
+          type: array
+          items:
+            type: string
+        firstSeen:
+          type: string
+          format: date-time
+        lastSeen:
+          type: string
+          format: date-time
+        sampleStack:
+          type: string
+          nullable: true
+        sampleTraceId:
+          type: string
+          nullable: true
+        trend:
+          type: string
+          enum: [increasing, decreasing, stable]
+
+    ErrorGroupsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorGroup'
+
+    # ── by-service alternative ──────────────────────────────────────────────
+    ByServiceRow:
+      type: object
+      required: [service, totalRequests]
+      properties:
+        service:
+          type: string
+        totalRequests:
+          type: integer
+        errorCount:
+          type: integer
+        errorRate:
+          type: number
+        avgDuration:
+          type: number
+
+    ByServiceStatsResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ByServiceRow'
+
+    # ── Services catalog ────────────────────────────────────────────────────
+    EndpointStats:
+      type: object
+      required: [path, method, requestCount]
+      properties:
+        path:
+          type: string
+        method:
+          type: string
+        requestCount:
+          type: integer
+        errorRate:
+          type: number
+        avgLatency:
+          type: number
+        errorCount:
+          type: integer
+
+    ServiceSummary:
+      type: object
+      required: [name, totalRequests]
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        totalRequests:
+          type: integer
+        errorRate:
+          type: number
+        avgLatency:
+          type: number
+        lastSeen:
+          type: string
+          format: date-time
+        instanceCount:
+          type: integer
+
+    ServiceDetail:
+      allOf:
+        - $ref: '#/components/schemas/ServiceSummary'
+        - type: object
+          properties:
+            endpoints:
+              type: array
+              items:
+                $ref: '#/components/schemas/EndpointStats'
+            health:
+              $ref: '#/components/schemas/HealthDoc'
+            metrics:
+              type: object
+              additionalProperties: true
+
+    ServiceListResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceSummary'
+
+    ServiceDetailResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ServiceDetail'
