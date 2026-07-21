@@ -915,3 +915,23 @@ Removed json_serializable from ErrorGroup (hand-written API factory only) — si
 
 ### Status
 DONE
+
+## Phase 22 — Fix traffic/error chart Y-axis scale
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done
+Replaced shared single `maxY` on `ErrorRateChart` with independent traffic (count) and error (rate %) ranges. Error series is projected into the traffic host coordinate space for plotting only (`y' = y/errorMaxY * trafficMaxY`); true percentages kept in a parallel list. Left axis shows sparse traffic count ticks; right axis shows matching fractional heights as `%` labels. Tooltips look up true error % via `trueErrorValueAtX` (does not format transformed `spot.y`). Legend label updated to `errors %`. Pure helpers extracted for unit tests: `computeTrafficMaxY`, `computeErrorMaxY`, `transformErrorPointsForPlot`, `trueErrorValueAtX`.
+
+### Key facts for next step
+- Error axis floor: `kErrorAxisFloorPercent = 5.0` (TODO to revisit with real distributions)
+- Error axis clamp: max 100.0
+- Traffic headroom: still ×1.25; empty/zero traffic host defaults to 1.0
+- Tick density: sparse ~0 / mid / max via `_showTick`
+- Legacy single-series path unchanged (no dual-axis transform)
+
+### Deviations from spec
+None material. Tooltip interaction tested via pure lookup unit test (true % vs transformed y) rather than fl_chart gesture simulation — more stable and pins Step 4's contract.
+
+### Status
+DONE

@@ -4,14 +4,124 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-/// Dual-line "Traffic & Errors" chart matching the mockup.
+// ── Dual-axis scale helpers (unit-tested independently of fl_chart) ─────────
+
+/// Minimum percentage-point range for the error axis so a steady ~0.3% rate
+/// is not stretched full-height (looks artificially volatile).
+/// TODO: revisit once real telemetry gives a sense of typical error-rate
+/// distributions (same pattern as health-status vocabulary mapping).
+const double kErrorAxisFloorPercent = 5.0;
+
+/// Round [value] up to a "nice" axis maximum (1 / 1.5 / 2 / 3 / 5 × 10ⁿ)
+/// so tick labels don't read as 109 / 43% next to near-duplicates.
+double niceCeilMax(double value) {
+  if (value <= 0) return 1.0;
+  final magnitude =
+      math.pow(10, (math.log(value) / math.ln10).floor()).toDouble();
+  final residual = value / magnitude;
+  final double niceResidual;
+  if (residual <= 1) {
+    niceResidual = 1;
+  } else if (residual <= 1.5) {
+    niceResidual = 1.5;
+  } else if (residual <= 2) {
+    niceResidual = 2;
+  } else if (residual <= 3) {
+    niceResidual = 3;
+  } else if (residual <= 5) {
+    niceResidual = 5;
+  } else {
+    niceResidual = 10;
+  }
+  return niceResidual * magnitude;
+}
+
+/// Host (traffic count) axis max with headroom, nice-rounded. Never zero.
+double computeTrafficMaxY(List<FlSpot> traffic) {
+  if (traffic.isEmpty) return 1.0;
+  final peak = traffic.map((p) => p.y).reduce(math.max);
+  final withHeadroom = peak * 1.25;
+  if (withHeadroom <= 0) return 1.0;
+  return niceCeilMax(withHeadroom);
+}
+
+/// True error-rate (%) axis max with floor, 100% clamp, nice-rounded.
+double computeErrorMaxY(List<FlSpot> errors) {
+  if (errors.isEmpty) return kErrorAxisFloorPercent;
+  final peak = errors.map((p) => p.y).reduce(math.max);
+  final withHeadroom = peak * 1.25;
+  final floored = math.max(withHeadroom, kErrorAxisFloorPercent);
+  final capped = math.min(floored, 100.0);
+  final nice = niceCeilMax(capped);
+  return math.min(nice, 100.0).clamp(kErrorAxisFloorPercent, 100.0);
+}
+
+/// Exactly three host-Y tick anchors: 0, mid, top — snapped to [interval]
+/// so fl_chart actually emits them, without stacking two near-max labels.
+List<double> axisTickHosts(double maxY, double interval) {
+  if (maxY <= 0) return const [0];
+  final step = interval <= 0 ? maxY : interval;
+  final mid = ((maxY / 2) / step).round() * step;
+  // Last grid step at or below max — single top label (avoids 100 + 109).
+  var top = (maxY / step).floor() * step;
+  if (top <= 0) top = maxY;
+  // If mid lands on 0 or top, drop it.
+  final ticks = <double>{0, top};
+  if (mid > step * 0.25 && (top - mid).abs() > step * 0.25) {
+    ticks.add(mid);
+  }
+  return ticks.toList()..sort();
+}
+
+bool isAxisTick(double value, double maxY, double interval) {
+  if (value < -1e-6 || value > maxY + 1e-6) return false;
+  final hosts = axisTickHosts(maxY, interval);
+  final tol = math.max(interval * 0.05, 1e-6);
+  for (final t in hosts) {
+    if ((value - t).abs() <= tol) return true;
+  }
+  return false;
+}
+
+/// Project true error % into the traffic (host) coordinate space for plotting.
+List<FlSpot> transformErrorPointsForPlot(
+  List<FlSpot> trueErrors, {
+  required double errorMaxY,
+  required double trafficMaxY,
+}) {
+  assert(errorMaxY > 0);
+  return trueErrors
+      .map((p) => FlSpot(p.x, (p.y / errorMaxY) * trafficMaxY))
+      .toList();
+}
+
+/// Lookup true error % by bucket x (matches transformed spots' x).
+double? trueErrorValueAtX(List<FlSpot> trueErrors, double x) {
+  for (final p in trueErrors) {
+    if ((p.x - x).abs() < 1e-9) return p.y;
+  }
+  // Nearest x as fallback
+  if (trueErrors.isEmpty) return null;
+  FlSpot best = trueErrors.first;
+  var bestDist = (best.x - x).abs();
+  for (final p in trueErrors) {
+    final d = (p.x - x).abs();
+    if (d < bestDist) {
+      best = p;
+      bestDist = d;
+    }
+  }
+  return best.y;
+}
+
+/// Dual-line "Traffic & Errors" chart.
 ///
-/// Shows two series on one chart:
-///   - [trafficPoints] — solid blue line with gradient fill
-///   - [errorPoints]   — dashed red line with faint fill
+/// Traffic plots in native count units (host Y-axis). Error rate is rescaled
+/// into that host space for drawing only (fake dual Y-axis); tooltips use true
+/// percentages. Left ticks = counts; right ticks = %.
 ///
 /// Legacy single-series API ([points] + [label] + [lineColor] + [areaColor])
-/// is preserved so existing call sites compile unchanged.
+/// is preserved and does not use the dual-axis transform.
 class ErrorRateChart extends StatelessWidget {
   // ── Dual-series API (Phase 9) ──────────────────────────────────────────────
   final List<FlSpot>? trafficPoints;
@@ -46,20 +156,46 @@ class ErrorRateChart extends StatelessWidget {
 
     // Resolve which series to use
     final traffic = trafficPoints ?? points ?? [];
-    final errors = errorPoints ?? [];
+    final trueErrors = errorPoints ?? const <FlSpot>[];
     final isDualSeries = trafficPoints != null || errorPoints != null;
+    final isLegacyOnly =
+        !isDualSeries && points != null && points!.isNotEmpty;
 
     // Colours
     final trafficColor = c.accent;
     final errorColor = c.error;
 
-    // Y-axis range — unified across both series
-    final allPoints = [...traffic, ...errors];
-    final maxY = allPoints.isEmpty
-        ? 1.0
-        : allPoints.map((p) => p.y).reduce(math.max) * 1.25;
-    final effectiveMaxY = maxY == 0 ? 1.0 : maxY;
-    final interval = _interval(effectiveMaxY);
+    // ── Axis ranges ────────────────────────────────────────────────────────
+    final trafficMaxY = computeTrafficMaxY(
+      trafficPoints != null ? traffic : (isLegacyOnly ? points! : traffic),
+    );
+    final errorMaxY = computeErrorMaxY(trueErrors);
+
+    // Host maxY for LineChartData — dual uses traffic host; legacy uses own peak.
+    final double hostMaxY;
+    if (isDualSeries) {
+      hostMaxY = trafficMaxY;
+    } else if (isLegacyOnly) {
+      final peak = points!.map((p) => p.y).reduce(math.max) * 1.25;
+      hostMaxY = peak <= 0 ? 1.0 : peak;
+    } else {
+      hostMaxY = 1.0;
+    }
+
+    final interval = _interval(hostMaxY);
+
+    // Transform errors for plot only; keep trueErrors for tooltips / right axis.
+    final plottedErrors = isDualSeries && trueErrors.isNotEmpty
+        ? transformErrorPointsForPlot(
+            trueErrors,
+            errorMaxY: errorMaxY,
+            trafficMaxY: trafficMaxY,
+          )
+        : const <FlSpot>[];
+
+    final hasPlotData = isDualSeries
+        ? (traffic.isNotEmpty || trueErrors.isNotEmpty)
+        : (points != null && points!.isNotEmpty);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -71,7 +207,6 @@ class ErrorRateChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──────────────────────────────────────────────────────────
           Row(
             children: [
               Text(
@@ -86,11 +221,9 @@ class ErrorRateChart extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
-          // ── Chart ────────────────────────────────────────────────────────────
           SizedBox(
             height: 160,
-            child: allPoints.isEmpty
+            child: !hasPlotData
                 ? Center(
                     child: Text(
                       'No data',
@@ -102,7 +235,7 @@ class ErrorRateChart extends StatelessWidget {
                 : LineChart(
                     LineChartData(
                       minY: 0,
-                      maxY: effectiveMaxY,
+                      maxY: hostMaxY,
                       clipData: const FlClipData.all(),
                       gridData: FlGridData(
                         show: true,
@@ -115,17 +248,61 @@ class ErrorRateChart extends StatelessWidget {
                       ),
                       borderData: FlBorderData(show: false),
                       titlesData: FlTitlesData(
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
                         topTitles: const AxisTitles(
                           sideTitles: SideTitles(showTitles: false),
                         ),
                         bottomTitles: const AxisTitles(
                           sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 34,
+                            interval: interval,
+                            getTitlesWidget: (value, meta) {
+                              if (!isAxisTick(value, hostMaxY, interval)) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Text(
+                                  formatCountTick(value),
+                                  style: AppTextStyles.monoSm.copyWith(
+                                    color: c.textTertiary,
+                                    fontSize: 9,
+                                  ),
+                                  textAlign: TextAlign.right,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: isDualSeries && trueErrors.isNotEmpty,
+                            reservedSize: 34,
+                            interval: interval,
+                            getTitlesWidget: (value, meta) {
+                              if (!isAxisTick(value, hostMaxY, interval)) {
+                                return const SizedBox.shrink();
+                              }
+                              // Map host Y → true error % scale.
+                              final frac = hostMaxY > 0
+                                  ? (value / hostMaxY).clamp(0.0, 1.0)
+                                  : 0.0;
+                              final errPct = frac * errorMaxY;
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Text(
+                                  formatPercentTick(errPct),
+                                  style: AppTextStyles.monoSm.copyWith(
+                                    color: c.textTertiary,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                       lineTouchData: LineTouchData(
@@ -135,24 +312,31 @@ class ErrorRateChart extends StatelessWidget {
                           getTooltipColor: (_) => c.surface2,
                           tooltipBorder: BorderSide(color: c.border),
                           getTooltipItems: (touchedSpots) {
-                            // barIndex 0 = traffic (counts) when present;
-                            // next bar = error rate % in dual-series mode.
-                            final hasTraffic = traffic.isNotEmpty;
+                            final hasTrafficBar =
+                                isDualSeries && traffic.isNotEmpty;
                             return touchedSpots.map((spot) {
-                              final isTraffic = hasTraffic
+                              final isTraffic = hasTrafficBar
                                   ? spot.barIndex == 0
-                                  : false;
+                                  : (!isDualSeries);
                               final isErrorRate = isDualSeries &&
-                                  ((hasTraffic && spot.barIndex == 1) ||
-                                      (!hasTraffic && spot.barIndex == 0));
+                                  ((hasTrafficBar && spot.barIndex == 1) ||
+                                      (!hasTrafficBar &&
+                                          trueErrors.isNotEmpty &&
+                                          spot.barIndex == 0));
 
                               final String text;
-                              if (isTraffic) {
+                              if (isTraffic && isDualSeries) {
                                 text = spot.y.round().toString();
                               } else if (isErrorRate) {
-                                text = '${spot.y.toStringAsFixed(1)}%';
+                                // True % — not transformed plot y.
+                                final trueVal = trueErrorValueAtX(
+                                      trueErrors,
+                                      spot.x,
+                                    ) ??
+                                    0.0;
+                                text = '${trueVal.toStringAsFixed(1)}%';
                               } else {
-                                // Legacy single series — prefer compact number.
+                                // Legacy single series.
                                 text = spot.y == spot.y.roundToDouble()
                                     ? spot.y.round().toString()
                                     : spot.y.toStringAsFixed(1);
@@ -170,8 +354,7 @@ class ErrorRateChart extends StatelessWidget {
                         ),
                       ),
                       lineBarsData: [
-                        // Traffic — solid with gradient fill
-                        if (traffic.isNotEmpty)
+                        if (isDualSeries && traffic.isNotEmpty)
                           LineChartBarData(
                             spots: traffic,
                             isCurved: true,
@@ -186,16 +369,16 @@ class ErrorRateChart extends StatelessWidget {
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   trafficColor.withValues(
-                                      alpha: isDark ? 0.25 : 0.15),
+                                    alpha: isDark ? 0.25 : 0.15,
+                                  ),
                                   trafficColor.withValues(alpha: 0.0),
                                 ],
                               ),
                             ),
                           ),
-                        // Errors — dashed red line with faint fill
-                        if (errors.isNotEmpty)
+                        if (isDualSeries && plottedErrors.isNotEmpty)
                           LineChartBarData(
-                            spots: errors,
+                            spots: plottedErrors,
                             isCurved: true,
                             curveSmoothness: 0.35,
                             color: errorColor,
@@ -209,8 +392,7 @@ class ErrorRateChart extends StatelessWidget {
                               ),
                             ),
                           ),
-                        // Legacy single-series fallback
-                        if (traffic.isEmpty && errors.isEmpty && points != null)
+                        if (!isDualSeries && points != null && points!.isNotEmpty)
                           LineChartBarData(
                             spots: points!,
                             isCurved: true,
@@ -227,15 +409,21 @@ class ErrorRateChart extends StatelessWidget {
                     ),
                   ),
           ),
-
-          // ── Legend ───────────────────────────────────────────────────────────
           if (isDualSeries) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                _LegendDot(color: trafficColor, label: 'traffic', dashed: false),
+                _LegendDot(
+                  color: trafficColor,
+                  label: 'traffic',
+                  dashed: false,
+                ),
                 const SizedBox(width: 16),
-                _LegendDot(color: errorColor, label: 'errors', dashed: true),
+                _LegendDot(
+                  color: errorColor,
+                  label: 'errors %',
+                  dashed: true,
+                ),
               ],
             ),
           ],
@@ -254,6 +442,27 @@ class ErrorRateChart extends StatelessWidget {
     if (maxY <= 500) return 100;
     return (maxY / 5).ceilToDouble();
   }
+
+}
+
+/// Count tick label (left axis).
+String formatCountTick(double value) {
+  if (value >= 1000) {
+    final k = value / 1000;
+    return k == k.roundToDouble()
+        ? '${k.round()}k'
+        : '${k.toStringAsFixed(1)}k';
+  }
+  return value.round().toString();
+}
+
+/// Percent tick label (right axis) — `0%` not `0.0%`.
+String formatPercentTick(double value) {
+  if (value.abs() < 1e-9) return '0%';
+  if (value >= 10 || value == value.roundToDouble()) {
+    return '${value.round()}%';
+  }
+  return '${value.toStringAsFixed(1)}%';
 }
 
 class _LegendDot extends StatelessWidget {
@@ -273,7 +482,6 @@ class _LegendDot extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Small line swatch
         SizedBox(
           width: 20,
           height: 2,
@@ -304,15 +512,21 @@ class _LinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     if (!dashed) {
-      canvas.drawLine(Offset(0, size.height / 2),
-          Offset(size.width, size.height / 2), paint);
+      canvas.drawLine(
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        paint,
+      );
     } else {
       double x = 0;
       const dash = 4.0;
       const gap = 3.0;
       while (x < size.width) {
-        canvas.drawLine(Offset(x, size.height / 2),
-            Offset(math.min(x + dash, size.width), size.height / 2), paint);
+        canvas.drawLine(
+          Offset(x, size.height / 2),
+          Offset(math.min(x + dash, size.width), size.height / 2),
+          paint,
+        );
         x += dash + gap;
       }
     }
