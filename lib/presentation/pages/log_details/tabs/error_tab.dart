@@ -1,16 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/log_entry.dart';
+import '../../../../data/models/log_filter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../providers/logs_provider.dart';
+import '../../../providers/navigation_provider.dart';
+import '../trace_logs_page.dart';
 import 'detail_widgets.dart';
 
-class ErrorTab extends StatelessWidget {
+class ErrorTab extends ConsumerWidget {
   final LogEntry log;
   const ErrorTab({super.key, required this.log});
 
+  void _viewSimilar(BuildContext context, WidgetRef ref) {
+    final message = log.displayError.trim();
+    // Cap query length so search stays usable.
+    final query = message.length > 120 ? message.substring(0, 120) : message;
+    ref.read(logsProvider.notifier).applyFilter(
+          LogFilter(
+            searchQuery: query.isNotEmpty ? query : null,
+            level: 'error',
+            service: log.service,
+          ),
+        );
+    // Leave log detail and open Logs tab.
+    Navigator.of(context).pop();
+    ref.read(navigationProvider.notifier).goToLogs();
+  }
+
+  void _traceLogs(BuildContext context) {
+    final id = log.traceId;
+    if (id == null || id.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => TraceLogsPage(traceId: id)),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = AppColors.of(context);
 
     if (!log.isError) {
@@ -33,7 +62,6 @@ class ErrorTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        // Error details
         DetailSection(
           title: 'ERROR DETAILS',
           accentBorder: c.error,
@@ -41,21 +69,22 @@ class ErrorTab extends StatelessWidget {
           children: [
             if (log.displayError.isNotEmpty)
               DetailKVRow(
-                  label: 'Message',
-                  value: log.displayError,
-                  valueColor: c.error,
-                  c: c),
+                label: 'Message',
+                value: log.displayError,
+                valueColor: c.error,
+                c: c,
+              ),
             if (log.error?.code != null)
               DetailKVRow(label: 'Code', value: log.error!.code!, c: c),
             DetailKVRow(
-                label: 'Level',
-                value: log.level.toUpperCase(),
-                valueColor: c.levelColor(log.level),
-                c: c),
+              label: 'Level',
+              value: log.level.toUpperCase(),
+              valueColor: c.levelColor(log.level),
+              c: c,
+            ),
           ],
         ),
 
-        // Stack trace — dark terminal container
         if (log.error?.stack != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -71,25 +100,35 @@ class ErrorTab extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
                   child: Row(
                     children: [
-                      Text('STACK TRACE',
-                          style: AppTextStyles.label
-                              .copyWith(color: c.textTertiary)),
+                      Text(
+                        'STACK TRACE',
+                        style:
+                            AppTextStyles.label.copyWith(color: c.textTertiary),
+                      ),
                       const Spacer(),
                       GestureDetector(
                         onTap: () {
                           Clipboard.setData(
-                              ClipboardData(text: log.error!.stack!));
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Stack trace copied',
-                                style: AppTextStyles.monoSm),
-                            duration: const Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
-                          ));
+                            ClipboardData(text: log.error!.stack!),
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Stack trace copied',
+                                style: AppTextStyles.monoSm,
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         },
                         child: Container(
                           padding: const EdgeInsets.all(6),
-                          child: Icon(Icons.copy_rounded,
-                              size: 16, color: c.textTertiary),
+                          child: Icon(
+                            Icons.copy_rounded,
+                            size: 16,
+                            color: c.textTertiary,
+                          ),
                         ),
                       ),
                     ],
@@ -119,7 +158,6 @@ class ErrorTab extends StatelessWidget {
           ),
         ],
 
-        // Actions
         const SizedBox(height: 12),
         DetailSection(
           title: 'ACTIONS',
@@ -129,16 +167,18 @@ class ErrorTab extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () => _viewSimilar(context, ref),
                     icon: Icon(Icons.search, size: 16, color: c.accent),
-                    label: Text('View Similar',
-                        style: AppTextStyles.bodySmall
-                            .copyWith(color: c.accent)),
+                    label: Text(
+                      'View Similar',
+                      style:
+                          AppTextStyles.bodySmall.copyWith(color: c.accent),
+                    ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: c.accent.withValues(alpha: 0.4)),
+                      side: BorderSide(color: c.accent.withValues(alpha: 0.4)),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -147,16 +187,19 @@ class ErrorTab extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {},
+                      onPressed: () => _traceLogs(context),
                       icon: Icon(Icons.timeline, size: 16, color: c.accent),
-                      label: Text('Trace Logs',
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: c.accent)),
+                      label: Text(
+                        'Trace Logs',
+                        style:
+                            AppTextStyles.bodySmall.copyWith(color: c.accent),
+                      ),
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                            color: c.accent.withValues(alpha: 0.4)),
+                        side:
+                            BorderSide(color: c.accent.withValues(alpha: 0.4)),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),

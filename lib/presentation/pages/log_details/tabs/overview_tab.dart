@@ -5,7 +5,7 @@ import '../../../../core/utils/date_utils.dart' as date_utils;
 import '../../../../core/utils/format_utils.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../providers/logs_provider.dart';
+import '../trace_logs_page.dart';
 import 'detail_widgets.dart';
 
 class OverviewTab extends ConsumerWidget {
@@ -84,7 +84,8 @@ class OverviewTab extends ConsumerWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => _TraceLogsPage(traceId: log.traceId!)),
+                    builder: (_) => TraceLogsPage(traceId: log.traceId!),
+                  ),
                 ),
                 icon: Icon(Icons.account_tree_rounded, size: 16, color: c.accent),
                 label: Text('View Related Logs',
@@ -123,79 +124,3 @@ class OverviewTab extends ConsumerWidget {
   }
 }
 
-// ── Trace logs viewer ─────────────────────────────────────────────────────────
-
-class _TraceLogsPage extends ConsumerWidget {
-  final String traceId;
-  const _TraceLogsPage({required this.traceId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final c = AppColors.of(context);
-    final logsAsync = ref.watch(logsByTraceIdProvider(traceId));
-
-    return Scaffold(
-      backgroundColor: c.bg,
-      appBar: AppBar(
-        backgroundColor: c.bg,
-        elevation: 0,
-        title: Text('Trace Logs',
-            style: AppTextStyles.h3.copyWith(color: c.textPrimary)),
-      ),
-      body: logsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-            child: Text('Failed to load: $e',
-                style: AppTextStyles.body.copyWith(color: c.error))),
-        data: (logs) {
-          if (logs.isEmpty) {
-            return Center(
-                child: Text('No logs for this trace',
-                    style:
-                        AppTextStyles.body.copyWith(color: c.textTertiary)));
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: logs.length,
-            itemBuilder: (context, index) {
-              final entry = logs[index];
-              final levelColor = c.levelColor(entry.level);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: c.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border(
-                    left: BorderSide(color: levelColor, width: 3),
-                    top: BorderSide(color: c.border),
-                    right: BorderSide(color: c.border),
-                    bottom: BorderSide(color: c.border),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Text(entry.level.toUpperCase(),
-                          style: AppTextStyles.label
-                              .copyWith(color: levelColor)),
-                      const SizedBox(width: 8),
-                      Text(entry.service,
-                          style: AppTextStyles.monoSm
-                              .copyWith(color: c.textPrimary)),
-                    ]),
-                    const SizedBox(height: 4),
-                    Text(date_utils.DateUtils.formatFull(entry.timestamp),
-                        style: AppTextStyles.monoSm
-                            .copyWith(color: c.textTertiary)),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}

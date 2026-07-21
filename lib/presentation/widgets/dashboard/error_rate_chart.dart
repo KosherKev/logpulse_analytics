@@ -128,6 +128,47 @@ class ErrorRateChart extends StatelessWidget {
                           sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
+                      lineTouchData: LineTouchData(
+                        enabled: true,
+                        handleBuiltInTouches: true,
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => c.surface2,
+                          tooltipBorder: BorderSide(color: c.border),
+                          getTooltipItems: (touchedSpots) {
+                            // barIndex 0 = traffic (counts) when present;
+                            // next bar = error rate % in dual-series mode.
+                            final hasTraffic = traffic.isNotEmpty;
+                            return touchedSpots.map((spot) {
+                              final isTraffic = hasTraffic
+                                  ? spot.barIndex == 0
+                                  : false;
+                              final isErrorRate = isDualSeries &&
+                                  ((hasTraffic && spot.barIndex == 1) ||
+                                      (!hasTraffic && spot.barIndex == 0));
+
+                              final String text;
+                              if (isTraffic) {
+                                text = spot.y.round().toString();
+                              } else if (isErrorRate) {
+                                text = '${spot.y.toStringAsFixed(1)}%';
+                              } else {
+                                // Legacy single series — prefer compact number.
+                                text = spot.y == spot.y.roundToDouble()
+                                    ? spot.y.round().toString()
+                                    : spot.y.toStringAsFixed(1);
+                              }
+
+                              return LineTooltipItem(
+                                text,
+                                AppTextStyles.monoSm.copyWith(
+                                  color: spot.bar.color ?? c.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              );
+                            }).toList();
+                          },
+                        ),
+                      ),
                       lineBarsData: [
                         // Traffic — solid with gradient fill
                         if (traffic.isNotEmpty)
@@ -144,7 +185,8 @@ class ErrorRateChart extends StatelessWidget {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  trafficColor.withValues(alpha: isDark ? 0.25 : 0.15),
+                                  trafficColor.withValues(
+                                      alpha: isDark ? 0.25 : 0.15),
                                   trafficColor.withValues(alpha: 0.0),
                                 ],
                               ),
