@@ -1,16 +1,17 @@
 import '../models/log_entry.dart';
 import '../models/log_filter.dart';
+import '../models/logs_page_result.dart';
 import '../services/api_service.dart';
 import '../../core/errors/exceptions.dart';
 
 /// Repository for log operations
 class LogsRepository {
   final ApiService _apiService;
-  
+
   LogsRepository(this._apiService);
-  
-  /// Fetch logs with filters
-  Future<List<LogEntry>> getLogs(LogFilter filter) async {
+
+  /// Fetch logs with filters (includes optional server `total`).
+  Future<LogsPageResult> getLogs(LogFilter filter) async {
     try {
       return await _apiService.getLogs(filter);
     } catch (e) {
@@ -18,7 +19,7 @@ class LogsRepository {
       throw AppException('Failed to fetch logs: ${e.toString()}');
     }
   }
-  
+
   /// Fetch logs by trace ID
   Future<List<LogEntry>> getLogsByTraceId(String traceId) async {
     try {
@@ -28,9 +29,9 @@ class LogsRepository {
       throw AppException('Failed to fetch logs by trace ID: ${e.toString()}');
     }
   }
-  
+
   /// Search logs
-  Future<List<LogEntry>> searchLogs(String query, {LogFilter? filter}) async {
+  Future<LogsPageResult> searchLogs(String query, {LogFilter? filter}) async {
     try {
       final searchFilter = filter?.copyWith(searchQuery: query) ??
           LogFilter(searchQuery: query);

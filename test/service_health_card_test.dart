@@ -167,6 +167,38 @@ void main() {
       expect(find.text('not reporting metrics yet'), findsNothing);
     });
 
+    testWidgets('numeric err/latency without uptime % still shows detail line',
+        (tester) async {
+      // CLS P1: byService supplies err + avgDuration, not uptime %.
+      await pumpCard(
+        tester,
+        baseStats(
+          errorRate: 1.5,
+          avgLatency: 38,
+        ),
+      );
+
+      expect(find.textContaining('err 1.5%'), findsOneWidget);
+      expect(find.textContaining('38ms'), findsOneWidget);
+      expect(find.textContaining('up '), findsNothing);
+      expect(find.text('not reporting metrics yet'), findsNothing);
+    });
+
+    testWidgets('numerics + uptimeSeconds combine on detail line',
+        (tester) async {
+      await pumpCard(
+        tester,
+        baseStats(
+          errorRate: 0.2,
+          avgLatency: 12,
+          uptimeSeconds: 3600,
+        ),
+      );
+
+      expect(find.textContaining('err 0.2%'), findsOneWidget);
+      expect(find.textContaining('up 1h'), findsOneWidget);
+    });
+
     testWidgets('empty state when neither numerics nor reported health',
         (tester) async {
       await pumpCard(tester, baseStats());

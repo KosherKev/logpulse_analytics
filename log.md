@@ -822,3 +822,27 @@ None.
 
 ### Status
 DONE
+
+## LP P1 consumers — object byService + logs total
+Completed: 2026-07-21
+Branch/commit: main (uncommitted)
+
+### What was done
+After CLS P1 landed (enriched summary `byService` + log list `total` envelope):
+
+1. **`DashboardStats.fromApiJson`** — parses object-shaped `byService` (`totalRequests`, `errorCount`, `errorRate`, `avgDuration` → `avgLatency`). Legacy bare-int values still work (counts only). Does not invent uptime %.
+2. **`hasHealthMetrics`** — true when `errorRate` + `avgLatency` present (no longer requires uptime %). Health status from errorRate thresholds drives the card pulse when numerics exist.
+3. **`ServiceHealthCard` detail line** — `err X% · Yms`, optionally `· up Z%` or `· up {duration}` when metrics uptimeSeconds also merged.
+4. **`parseLogsPageResponse` / `LogsPageResult`** — reads `data[]`, top-level `total`, `pagination.hasMore`. `LogsNotifier` uses server total/hasMore when available.
+
+### Key facts for next step
+- Tests: 46 related tests green
+- Merge still combines log numerics × metrics health/instanceCount/customMetrics
+- **Next on app (no CLS wait):** LP-08 auto-refresh, LP-03 recent errors tap, cleanup
+- **Next CLS (optional P2):** error groups API, services catalog
+
+### Deviations from spec
+None material — `hasHealthMetrics` deliberately dropped the uptime-% requirement so P1 payload can light the numeric line.
+
+### Status
+DONE

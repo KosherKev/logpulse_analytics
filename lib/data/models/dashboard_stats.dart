@@ -78,21 +78,47 @@ class DashboardStats {
     Map<String, ServiceStats>? serviceStats;
     if (byService is Map) {
       serviceStats = byService.map((key, value) {
-        final count = readInt(value);
         final name = key.toString();
-        // NOTE: /logs/stats/summary's byService only returns request counts.
-        // There is no real per-service errorRate/avgLatency/uptime yet — the
-        // metrics *read* API (@bevingh/telemetry → central-logging-service)
-        // that would supply this doesn't exist (see TELEMETRY_PATCH_PLAN.md
-        // Phase 16). Previously this synthesized a fake `uptime: 100.0` and
-        // copied the *global* errorRate/avgLatency onto every service, which
-        // reads as confident per-service data that isn't real. Leaving these
-        // null so the UI can show an honest "not reporting" state instead.
+        // CLS P1: byService values are objects
+        // { totalRequests, errorCount, errorRate, avgDuration }.
+        // Legacy bare ints still accepted (counts only, numerics null).
+        // Do not invent uptime % — that is not computed server-side.
+        if (value is Map) {
+          final m = Map<String, dynamic>.from(value);
+          final double? err = m['errorRate'] != null || m['error_rate'] != null
+              ? readDouble(m['errorRate'] ?? m['error_rate'])
+              : null;
+          final double? latency =
+              m['avgDuration'] != null ||
+                      m['avgLatency'] != null ||
+                      m['avg_latency'] != null
+                  ? readDouble(
+                      m['avgDuration'] ?? m['avgLatency'] ?? m['avg_latency'],
+                    )
+                  : null;
+          final int? errCount =
+              m['errorCount'] != null || m['error_count'] != null
+                  ? readInt(m['errorCount'] ?? m['error_count'])
+                  : null;
+          return MapEntry(
+            name,
+            ServiceStats(
+              serviceName: name,
+              totalRequests: readInt(
+                m['totalRequests'] ?? m['total_requests'] ?? m['count'],
+              ),
+              errorRate: err,
+              avgLatency: latency,
+              uptime: null,
+              errorCount: errCount,
+            ),
+          );
+        }
         return MapEntry(
           name,
           ServiceStats(
             serviceName: name,
-            totalRequests: count,
+            totalRequests: readInt(value),
             errorRate: null,
             avgLatency: null,
             uptime: null,
@@ -169,10 +195,10 @@ class ServiceStats {
   factory ServiceStats.fromJson(Map<String, dynamic> json) => _$ServiceStatsFromJson(json);
   Map<String, dynamic> toJson() => _$ServiceStatsToJson(this);
 
-  /// Whether numeric request-health fields (errorRate/avgLatency/uptime %)
-  /// are all present. PR-24 does not supply these, so this is typically false
-  /// even when [hasReportedHealth] is true.
-  bool get hasHealthMetrics => errorRate != null && avgLatency != null && uptime != null;
+  /// Whether log-derived per-service numerics are present (CLS P1 summary
+  /// `byService` supplies errorRate + avgDuration). Uptime % is optional and
+  /// not required — the collector does not compute it today.
+  bool get hasHealthMetrics => errorRate != null && avgLatency != null;
 
   /// Whether the collector reported a real `health.status` string (PR-24).
   /// Independent of the numeric [hasHealthMetrics] fields.

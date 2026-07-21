@@ -18,6 +18,7 @@ class LogsState {
   final bool isLoading;
   final bool hasMore;
   final String? error;
+  /// Server-reported total when available; otherwise page-derived estimate.
   final int totalCount;
 
   LogsState({
@@ -69,21 +70,35 @@ class LogsNotifier extends StateNotifier<LogsState> {
 
     try {
       final filter = state.filter;
-      final logs = await _repository.getLogs(filter);
+      final page = await _repository.getLogs(filter);
+      final logs = page.logs;
+
+      final totalCount = page.total ??
+          (refresh ? logs.length : state.totalCount + logs.length);
+
+      final bool hasMore;
+      if (page.hasMore != null) {
+        hasMore = page.hasMore!;
+      } else if (page.total != null) {
+        final loaded = refresh ? logs.length : state.logs.length + logs.length;
+        hasMore = loaded < page.total!;
+      } else {
+        hasMore = logs.length >= filter.limit;
+      }
 
       if (refresh) {
         state = state.copyWith(
           logs: logs,
           isLoading: false,
-          hasMore: logs.length >= filter.limit,
-          totalCount: logs.length,
+          hasMore: hasMore,
+          totalCount: totalCount,
         );
       } else {
         state = state.copyWith(
           logs: [...state.logs, ...logs],
           isLoading: false,
-          hasMore: logs.length >= filter.limit,
-          totalCount: state.totalCount + logs.length,
+          hasMore: hasMore,
+          totalCount: totalCount,
         );
       }
     } on AppException catch (e) {
@@ -140,7 +155,8 @@ class LogsNotifier extends StateNotifier<LogsState> {
 }
 
 /// Logs by Trace ID Provider
-final logsByTraceIdProvider = FutureProvider.family<List<LogEntry>, String>((ref, traceId) async {
+final logsByTraceIdProvider =
+    FutureProvider.family<List<LogEntry>, String>((ref, traceId) async {
   final repository = ref.watch(logsRepositoryProvider);
   return await repository.getLogsByTraceId(traceId);
 });
