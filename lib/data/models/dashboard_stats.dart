@@ -217,14 +217,22 @@ class ServiceStats {
   /// 3. Else → [HealthStatus.unknown]
   HealthStatus get healthStatus {
     if (hasHealthMetrics) {
-      if (errorRate! < 1.0) return HealthStatus.healthy;
-      if (errorRate! < 5.0) return HealthStatus.degraded;
-      return HealthStatus.unhealthy;
+      return healthFromErrorRate(errorRate);
     }
     if (hasReportedHealth) {
       return _mapReportedHealthStatus(reportedHealthStatus!);
     }
     return HealthStatus.unknown;
+  }
+
+  /// Shared error-rate thresholds for any surface that shows a status color
+  /// from log aggregates: under 1% healthy, under 5% degraded, else unhealthy.
+  /// Null → [HealthStatus.unknown] (honest empty, not fabricated healthy).
+  static HealthStatus healthFromErrorRate(double? errorRate) {
+    if (errorRate == null) return HealthStatus.unknown;
+    if (errorRate < 1.0) return HealthStatus.healthy;
+    if (errorRate < 5.0) return HealthStatus.degraded;
+    return HealthStatus.unhealthy;
   }
 
   /// Maps the collector's raw health-status string to a display enum.

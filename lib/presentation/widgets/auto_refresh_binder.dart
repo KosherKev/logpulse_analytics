@@ -8,9 +8,10 @@ import '../providers/api_config_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../providers/errors_provider.dart';
 import '../providers/logs_provider.dart';
+import '../providers/services_provider.dart';
 import '../providers/settings_provider.dart';
 
-/// Starts a periodic refresh of dashboard, logs, and errors when
+/// Starts a periodic refresh of dashboard, logs, errors, and services when
 /// auto-refresh is enabled and the API is configured.
 ///
 /// Place once above the main shell (e.g. [HomePage]). Passes [child] through.
@@ -60,6 +61,7 @@ class _AutoRefreshBinderState extends ConsumerState<AutoRefreshBinder> {
       ref.read(dashboardProvider.notifier).refresh();
       ref.read(logsProvider.notifier).loadLogs(refresh: true);
       ref.read(errorsProvider.notifier).loadErrors();
+      ref.read(servicesListProvider.notifier).load();
     });
   }
 

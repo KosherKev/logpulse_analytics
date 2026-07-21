@@ -41,6 +41,22 @@ class DateUtils {
       return '$years year${years == 1 ? '' : 's'} ago';
     }
   }
+
+  /// Compact relative label used on service cards: "2m ago", "3h ago", etc.
+  static String formatCompactRelative(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    if (difference.isNegative || difference.inSeconds < 60) {
+      return '${difference.isNegative ? 0 : difference.inSeconds}s ago';
+    }
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    }
+    if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    }
+    return '${difference.inDays}d ago';
+  }
   
   /// Parse ISO 8601 string to DateTime
   static DateTime? parseIso8601(String? dateString) {

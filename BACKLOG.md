@@ -27,7 +27,7 @@
 | Health status colors | Full vocab: `ok`/`error`/`degraded`/`starting`/`stopping` |
 | Per-service err% / latency line | **Wired** — object `byService` → `errorRate`/`avgLatency`/`errorCount` |
 | Logs list total count | **Wired** — envelope `total` / `pagination.hasMore` |
-| Service details screen | Empty folder + unused route |
+| Services tab + detail | **Wired** (Phase 23 catalog tab + existing detail) |
 | Auto-refresh setting | **Wired** via `AutoRefreshBinder` |
 | AppBar / recent errors taps | **Wired** (refresh / Logs / Errors) |
 

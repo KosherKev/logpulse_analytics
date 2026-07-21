@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../pages/dashboard/dashboard_page.dart';
 import '../pages/logs/logs_page.dart';
 import '../pages/errors/errors_page.dart';
+import '../pages/services/services_page.dart';
 import '../pages/settings/settings_page.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/errors_provider.dart';
@@ -22,6 +23,7 @@ class HomePage extends ConsumerWidget {
       const DashboardPage(),
       const LogsPage(),
       const ErrorsPage(),
+      const ServicesPage(),
       const SettingsPage(),
     ];
 
@@ -87,6 +89,11 @@ class HomePage extends ConsumerWidget {
                 ],
               ),
               label: 'Errors',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.dns_outlined),
+              selectedIcon: Icon(Icons.dns),
+              label: 'Services',
             ),
             const NavigationDestination(
               icon: Icon(Icons.settings_outlined),
