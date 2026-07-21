@@ -45,48 +45,76 @@ class _SkeletonLogCardState extends State<SkeletonLogCard>
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border(
-              left: BorderSide(color: shimmerColor, width: 3),
-              top: BorderSide(color: c.border, width: 1),
-              right: BorderSide(color: c.border, width: 1),
-              bottom: BorderSide(color: c.border, width: 1),
-            ),
+            border: Border.all(color: c.border, width: 1),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Row 1: level chip + service name
-              Row(
-                children: [
-                  _Box(width: 48, height: 22, color: shimmerColor, radius: 6),
-                  const SizedBox(width: 8),
-                  _Box(width: 120, height: 14, color: shimmerColor, radius: 4),
-                  const Spacer(),
-                  _Box(width: 36, height: 20, color: shimmerColor, radius: 6),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Row 2: method + path bar
-              _Box(
-                width: double.infinity,
-                height: 28,
-                color: shimmerColor,
-                radius: 6,
-              ),
-              const SizedBox(height: 8),
-              // Row 3: meta row
-              Row(
-                children: [
-                  _Box(width: 80, height: 12, color: shimmerColor, radius: 4),
-                  const SizedBox(width: 12),
-                  _Box(width: 50, height: 12, color: shimmerColor, radius: 4),
-                ],
-              ),
-            ],
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 3, color: shimmerColor),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Row 1: level chip + service name
+                        Row(
+                          children: [
+                            _Box(
+                                width: 48,
+                                height: 22,
+                                color: shimmerColor,
+                                radius: 6),
+                            const SizedBox(width: 8),
+                            _Box(
+                                width: 120,
+                                height: 14,
+                                color: shimmerColor,
+                                radius: 4),
+                            const Spacer(),
+                            _Box(
+                                width: 36,
+                                height: 20,
+                                color: shimmerColor,
+                                radius: 6),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Row 2: method + path bar
+                        _Box(
+                          width: double.infinity,
+                          height: 28,
+                          color: shimmerColor,
+                          radius: 6,
+                        ),
+                        const SizedBox(height: 8),
+                        // Row 3: meta row
+                        Row(
+                          children: [
+                            _Box(
+                                width: 80,
+                                height: 12,
+                                color: shimmerColor,
+                                radius: 4),
+                            const SizedBox(width: 12),
+                            _Box(
+                                width: 50,
+                                height: 12,
+                                color: shimmerColor,
+                                radius: 4),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

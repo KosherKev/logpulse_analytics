@@ -36,71 +36,78 @@ class EnhancedLogCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: levelColor, width: 3),
-          top: BorderSide(color: c.border, width: 1),
-          right: BorderSide(color: c.border, width: 1),
-          bottom: BorderSide(color: c.border, width: 1),
-        ),
+        border: Border.all(color: c.border, width: 1),
       ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Row 1: Level chip · Service name · Status code ──────
-              Row(
-                children: [
-                  _LevelChip(
-                    level: log.level,
-                    color: levelColor,
-                    bg: levelBg,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      log.service,
-                      style: AppTextStyles.monoMd.copyWith(
-                        color: c.textPrimary,
+              Container(width: 3, color: levelColor),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Row 1: Level chip · Service name · Status code ──────
+                      Row(
+                        children: [
+                          _LevelChip(
+                            level: log.level,
+                            color: levelColor,
+                            bg: levelBg,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              log.service,
+                              style: AppTextStyles.monoMd.copyWith(
+                                color: c.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (log.statusCode != null) ...[
+                            const SizedBox(width: 8),
+                            _StatusBadge(
+                              code: log.statusCode!,
+                              color: statusColor,
+                            ),
+                          ],
+                          const SizedBox(width: 4),
+                          Icon(Icons.chevron_right,
+                              size: 16, color: c.textTertiary),
+                        ],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+
+                      // ── Row 2: Method + path ─────────────────────────────────
+                      if (log.method != null && log.path != null) ...[
+                        const SizedBox(height: 8),
+                        _MethodPathRow(
+                          method: log.method!,
+                          path: log.path!,
+                          c: c,
+                        ),
+                      ],
+
+                      // ── Row 3: Meta (timestamp · duration · traceId) ─────────
+                      const SizedBox(height: 8),
+                      _MetaRow(log: log, c: c),
+
+                      // ── Row 4: Error preview pill ─────────────────────────────
+                      if (log.isError) ...[
+                        const SizedBox(height: 8),
+                        _ErrorPill(message: log.displayError, c: c),
+                      ],
+                    ],
                   ),
-                  if (log.statusCode != null) ...[
-                    const SizedBox(width: 8),
-                    _StatusBadge(
-                      code: log.statusCode!,
-                      color: statusColor,
-                    ),
-                  ],
-                  const SizedBox(width: 4),
-                  Icon(Icons.chevron_right, size: 16, color: c.textTertiary),
-                ],
-              ),
-
-              // ── Row 2: Method + path ─────────────────────────────────
-              if (log.method != null && log.path != null) ...[
-                const SizedBox(height: 8),
-                _MethodPathRow(
-                  method: log.method!,
-                  path: log.path!,
-                  c: c,
                 ),
-              ],
-
-              // ── Row 3: Meta (timestamp · duration · traceId) ─────────
-              const SizedBox(height: 8),
-              _MetaRow(log: log, c: c),
-
-              // ── Row 4: Error preview pill ─────────────────────────────
-              if (log.isError) ...[
-                const SizedBox(height: 8),
-                _ErrorPill(message: log.displayError, c: c),
-              ],
+              ),
             ],
           ),
         ),

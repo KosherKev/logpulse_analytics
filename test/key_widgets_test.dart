@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:logpulse_analytics/data/models/dashboard_stats.dart';
 import 'package:logpulse_analytics/data/models/log_entry.dart';
@@ -9,6 +10,10 @@ import 'package:logpulse_analytics/presentation/widgets/dashboard/stats_grid.dar
 import 'package:logpulse_analytics/presentation/widgets/logs/enhanced_log_card.dart';
 
 void main() {
+  setUpAll(() {
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
   group('EnhancedLogCard', () {
     testWidgets('renders core log information and responds to tap',
         (WidgetTester tester) async {
@@ -69,16 +74,17 @@ void main() {
         ),
       );
 
-      expect(find.text('Total Logs'), findsOneWidget);
-      expect(find.text('1000'), findsOneWidget);
+      // StatCard uppercases labels; counts ≥1000 format as "1.0K".
+      expect(find.text('TOTAL LOGS'), findsOneWidget);
+      expect(find.text('1.0K'), findsOneWidget);
 
-      expect(find.text('Error Rate'), findsOneWidget);
+      expect(find.text('ERROR RATE'), findsOneWidget);
       expect(find.text(stats.formattedErrorRate), findsOneWidget);
 
-      expect(find.text('Avg Latency'), findsOneWidget);
+      expect(find.text('AVG LATENCY'), findsOneWidget);
       expect(find.text(stats.formattedAvgLatency), findsOneWidget);
 
-      expect(find.text('Requests/Hour'), findsOneWidget);
+      expect(find.text('REQ / HOUR'), findsOneWidget);
       expect(find.text('300'), findsOneWidget);
     });
   });
@@ -94,7 +100,7 @@ void main() {
         ),
       );
 
-      expect(find.text('No chart data available'), findsOneWidget);
+      expect(find.text('No data'), findsOneWidget);
     });
 
     testWidgets('renders a LineChart when points are provided',
@@ -117,4 +123,3 @@ void main() {
     });
   });
 }
-

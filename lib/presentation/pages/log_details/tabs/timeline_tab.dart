@@ -26,27 +26,37 @@ class TimelineTab extends StatelessWidget {
       children: [
         // ── Total duration card ──────────────────────────────────────────
         Container(
-          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border(
-              left: BorderSide(color: c.accent, width: 3),
-              top: BorderSide(color: c.border),
-              right: BorderSide(color: c.border),
-              bottom: BorderSide(color: c.border),
-            ),
+            border: Border.all(color: c.border),
           ),
-          child: Row(
-            children: [
-              Text('TOTAL',
-                  style: AppTextStyles.label.copyWith(color: c.textTertiary)),
-              const SizedBox(width: 14),
-              Text(
-                FormatUtils.formatDuration(log.duration!),
-                style: AppTextStyles.h2.copyWith(color: c.textPrimary),
-              ),
-            ],
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 3, color: c.accent),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Text('TOTAL',
+                            style: AppTextStyles.label
+                                .copyWith(color: c.textTertiary)),
+                        const SizedBox(width: 14),
+                        Text(
+                          FormatUtils.formatDuration(log.duration!),
+                          style:
+                              AppTextStyles.h2.copyWith(color: c.textPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
 

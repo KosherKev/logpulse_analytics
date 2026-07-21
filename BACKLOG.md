@@ -73,16 +73,16 @@
 
 | ID | Priority | Item | Notes |
 |----|----------|------|-------|
-| LP-20 | P1 | Stale docs | Update `PHASES.md` table, `TELEMETRY_PATCH_PLAN` Phase 21 status, `handoff_context.md`, `log.md` quick summary |
-| LP-21 | P1 | Dead models | `Service` + `EndpointStats` unused — delete or wire after CLS services catalog |
-| LP-22 | P2 | Empty dirs | `pages/service_details/`, `widgets/charts/` |
-| LP-23 | P2 | Dual packages | `provider` + `flutter_riverpod` — drop unused `provider` if nothing imports it |
-| LP-24 | P1 | Regenerate codegen | `dart run build_runner build --delete-conflicting-outputs` after hand-edited `*.g.dart` |
-| LP-25 | P2 | Analyze noise | ~100 infos/warnings (unused fields, deprecated Radio, redundant args) |
-| LP-26 | P1 | Fix `key_widgets_test` paint failures | Non-uniform `Border` + `borderRadius` on StatCard / EnhancedLogCard (same class of bug fixed on ServiceHealthCard) |
-| LP-27 | P2 | Naming cleanup | `metricsSummary` constant is `/metrics`; `hasHealthMetrics` means numeric err/latency/% only |
-| LP-28 | P2 | Drop unused `http` package if Dio-only | Confirm no imports |
-| LP-29 | P2 | Phase 15 polish | Stagger/pulse largely present; optional log-card entry fades, skeleton dashboard |
+| LP-20 | ~~P1~~ **DONE** | Stale docs | `handoff_context.md` rewritten; this backlog updated |
+| LP-21 | ~~P1~~ **DONE** | Dead models | Removed `service.dart` / `service.g.dart`; re-add when CLS P2 catalog ships |
+| LP-22 | ~~P2~~ **DONE** | Empty dirs | Removed `service_details/`, `widgets/charts/` |
+| LP-23 | ~~P2~~ **DONE** | Dual packages | Dropped unused `provider` dep |
+| LP-24 | P2 | Regenerate codegen | Still recommended: `dart run build_runner build --delete-conflicting-outputs` |
+| LP-25 | P2 | Analyze noise | Partial — removed unused `_apiKey`; many infos remain (deprecated Radio etc.) |
+| LP-26 | ~~P1~~ **DONE** | Card paint + `key_widgets_test` | Accent strip pattern on Stat/Log/Error cards; tests updated to real labels |
+| LP-27 | P2 | Naming cleanup | `metricsSummary` still named oddly (value is `/metrics`) — low priority rename |
+| LP-28 | ~~P2~~ **DONE** | Dropped unused `http` package |
+| LP-29 | P2 | Phase 15 polish | Optional log-card entry fades |
 
 ### 2.5 Suggested LogPulse implementation order (no CLS wait)
 
@@ -951,10 +951,10 @@ components:
 | ✅ | **LP-17 / LP-13** | LP | Object byService + logs total consumers — done |
 | ✅ | **LP-08 / 03 / 01 / 02** | LP | Auto-refresh, recent errors nav, AppBar actions — done |
 | ✅ | **Nav index bugfix** | LP | `goToLogs`/`goToErrors` matched Phase 14 tab order |
-| **1 (next)** | **LP-cleanup** | LP | Docs, dead code, analyze, tests (LP-20–26) |
-| 2 | **CLS-EG** | CLS | Error groups API (§3.5) |
-| 3 | **CLS-SV** | CLS | Services catalog (§3.6) → then LP service details |
-| 4 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
+| ✅ | **LP-cleanup** | LP | Dead models, deps, card paint, key_widgets, handoff — done |
+| **1 (next)** | **CLS-P2** | CLS | Error groups + services catalog — see `docs/CLS_P2_PR_BRIEF.md` |
+| 2 | **LP after P2** | LP | Server-backed Errors tab + service details page |
+| 3 | **CLS-ST** | CLS | Optional stage timings (§3.7) |
 
 ---
 
