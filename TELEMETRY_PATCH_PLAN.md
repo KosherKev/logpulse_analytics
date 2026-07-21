@@ -140,7 +140,7 @@ Instance badge (`instanceCount`) and custom-metric chips need no UI changes — 
 
 ---
 
-### Phase 21 — Isolate metrics-fetch failures from `getStats()` — spec ready, not yet implemented
+### Phase 21 — Isolate metrics-fetch failures from `getStats()` — **DONE (2026-07-21), see `log.md`**
 
 `DashboardRepository.getStats()` still wraps both `getDashboardStats()` and `getServiceMetrics()`
 in one `Future.wait` + one `catch`, so a non-404 metrics error (500, timeout, malformed

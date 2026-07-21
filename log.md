@@ -764,3 +764,38 @@ None beyond the Step 5 border paint fix noted above.
 
 ### Status
 DONE
+
+## Phase 21, Step 1 — Decouple metrics fetch failure from getStats
+Completed: 2026-07-21 02:55 UTC
+Branch/commit: main (uncommitted)
+
+### What was done
+Isolated metrics failures inside `DashboardRepository.getStats()` while preserving concurrent fetch of log-stats and metrics. Both futures still start immediately; the metrics future is wrapped with `.catchError` that logs a warning (exception + stack) and substitutes `const <ServiceMetricsEntry>[]`. Log-stats failures still propagate through the outer try/catch as `AppException`. Added a local `Logger` instance matching `ApiService`'s pattern (`package:logger`, no DI). `ApiService.getServiceMetrics()` is unchanged (404 → [], non-404 still throws).
+
+### Key facts for next step
+- Catch structure: `metricsFuture = getServiceMetrics().catchError(... return [])` then `Future.wait([statsFuture, metricsFuture])`
+- Soft-fail applies to **any** Object (AppException, FormatException, etc.) — not narrowed to DioException
+- Cancel tokens remain separately keyed (`ApiEndpoints.stats` vs `ApiEndpoints.metricsSummary`) — verified by reading `_issueToken` usage; no code change needed there
+
+### Deviations from spec
+None. Used recommended approach (repository-layer isolation, not ApiService swallow-all).
+
+### Status
+DONE
+
+## Phase 21, Step 2 — Tests for metrics isolation
+Completed: 2026-07-21 02:55 UTC
+Branch/commit: main (uncommitted)
+
+### What was done
+Added `test/dashboard_repository_test.dart` with a `_FakeApiService` subclass overriding `getDashboardStats` / `getServiceMetrics`. Covers: (1) metrics ApiException 500 → getStats succeeds, log data intact, no metrics merge; (2) log-stats throw → getStats still fails; (3) both succeed → Phase 20 merge still applies; (4) metrics FormatException → same soft-fail as Dio/AppException. Extra check that both futures are entered (concurrency). All 5 tests pass.
+
+### Key facts for next step
+- Fake lives in the test file only; no production DI change
+- Warning logs from the soft-fail path appear in test output (expected)
+
+### Deviations from spec
+Added a fifth case (metrics-only app when metrics succeed) as a small merge regression guard beyond the four required cases.
+
+### Status
+DONE
