@@ -174,7 +174,8 @@ unless marked new:
   log list" instead of actually filtering — no error is thrown, so this is easy to
   miss in casual use. No client-side fallback filtering exists to mask this (removed
   at some point after the 2026-06-17 `_applyLocalSearch` investigation).
-- **New — KL-2609-statuscode (verified 2026-09-14)** — `ErrorGroup.fromApiJson`
+- ~~**KL-2609-statuscode**~~ — **fixed 2026-09-14** (`d72782d`). Was:
+  `ErrorGroup.fromApiJson`
   (`lib/data/models/error_group.dart`) never reads the `sampleStatusCode` field that
   `GET /api/v1/logs/errors/groups` already returns per group
   (`central-logging-service/src/routes/logs.js:573-574`, sourced from the log's own
@@ -199,10 +200,9 @@ unless marked new:
 LogPulse to send `q` instead of `search` (simpler, but only fixes the client that's
 actually broken today). Recommend the server-side alias unless there's a reason to
 prefer `q` as the sole public param name.
-**0b. New — fix KL-2609-statuscode.** Update `ErrorGroup.fromApiJson` to read
-`json['sampleStatusCode']` and prefer it over the client-side `inferredStatusCode`
-heuristic (keep the heuristic only as a fallback for older server responses without
-the field, if backward compatibility with pre-`39de821` deployments matters).
+~~**0b. Fix KL-2609-statuscode.**~~ — **done 2026-09-14** (`d72782d`): `ErrorGroup`
+now reads `sampleStatusCode` and `inferredStatusCode` prefers it, falling back to the
+heuristic only when it's absent. Added a regression test locking in the precedence.
 
 Below, per `BACKLOG.md` §2.5, in the order that document recommends (all unblocked, no
 further CLS dependency beyond what's already shipped):
