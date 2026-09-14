@@ -3,9 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart' as date_utils;
+import '../../../data/models/log_entry.dart';
 import '../../providers/logs_provider.dart';
+import 'log_details_page.dart';
 
 /// All logs sharing a [traceId] (Overview + Error tab actions).
+///
+/// Most traces in this app are a single log entry — these services don't
+/// propagate one shared traceId across multiple internal log lines per
+/// request, so "the trace" is usually just the one log that started it.
+/// When that's the case, skip this list entirely and go straight to that
+/// log's own detail page instead of showing a dead-end summary of one card
+/// (confirmed live: this page previously had no way to drill into a row at
+/// all, single-log or not).
 class TraceLogsPage extends ConsumerWidget {
   final String traceId;
 
@@ -43,80 +53,109 @@ class TraceLogsPage extends ConsumerWidget {
               ),
             );
           }
+
+          if (logs.length == 1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!context.mounted) return;
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => LogDetailsPage(log: logs.first),
+                ),
+              );
+            });
+            return const Center(child: CircularProgressIndicator());
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: logs.length,
             itemBuilder: (context, index) {
               final entry = logs[index];
-              final levelColor = c.levelColor(entry.level);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: c.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: c.border),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+              return _TraceLogCard(entry: entry, c: c);
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TraceLogCard extends StatelessWidget {
+  final LogEntry entry;
+  final AppColorTokens c;
+
+  const _TraceLogCard({required this.entry, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    final levelColor = c.levelColor(entry.level);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => LogDetailsPage(log: entry)),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 3, color: levelColor),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 3, color: levelColor),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    entry.level.toUpperCase(),
-                                    style: AppTextStyles.label
-                                        .copyWith(color: levelColor),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      entry.service,
-                                      style: AppTextStyles.monoSm
-                                          .copyWith(color: c.textPrimary),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (entry.method != null &&
-                                  entry.path != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${entry.method} ${entry.path}',
-                                  style: AppTextStyles.monoSm
-                                      .copyWith(color: c.textSecondary),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                              const SizedBox(height: 4),
-                              Text(
-                                date_utils.DateUtils.formatFull(
-                                    entry.timestamp),
-                                style: AppTextStyles.monoSm
-                                    .copyWith(color: c.textTertiary),
-                              ),
-                            ],
+                      Row(
+                        children: [
+                          Text(
+                            entry.level.toUpperCase(),
+                            style:
+                                AppTextStyles.label.copyWith(color: levelColor),
                           ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              entry.service,
+                              style: AppTextStyles.monoSm
+                                  .copyWith(color: c.textPrimary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(Icons.chevron_right,
+                              size: 18, color: c.textTertiary),
+                        ],
+                      ),
+                      if (entry.method != null && entry.path != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${entry.method} ${entry.path}',
+                          style: AppTextStyles.monoSm
+                              .copyWith(color: c.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        date_utils.DateUtils.formatFull(entry.timestamp),
+                        style: AppTextStyles.monoSm
+                            .copyWith(color: c.textTertiary),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          );
-        },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

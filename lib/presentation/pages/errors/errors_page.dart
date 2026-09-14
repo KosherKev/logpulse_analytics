@@ -476,24 +476,29 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
   }
 
   void _findSimilar(BuildContext sheetContext, ErrorGroup group) {
-    final raw = group.message.trim();
-    final isPlaceholder = raw.isEmpty ||
-        raw.toLowerCase() == 'unknown error' ||
-        raw.toLowerCase() == 'unknown';
-    String? query;
-    if (!isPlaceholder) {
-      query = raw.length > 120 ? raw.substring(0, 120) : raw;
-    } else if (group.errorCode != null && group.errorCode!.trim().isNotEmpty) {
-      query = group.errorCode!.trim();
-    }
-
     final service = group.services.length == 1 ? group.services.first : null;
 
     Navigator.of(sheetContext).pop();
     ref.read(logsProvider.notifier).applyFilter(
           LogFilter(
-            searchQuery: query,
-            level: 'error',
+            // Was: searched group.message. That's a composed/derived
+            // display string (CLS's error-groups extraction falls back to
+            // response.body when error is null), not necessarily the raw
+            // stored error.message CLS's search regexes against — and
+            // combining an unreliable search with statusCode would AND
+            // them, so a search miss produces a false zero even when
+            // statusCode alone would have matched. Confirmed live: "Find
+            // Similar" always came back empty post-deploy. statusCode +
+            // service are both real, exact-match fields instead — broader
+            // than a message match, but never a false negative.
+            statusCode: group.inferredStatusCode,
+            // No level filter: CLS's error-groups match rule is
+            // `level === 'error' OR statusCode >= 400`, so a group can
+            // legitimately be made up of level 'warn' entries with a 4xx/5xx
+            // status (e.g. the "Route not found" 404 group). Forcing
+            // level: 'error' here guaranteed zero results for exactly that
+            // case — confirmed live post-deploy ("Find Similar" always came
+            // back empty).
             service: service,
           ),
         );

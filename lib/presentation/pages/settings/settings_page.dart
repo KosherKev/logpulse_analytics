@@ -240,33 +240,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  // SegmentedButton divides its parent's full width evenly
-                  // across all 3 segments regardless of content — at phone
-                  // widths (~375px) that left no room for "System" with its
-                  // icon, and it wrapped to "Syste"/"m". "Auto" is short
-                  // enough to reliably fit; the underlying value stays
-                  // 'system'.
-                  SegmentedButton<String>(
-                    segments: const <ButtonSegment<String>>[
-                      ButtonSegment<String>(
-                          value: 'light',
-                          label: Text('Light'),
-                          icon: Icon(Icons.wb_sunny_outlined)),
-                      ButtonSegment<String>(
-                          value: 'dark',
-                          label: Text('Dark'),
-                          icon: Icon(Icons.nightlight_round)),
-                      ButtonSegment<String>(
-                          value: 'system',
-                          label: Text('Auto'),
-                          icon: Icon(Icons.settings_suggest_outlined)),
+                  // Custom control, not SegmentedButton: SegmentedButton
+                  // divides its parent's full width evenly across all 3
+                  // segments regardless of content, and at phone width that
+                  // wrapped the label to two lines. Renaming "System" to
+                  // "Auto" alone didn't actually fix it — confirmed live on
+                  // a real device after deploy, all three labels wrapped
+                  // ("Lig/ht", "Dar/k", "Aut/o"), worse than before. A
+                  // FittedBox per segment scales its icon+label down to fit
+                  // instead of ever wrapping, regardless of width.
+                  Row(
+                    children: [
+                      _ThemeOption(
+                        icon: Icons.wb_sunny_outlined,
+                        label: 'Light',
+                        selected: settings.themeMode == 'light',
+                        onTap: () => ref
+                            .read(settingsProvider.notifier)
+                            .setThemeMode('light'),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      _ThemeOption(
+                        icon: Icons.nightlight_round,
+                        label: 'Dark',
+                        selected: settings.themeMode == 'dark',
+                        onTap: () => ref
+                            .read(settingsProvider.notifier)
+                            .setThemeMode('dark'),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      _ThemeOption(
+                        icon: Icons.settings_suggest_outlined,
+                        label: 'Auto',
+                        selected: settings.themeMode == 'system',
+                        onTap: () => ref
+                            .read(settingsProvider.notifier)
+                            .setThemeMode('system'),
+                      ),
                     ],
-                    selected: <String>{settings.themeMode},
-                    showSelectedIcon: false,
-                    onSelectionChanged: (newSelection) {
-                      final value = newSelection.first;
-                      ref.read(settingsProvider.notifier).setThemeMode(value);
-                    },
                   ),
                 ],
               ),
@@ -642,5 +653,63 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _truncateUrl(String url) {
     if (url.length <= 40) return url;
     return '${url.substring(0, 37)}…';
+  }
+}
+
+/// One theme choice in the Appearance section's Light/Dark/Auto row.
+/// A FittedBox scales icon+label down together if the segment is ever too
+/// narrow, rather than wrapping the label onto a second line the way
+/// [SegmentedButton] did.
+class _ThemeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemeOption({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: selected ? c.accent.withValues(alpha: 0.15) : null,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? c.accent : c.border,
+            ),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon,
+                    size: 18, color: selected ? c.accent : c.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: selected ? c.accent : c.textSecondary,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

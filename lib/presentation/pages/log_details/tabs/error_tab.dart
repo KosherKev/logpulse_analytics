@@ -15,13 +15,22 @@ class ErrorTab extends ConsumerWidget {
   const ErrorTab({super.key, required this.log});
 
   void _viewSimilar(BuildContext context, WidgetRef ref) {
-    final message = log.displayError.trim();
-    // Cap query length so search stays usable.
-    final query = message.length > 120 ? message.substring(0, 120) : message;
+    // Was: searched log.displayError (a composed/derived message — often
+    // built from response.body, not the raw stored error.message). CLS's
+    // search only regexes error.message/path/error.code, so a composed
+    // message frequently matches nothing even though it displays fine —
+    // confirmed live: "Find Similar" always came back empty post-deploy.
+    // log.path is a real stored field the search route actually checks.
+    final path = log.path;
     ref.read(logsProvider.notifier).applyFilter(
           LogFilter(
-            searchQuery: query.isNotEmpty ? query : null,
-            level: 'error',
+            searchQuery: (path != null && path.isNotEmpty) ? path : null,
+            statusCode: log.statusCode,
+            // No level filter: CLS's error-groups match rule is
+            // `level === 'error' OR statusCode >= 400`, so a group (and this
+            // log itself) can legitimately be level 'warn' with a 4xx/5xx
+            // status. Forcing level: 'error' here guaranteed zero results
+            // for exactly that (common) case — confirmed live post-deploy.
             service: log.service,
           ),
         );
