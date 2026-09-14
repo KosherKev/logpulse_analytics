@@ -249,4 +249,4 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   documentation method. Did not touch `assets/app_icon.png` (uncommitted) or
   `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — pre-existing,
   unrelated to this pass, flagged in Human pass queue instead. Did not push to
-  `origin` — local `main` is 3 commits ahead. Commit: pending (see next entry).
+  `origin` — local `main` is 3 commits ahead. Commit: `f7406748f900058b1c508045f805b1dbc6157382`.
