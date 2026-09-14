@@ -185,6 +185,12 @@ unless marked new:
   something the server already hands over directly. Likely sequencing: `d607640`
   (23:50:05 UTC) landed 5 minutes before the CLS commit that added `sampleStatusCode`
   (`39de821`, 23:55:23 UTC) — the client was never updated afterward to just use it.
+- **New — KL-2609-deadquery** — `LogFilter.toQueryParams()` is dead code (never
+  called anywhere; `ApiEndpoints.buildLogsQuery()` is what `api_service.dart`
+  actually uses). It independently re-implements the same `search`/`q` mismatch as
+  KL-2609-search, so if it's ever wired up later without fixing that first, the bug
+  would resurface through a second code path. Low priority; noted so a future
+  cleanup doesn't miss it.
 - **New — KL-2609-wt** — Working tree has an uncommitted modification
   (`assets/app_icon.png`) and an untracked file
   (`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`) that predate this session and
@@ -308,3 +314,19 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   key and are tracked/pushed in git history (KL-2609-key). Did not delete or edit
   those files pending a decision on key rotation and/or history rewrite. Commit:
   `fa277b68619905c794638fda9b381aa02fc51f47`.
+- **2026-09-14 (same session, API/data-layer conformance audit)** — Per Kevin's
+  plan (unify docs → audit the API and what it hands the app → then review screens),
+  read `central-logging-service`'s actual route handlers (`logs.js`, `metrics.js`,
+  `services.js`, `health.js`, `jobs.js`) side-by-side with LogPulse's parsers/models
+  to check real conformance, not just doc claims. Found and fixed
+  KL-2609-statuscode (`d72782d`). Found and **left open** KL-2609-search (needs a
+  cross-repo decision, see Next Steps 0a) and KL-2609-deadquery (minor). Confirmed
+  solid, no action needed: `DashboardStats`/`ServiceStats` correctly consume
+  `/logs/stats/summary`'s object-shaped `byService`; `ServiceSummary`/`ServiceDetail`/
+  `EndpointStats`/`ServiceInstance` correctly consume `/services` and `/services/:name`;
+  `TimeSeriesPoint` matches `/logs/stats/timeseries` exactly; `LogEntry`'s `_id`→`id`
+  normalization (`api_service.dart:237,406`) correctly handles Mongoose's `.lean()`
+  omitting the `id` virtual, with a regression test already covering it
+  (`logs_page_parser_test.dart`); `/health` and `/jobs/purge-logs` have no client
+  consumer in this repo (health is infra-only, purge is CLS-internal) so nothing to
+  conform. Commit: pending.
