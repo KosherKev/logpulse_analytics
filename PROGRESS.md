@@ -17,11 +17,19 @@
   and why it may now be partly redundant).
 - **Blocking issues**:
   - ~~No `./scripts/green-gate.sh` exists~~ — **resolved 2026-09-14**: `842b0ca`
-    added `scripts/green-gate.sh`. It was run for the first time this session and
-    currently **fails**: `flutter analyze --no-fatal-infos` reports 3 real warnings,
-    and `dart format --output=none --set-exit-if-changed .` flags 46 files as
-    unformatted. `flutter test` passes clean (76/76 across 12 files). See Known
-    Limitations KL-2609-a3 (updated) for the concrete list.
+    added it. First run failed (3 analyzer warnings, 46 unformatted files); fixed in
+    `fa277b6` (removed dead `_selectedProfileId` state, ran `dart format`). Gate is
+    now green **except** 2 residual `unused_import` warnings in `test_api.dart`/
+    `test_api_2.dart` — deliberately not touched, see the item below.
+  - **New, higher severity — live API key committed to git, tracked, already
+    pushed.** `test_api.dart`/`test_api_2.dart` (repo root) hardcode a live-looking
+    key (prefix `cls_RBA8...` — full value deliberately not repeated here; see the
+    files directly, or `.env`'s `API_KEY`, which matches) for the production
+    `central-logging-service` Cloud Run instance. Both
+    files are tracked (`git ls-files` confirms) and have been on `origin/main` since
+    2026-06-17. Deleting the files does not remove the key from git history — this
+    needs either a key rotation on the CLS side, a history rewrite before the repo
+    goes public, or both. **Not resolved by this session** — see Human pass queue.
   - No CI workflow (`.github/workflows/` absent) — nothing runs the gate automatically
     on push.
 - **Next action**: Docs are now unified into this ledger across both repos (LogPulse +
@@ -36,8 +44,9 @@
   yet explained (see Human pass queue).
 - **Verified running**: **Verified this session** (2026-09-14) via `./scripts/green-gate.sh`
   on Kevin's local machine: `flutter test` — 76/76 pass, 12 test files (up from the
-  11 the bootstrap ledger could only confirm by reading). `flutter analyze` and
-  `dart format` both fail — see Blocking issues above.
+  11 the bootstrap ledger could only confirm by reading). `flutter analyze`/
+  `dart format` initially failed, fixed in `fa277b6` — gate is now green except the
+  2 warnings tied to the API-key exposure above (deliberately left, not a gap).
 - **Machine**: Kevin's local MacBook (Flutter SDK at `~/flutter/bin`, confirmed
   working) — not the ephemeral sandbox the bootstrap ledger ran in. Toolchain
   availability can now be assumed normal for future sessions on this machine.
@@ -115,15 +124,16 @@ unless marked new:
   since related model changes; `.g.dart` files may be stale relative to hand-edited models.
   `flutter analyze` has known remaining info-level noise (e.g. deprecated `Radio` usage),
   partially cleaned but not finished.
-- ~~**KL-2609-a3** — No automated verification gate exists~~ — **partially resolved
-  2026-09-14**: `scripts/green-gate.sh` now exists (`842b0ca`) and was actually run
-  this session. It currently **fails**: `flutter analyze --no-fatal-infos` reports 3
-  warnings — unused `_selectedProfileId` field (`settings_page.dart:21`), and unused
-  imports in the root-level scratch scripts `test_api.dart:1` (`dart:io`) and
-  `test_api_2.dart:2` (`dart:convert`) — and `dart format --output=none
-  --set-exit-if-changed .` flags **46 files** as unformatted (mostly across
-  `lib/presentation/`). `flutter test` passes clean (76/76, 12 files). No CI workflow
-  still exists to run this automatically.
+- ~~**KL-2609-a3** — No automated verification gate exists~~ — **resolved
+  2026-09-14**: `scripts/green-gate.sh` added (`842b0ca`), run for the first time,
+  found 3 warnings + 46 unformatted files, fixed in `fa277b6`. Gate is green except
+  KL-2609-key below. No CI workflow still exists to run this automatically.
+- **New — KL-2609-key (security)** — `test_api.dart`/`test_api_2.dart` (repo root,
+  tracked in git, pushed since 2026-06-17) hardcode a live-looking production
+  `central-logging-service` API key (`cls_RBA8...`, matches `.env`'s `API_KEY`).
+  Deleting the files doesn't remove the key from git history. Needs a decision: rotate
+  the key on the CLS side, rewrite this repo's git history before it goes public, or
+  both. Left in place, not deleted, pending that decision — see Human pass queue.
 - **KL-2609-k7 (updated)** — `log.md` is now **two** commits behind `HEAD`, not one:
   still missing `92e6706` (asset-only, low risk) and now also missing `d607640`
   (error-group status inference + Find Similar/View Trace — a real feature commit,
@@ -173,11 +183,13 @@ recommends:
 5. **LP-14** — Add a "metrics unavailable" chip on the dashboard for the existing silent
    soft-fail path, or explicitly decide it's not worth the UI surface.
 6. ~~**Process** — Add a `scripts/green-gate.sh`~~ — **done 2026-09-14** (`842b0ca`).
-7. **New — fix the gate.** 3 analyzer warnings (2 of which are the root-level
-   `test_api.dart`/`test_api_2.dart` scratch scripts — candidates for deletion rather
-   than fixing, per KL-2609-wt-adjacent cleanup) and 46 files need `dart format`. Purely
-   mechanical; not done as part of this docs-unification session since fixing code was
-   out of scope for it, but it's now a concretely-sized, ready-to-do task.
+7. ~~**Fix the gate.**~~ — **done 2026-09-14** (`fa277b6`): removed dead
+   `_selectedProfileId` state, ran `dart format` on the 46 flagged files. The 2
+   remaining warnings in `test_api.dart`/`test_api_2.dart` are intentionally left —
+   see KL-2609-key.
+7a. **New — resolve KL-2609-key.** Rotate the exposed CLS API key and/or rewrite git
+    history to remove it before this repo goes public. This blocks the open-source
+    push independently of the `@bevingh/auth` blocker already flagged in CLS's ledger.
 8. **New — verify cross-repo bug status.** Confirm whether `central-logging-service`
    commit `39de821` actually fixed the "Unknown error" megagroup bug that `d607640`'s
    `isClientErrorGroup`/`"unknown error"` skip logic works around, and if so, whether
@@ -199,10 +211,11 @@ items 7-10 above as ready to spec.
 Decisions this ledger surfaced that are Kevin's to make, not the planner's:
 
 - ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
-  script was added (`842b0ca`). **Still open**: whether to add the CI workflow too, and
-  whether to fix the 3 warnings + 46-file format drift now or defer until after the
-  API/data-layer and app-screen review pass this ledger unification is a prerequisite
-  for.
+  script was added (`842b0ca`) and the gate failures it found were fixed (`fa277b6`).
+  **Still open**: whether to add the CI workflow too.
+- **Security — needs a decision before open-sourcing**: `test_api.dart`/
+  `test_api_2.dart` have a live CLS API key committed and pushed (KL-2609-key). Rotate
+  the key, rewrite history, or both?
 - What `assets/app_icon.png` (uncommitted modification) and
   `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) sitting in the working
   tree are for — both predate this session; not touched, but should be committed,
@@ -250,3 +263,11 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — pre-existing,
   unrelated to this pass, flagged in Human pass queue instead. Did not push to
   `origin` — local `main` is 3 commits ahead. Commit: `f7406748f900058b1c508045f805b1dbc6157382`.
+- **2026-09-14 (same session, continued)** — Pushed the ledger commits to `origin`.
+  Fixed the gate failures found above: removed dead `_selectedProfileId` state
+  (`settings_page.dart`), ran `dart format` on the 46 flagged files (`fa277b6`).
+  While doing so, found `test_api.dart`/`test_api_2.dart` — the two files
+  contributing the remaining 2 analyzer warnings — hardcode a live production CLS API
+  key and are tracked/pushed in git history (KL-2609-key). Did not delete or edit
+  those files pending a decision on key rotation and/or history rewrite. Commit:
+  `fa277b68619905c794638fda9b381aa02fc51f47`.
