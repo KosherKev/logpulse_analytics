@@ -959,3 +959,47 @@ None material.
 
 ### Status
 DONE
+
+## Phase 24 — Cross-repo bug-fix pass
+Completed: 2026-09-14
+Commits: 7fe5278 (Log Detail crash), 8dd8966 (Logs init-load + Settings overflow),
+d72782d (ErrorGroup sampleStatusCode), 1a080f1 (API key persistence + Auto label +
+dead code removal), and central-logging-service 70a93f3 (CLS-12 search alias +
+CLS-13 timeRange fix). Full detail in PHASE_24_SPEC.md.
+
+### What was done
+Nine bugs fixed across both repos, found via a live API/data-layer audit and a
+screen-by-screen review against real production data ("Bevin Production") rather
+than empty-state testing alone:
+1. Log Detail page body was blank on every open — Border+borderRadius restriction
+   Flutter enforces, hit in 3 widgets (page header, shared DetailSection, Response
+   tab status card).
+2. Logs tab never fetched on mount — missing the initState call ErrorsPage/
+   ServicesPage both have.
+3. Settings screen RenderFlex overflow at 375px phone width (Row+Spacer, no wrap).
+4. ErrorGroup ignored the server's authoritative sampleStatusCode field in favor of
+   a client-side heuristic guess.
+5. API key silently reverted when editing an existing connection — copyWith() call
+   omitted apiKey when rebuilding the profile.
+6. Theme picker's "System" label wrapped at phone width — renamed to "Auto".
+7. Dead code: LogFilter.toQueryParams() (unused, duplicated the search/q bug).
+8. CLS: GET /api/v1/logs only read `q`, never the `search` param this client
+   actually sends — search bar and Find/View Similar silently no-opped.
+9. CLS: GET /logs/stats/summary never read `timeRange` — Dashboard's time-range
+   selector didn't affect the stat cards or Service Health list at all.
+
+### Key facts for next step
+- CLS-12/CLS-13 (items 8-9) are committed but NOT deployed to production — this
+  session had no way to build/deploy central-logging-service (no node_modules, no
+  private-registry access for @bevingh/auth). Needs a real deploy + smoke test.
+- Item 5 (API key fix) needs Kevin to verify live — typing a real key isn't
+  something this session does itself.
+- Items 1-4, 6-7 are verified live against production data already.
+
+### Deviations from spec
+No upfront spec existed for this phase — bugs were found and fixed during review,
+then written up retrospectively as PHASE_24_SPEC.md per Kevin's request.
+
+### Status
+DONE (code) — PENDING (CLS deploy, live verification of CLS fixes and the API key
+fix)

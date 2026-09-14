@@ -7,14 +7,18 @@
 
 ## Status Snapshot
 
-- **Phase**: No phase is in progress. The last *specced* unit of work is Phase 23
-  ("Dedicated Services tab" — `PHASE_23_SPEC.md`, `log.md` lines 939-960), landed
-  2026-07-21 10:06 UTC (commit `1076640`). Two commits sit on top of it, neither
-  documented in `log.md` or any phase spec (see Known Limitations KL-2609-k7):
-  `92e6706` (asset-only launcher-icon regen, 2026-07-21 16:08 UTC) and `d607640`
-  (client-side error-group status inference + working "Find Similar"/"View Trace"
-  actions, 2026-07-21 23:50:05 UTC — see Decisions log for what this actually does
-  and why it may now be partly redundant).
+- **Phase**: **Phase 24 ("Cross-repo bug-fix pass") complete** as of 2026-09-14 —
+  see `PHASE_24_SPEC.md` and `log.md`. Nine bugs fixed across both repos (Log
+  Detail crash, Logs never loading, Settings overflow, ErrorGroup status code, API
+  key persistence, theme label wrap, dead code, plus CLS-12/CLS-13 server-side).
+  **Not fully verified**: the two `central-logging-service` fixes (CLS-12, CLS-13)
+  are committed but not deployed to production — LogPulse's live app only talks to
+  Cloud Run, so they have no effect yet; the API key fix needs Kevin to verify live
+  (typing a real key isn't something this session does itself). Before Phase 24:
+  the last *specced* unit of work was Phase 23 ("Dedicated Services tab" —
+  `PHASE_23_SPEC.md`, `log.md` lines 939-960), landed 2026-07-21 (commit `1076640`),
+  with two undocumented commits on top (`92e6706` asset regen, `d607640` client-side
+  error-group status inference — see Decisions log).
 - **Blocking issues**:
   - ~~No `./scripts/green-gate.sh` exists~~ — **resolved 2026-09-14**: `842b0ca`
     added it. First run failed (3 analyzer warnings, 46 unformatted files); fixed in
@@ -32,21 +36,23 @@
     goes public, or both. **Not resolved by this session** — see Human pass queue.
   - No CI workflow (`.github/workflows/` absent) — nothing runs the gate automatically
     on push.
-- **Next action**: Docs are now unified into this ledger across both repos (LogPulse +
-  `central-logging-service`, which now has its own `PROGRESS.md`). Per `BACKLOG.md` §2.5,
-  remaining unblocked client work is P2 cleanup — see Next Steps below — plus the newly
-  surfaced gate failures and cross-repo bug-status question.
-- **Repo state**: Local `main` merged `origin/main`'s bootstrapped ledger this session
-  (merge commit `cda3bea`) and is now **3 commits ahead of `origin/main`, not pushed**
-  (`d607640`, `842b0ca`, `cda3bea`). Working tree has one uncommitted modification
-  (`assets/app_icon.png`) and one untracked file (`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`)
-  — both pre-existing when this session started, neither touched by ledger work, not
-  yet explained (see Human pass queue).
-- **Verified running**: **Verified this session** (2026-09-14) via `./scripts/green-gate.sh`
-  on Kevin's local machine: `flutter test` — 76/76 pass, 12 test files (up from the
-  11 the bootstrap ledger could only confirm by reading). `flutter analyze`/
-  `dart format` initially failed, fixed in `fa277b6` — gate is now green except the
-  2 warnings tied to the API-key exposure above (deliberately left, not a gap).
+- **Next action**: Deploy `central-logging-service` with the CLS-12/CLS-13 fixes and
+  smoke-test search + the Dashboard time-range selector against production; Kevin to
+  verify the API key edit-save fix live. After that: decide whether to continue with
+  remaining P2 backlog items (`BACKLOG.md` §2.5) or move to the "does the app need
+  more features" discussion Kevin flagged next.
+- **Repo state**: All ledger and Phase 24 work pushed to `origin/main` through
+  commit `e487814`, plus one more local commit (`1a080f1`, the API key/Auto-label/
+  dead-code fix) still to push this round. Working tree still has the same
+  pre-existing, untouched items: `assets/app_icon.png` (uncommitted modification)
+  and `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — neither explained
+  yet (see Human pass queue).
+- **Verified running**: `./scripts/green-gate.sh` green after every fix this session
+  (`flutter test` 77/77 across 12 files; `flutter analyze`/`dart format` clean except
+  the 2 warnings tied to the untouched, key-exposed `test_api*.dart` files). All
+  Phase 24 client-side fixes (items 1-7 in `PHASE_24_SPEC.md`) additionally verified
+  live against real production data. The two CLS-side fixes (items 8-9) are **not**
+  verified live — not deployed yet (see Next action).
 - **Machine**: Kevin's local MacBook (Flutter SDK at `~/flutter/bin`, confirmed
   working) — not the ephemeral sandbox the bootstrap ledger ran in. Toolchain
   availability can now be assumed normal for future sessions on this machine.
@@ -159,7 +165,8 @@ unless marked new:
   Logs, should list all services") is still listed open in §2.1, but Phase 23 Step 3
   (`goToServices()`, confirmed via `git show 1076640`) already fixed exactly this —
   the backlog row was never struck through.
-- **New — KL-2609-search (functional bug, verified 2026-09-14)** — **Log search is
+- ~~**KL-2609-search**~~ — **fixed in `central-logging-service` 2026-09-14**
+  (`70a93f3`), **not yet deployed** — see Human pass queue. Was: **Log search is
   completely non-functional in production.** `ApiEndpoints.buildLogsQuery()`
   (`lib/core/constants/api_endpoints.dart:47`) sends the search term as
   `?search=<term>`, but `central-logging-service`'s `GET /api/v1/logs` handler
@@ -185,10 +192,11 @@ unless marked new:
   something the server already hands over directly. Likely sequencing: `d607640`
   (23:50:05 UTC) landed 5 minutes before the CLS commit that added `sampleStatusCode`
   (`39de821`, 23:55:23 UTC) — the client was never updated afterward to just use it.
-- **New — KL-2609-deadquery** — `LogFilter.toQueryParams()` is dead code (never
+- ~~**KL-2609-deadquery**~~ — **removed 2026-09-14** (`1a080f1`). Was:
+  `LogFilter.toQueryParams()` was dead code (never
   called anywhere; `ApiEndpoints.buildLogsQuery()` is what `api_service.dart`
-  actually uses). It independently re-implements the same `search`/`q` mismatch as
-  KL-2609-search, so if it's ever wired up later without fixing that first, the bug
+  actually uses). It independently re-implemented the same `search`/`q` mismatch as
+  KL-2609-search, so if it had ever been wired up later without fixing that first, the bug
   would resurface through a second code path. Low priority; noted so a future
   cleanup doesn't miss it.
 - **New — KL-2609-wt** — Working tree has an uncommitted modification
@@ -312,16 +320,27 @@ Kevin configuring the app himself so screenshots of real data can be reviewed.
   375px-wide viewports. Fixed in `8dd8966` by switching to `Wrap`, which drops
   "Add Connection" to a second line instead of overflowing. Verified clean at mobile
   width.
-- **New — KL-2609-segwrap (open, unresolved).** The theme `SegmentedButton`'s
+- ~~**KL-2609-segwrap**~~ — **fixed 2026-09-14** (`1a080f1`), via the copy-change
+  option this entry had left open. Was: the theme `SegmentedButton`'s
   "System" label wraps to "Syste"/"m" at 375px width — `SegmentedButton` divides its
   parent's full width evenly across all 3 segments regardless of content, so at this
   width there isn't enough room for icon+"System" on one line. Tried three fixes
   (`SingleChildScrollView` wrapper, `styleFrom` padding + smaller icons, renaming to
-  "Auto") — the first two didn't help or made it worse (all three labels wrapped),
-  the third would have worked but felt like sidestepping a layout bug with a copy
-  change without checking first. **Reverted to the original code** rather than ship
-  a half-working fix; this needs either a deliberate copy decision ("Auto" vs
-  "System") or a proper custom-width segmented control, not a quick patch.
+  "Auto") — the first two didn't help or made it worse (all three labels wrapped).
+  Now shipped: relabelled to "Auto" (the underlying `themeMode` value sent to the
+  provider is still `'system'`, unchanged).
+- ~~**KL-2609-apikey**~~ — **fixed 2026-09-14** (`1a080f1`), reported directly by
+  Kevin: the API key doesn't reliably stay set, and editing a connection's key and
+  saving didn't make it stick either. Root cause:
+  `ApiConfigNotifier.configure()`'s existing-profile-update branch
+  (`service_providers.dart`) called `copyWith(baseUrl: baseUrl)` when rebuilding the
+  active profile — omitting `apiKey`. The freshly-typed key *was* correctly written
+  to secure storage, but the in-memory profile object kept its old (often empty)
+  key, and that stale value is what actually configured the live `ApiService` and
+  the returned state moments later — so a re-entered key never took effect in the
+  running session even though it looked saved. Fix: `copyWith(baseUrl: baseUrl,
+  apiKey: apiKey)`. **Kevin still needs to verify this live** — this session can't
+  type a real API key into the app itself.
 - **Doc-staleness found — LP-07 is actually already fixed.** `BACKLOG.md` §2.1 lists
   LP-07 ("Errors nav badge — planned red count badge... not wired") as open, but
   `home_page.dart` lines 20/57/76 already show a red dot on the Errors nav icon when
@@ -347,21 +366,27 @@ Kevin configuring the app himself so screenshots of real data can be reviewed.
 
 ## Next Steps
 
-**0-cls. New, cross-repo, high impact — Dashboard time range is fake.** See
-`central-logging-service` CLS-13: `/logs/stats/summary` ignores `timeRange`
-entirely, so the stat cards and Service Health list never reflect the selected
-range. Fix belongs in CLS; nothing to do here once it lands.
+**Phase 24 (2026-09-14) closed out everything below that was still open** — see
+`PHASE_24_SPEC.md` for full detail. Kept here, struck through, per this ledger's
+own discipline of not deleting resolved items:
 
-**0a. New, highest priority — fix KL-2609-search.** Log search is broken end-to-end
-(three UI entry points, zero functional effect). Needs a cross-repo decision: make
-`central-logging-service`'s `GET /api/v1/logs` accept `search` as an alias for `q`
-(safer — no client change, no risk to any other existing `q`-based caller), or change
-LogPulse to send `q` instead of `search` (simpler, but only fixes the client that's
-actually broken today). Recommend the server-side alias unless there's a reason to
-prefer `q` as the sole public param name.
+~~**0-cls. Dashboard time range is fake (CLS-13).**~~ — **fixed in CLS**
+(`70a93f3`), **not yet deployed**. `/logs/stats/summary` now resolves `timeRange`
+like its siblings; needs a production deploy + smoke test before this can be
+called verified rather than code-reviewed.
+
+~~**0a. Fix KL-2609-search (CLS-12).**~~ — **fixed in CLS** (`70a93f3`), **not yet
+deployed**, same caveat as above. Went with the server-side `search` → `q` alias
+recommended here, not a client change.
+
 ~~**0b. Fix KL-2609-statuscode.**~~ — **done 2026-09-14** (`d72782d`): `ErrorGroup`
 now reads `sampleStatusCode` and `inferredStatusCode` prefers it, falling back to the
 heuristic only when it's absent. Added a regression test locking in the precedence.
+
+**New — verify Phase 24's CLS-side fixes and the API key fix.** The only real
+remaining work from Phase 24: (1) deploy `central-logging-service` and confirm
+search + the Dashboard time-range selector actually work against production, (2)
+Kevin to verify the API key edit-save fix live.
 
 Below, per `BACKLOG.md` §2.5, in the order that document recommends (all unblocked, no
 further CLS dependency beyond what's already shipped):
@@ -411,10 +436,15 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   reviewed against live data — see "Screen review, continued with live data" above.
   **Still not visually reviewed with live data**: Errors tab's full list view,
   Services catalog list + Service Detail page. Worth a follow-up pass.
-- **KL-2609-segwrap**: rename "System" → "Auto" in the theme picker (quick, but a
-  copy decision), or invest in a proper custom segmented control that doesn't force
-  equal-thirds width? Currently reverted to the original (known-wrapping) code rather
-  than deciding this unilaterally.
+- **New — deploy central-logging-service.** CLS-12 (search) and CLS-13 (Dashboard
+  time range) are fixed and committed (`70a93f3`) but not deployed — LogPulse's
+  live app talks to production Cloud Run only. Needs someone with deploy access to
+  ship it, then a quick smoke test (search a real term; switch the Dashboard's time
+  range and confirm the stat cards move).
+- **New — verify the API key fix live.** Fixed (`1a080f1`), but this session can't
+  type a real API key into the app to confirm it — please edit the connection's
+  key, save, and confirm it now sticks (and survives navigating away/back).
+- ~~**KL-2609-segwrap**~~: resolved by renaming "System" → "Auto" (`1a080f1`).
 - ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
   script was added (`842b0ca`) and the gate failures it found were fixed (`fa277b6`).
   **Still open**: whether to add the CI workflow too.
@@ -528,3 +558,17 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   (`academicx-api` vs `Academicx` as separate catalog rows) and more
   vulnerability-scanner traffic against two more services (detail in CLS's
   ledger). Commit: `799a4bcddf27e7f1af7e58ee87d3fcab8b21df96`.
+- **2026-09-14 (same session, Phase 24 — bug-fix pass)** — Kevin: "fix all bugs,
+  make a phase out of it," plus a new report: the API key doesn't reliably stay
+  set, and editing a connection's key and saving doesn't fix it either. Found and
+  fixed that bug (`ApiConfigNotifier.configure()`'s existing-profile branch omitted
+  `apiKey` from a `copyWith` call — the new key hit secure storage correctly but
+  never reached the live `ApiService` or app state). Also fixed CLS-12 and CLS-13
+  in `central-logging-service` (search alias, Dashboard time-range), renamed the
+  theme picker's "System" to "Auto" (KL-2609-segwrap), and removed dead code
+  (`LogFilter.toQueryParams()`). Wrote up the whole session's bug-fix work —
+  including the earlier Log Detail crash, Logs init-load, Settings overflow, and
+  ErrorGroup fixes — as `PHASE_24_SPEC.md` plus a `log.md` entry, matching this
+  repo's established Phase-N convention. **Not fully verified**: CLS-12/CLS-13
+  are committed but not deployed (this sandbox can't build/deploy CLS — see its
+  ledger); the API key fix needs Kevin to confirm live. Commit: `1a080f1f2c5cd9aaca1b3ee92c1a755403f592e5`.

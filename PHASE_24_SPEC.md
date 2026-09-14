@@ -88,8 +88,7 @@ sending `X-API-Key`) and to populate the returned state. So the new key was
 persisted but never actually took effect for the running session, and looked
 identical to "the key didn't save."
 **Fix:** `copyWith(baseUrl: baseUrl, apiKey: apiKey)` — one missing field.
-**Commit:** `48119caeb99d3a5c1a25a56f0dd5c8d4a2c6c9a1` *(placeholder — see log.md
-entry / PROGRESS.md for the real hash once committed)*
+**Commit:** `1a080f1f2c5cd9aaca1b3ee92c1a755403f592e5`
 
 ### 6. Theme picker's "System" label wrapped at phone width
 **File:** `lib/presentation/pages/settings/settings_page.dart`
@@ -101,7 +100,7 @@ padding/smaller icons) and either didn't help or made it worse (all three labels
 wrapped instead of one).
 **Fix:** renamed the label to "Auto" (a common convention for this exact toggle)
 — the underlying `themeMode` value sent to the provider is unchanged (`'system'`).
-**Commit:** see LP-24 completion commit.
+**Commit:** `1a080f1f2c5cd9aaca1b3ee92c1a755403f592e5`
 
 ### 7. Dead code: `LogFilter.toQueryParams()`
 **File:** `lib/data/models/log_filter.dart`
