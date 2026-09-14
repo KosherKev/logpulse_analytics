@@ -38,9 +38,16 @@
     goes public, or both. **Not resolved by this session** — see Human pass queue.
   - No CI workflow (`.github/workflows/` absent) — nothing runs the gate automatically
     on push.
-- **Next action**: Phase 24 is closed out. Decide whether to continue with
-  remaining P2 backlog items (`BACKLOG.md` §2.5) or move to the "does the app need
-  more features" discussion Kevin flagged next.
+- **Next action**: Phase 25 ("unified API keys + easier onboarding" —
+  `PHASE_25_SPEC.md`) is implemented — Parts A (`central-logging-service`
+  auth unification) and B (`@bevingh/telemetry` logging capability) are
+  code-complete and test-verified (68/68 and 21/21 respectively) but
+  **neither is deployed/published yet**, and Part C (rotating LogPulse's own
+  key, closing KL-2609-key) needs Kevin to actually run the provisioning
+  against production — see that repo's own `PROGRESS.md` Next Steps/Human
+  pass queue for the deploy sequence. Once Part C lands, decide whether to
+  continue with remaining P2 backlog items (`BACKLOG.md` §2.5) or move to
+  the "does the app need more features" discussion Kevin flagged next.
 - **Repo state**: All ledger and Phase 24 work pushed to `origin/main` through
   commit `6d35da0`. Working tree still has the same pre-existing, untouched items:
   `assets/app_icon.png` (uncommitted modification) and
@@ -479,7 +486,21 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   **Still open**: whether to add the CI workflow too.
 - **Security — needs a decision before open-sourcing**: `test_api.dart`/
   `test_api_2.dart` have a live CLS API key committed and pushed (KL-2609-key). Rotate
-  the key, rewrite history, or both?
+  the key, rewrite history, or both? **Phase 25 makes rotation possible without
+  redeploying CLS** (see below) — the history-rewrite half of the decision is
+  still open.
+- **New — deploy/publish Phase 25, then close out Part C.** Code for Parts A
+  and B is done and tested but sitting unreleased: `central-logging-service`
+  needs `scripts/migrate-scopes.js` run against production Mongo, an
+  `ADMIN_SETUP_TOKEN` set, and a deploy; `@bevingh/telemetry@0.2.0` needs
+  `npm publish` (needs the Automation-token/OTP flow Kevin already has from
+  publishing `0.1.0`). Only after both of those: issue LogPulse a real
+  `logs:read` key via `/admin/keys.html`, put it in Settings, and revoke the
+  old flat key — that's what actually closes KL-2609-key's rotation half.
+  None of this needs Kevin's *decision*, just his hands (deploy access,
+  npm publish, typing a real key into the app) — this session can't do any
+  of it. Full sequence: `central-logging-service/PROGRESS.md` Next Steps
+  item 0-phase25.
 - What `assets/app_icon.png` (uncommitted modification) and
   `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) sitting in the working
   tree are for — both predate this session; not touched, but should be committed,
@@ -623,3 +644,22 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   correctly against the deployed `central-logging-service`. Phase 24 is now
   fully closed out with everything verified live — no doc-only changes, no
   code changes this entry, just recording the confirmation.
+- **2026-09-14 (same session, Phase 25 — unified API keys, theory-crafted then
+  implemented)** — Kevin: the logs/telemetry two-key split is a mess, wants
+  it unified with easier onboarding. Explored the architecture (both repos'
+  auth code + `bevin-core/packages/telemetry`), wrote `PHASE_25_SPEC.md`,
+  then implemented Parts A and B directly (not handed to a secondary AI):
+  `central-logging-service` gained one scoped, DB-backed key model
+  (`ApiKeyCandidate` + `apiKeyAuth` middleware, replacing the old flat-vs-
+  per-app split) with a migration-safe legacy fallback, an admin
+  provisioning UI/API, and a `npm run setup` wizard pointing at MongoDB
+  Atlas's free tier for the database-setup friction Kevin flagged;
+  `@bevingh/telemetry` gained `reportLog`/`createLogMiddleware`, finishing
+  the log-shipper.js port PR-20 started, so one client now covers logs +
+  metrics + health under one key. Verified: CLS `npm test` 68/68, telemetry
+  package 21/21 + full monorepo build/test green. **Not deployed or
+  published** — see both repos' `PROGRESS.md` for the exact rollout
+  sequence, which needs Kevin's hands (deploy access, npm publish access,
+  typing a real key into LogPulse) rather than another decision. Part C
+  (rotating LogPulse's own key, closing KL-2609-key) is explicitly gated on
+  that rollout happening first.
