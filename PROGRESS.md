@@ -320,8 +320,19 @@ Kevin configuring the app himself so screenshots of real data can be reviewed.
   375px-wide viewports. Fixed in `8dd8966` by switching to `Wrap`, which drops
   "Add Connection" to a second line instead of overflowing. Verified clean at mobile
   width.
-- ~~**KL-2609-segwrap**~~ — **fixed 2026-09-14** (`1a080f1`), via the copy-change
-  option this entry had left open. Was: the theme `SegmentedButton`'s
+- ~~**KL-2609-segwrap**~~ — **actually fixed 2026-09-14** (`8a39957`). The
+  `1a080f1` "fix" (renaming "System" to "Auto") was **not actually verified live**
+  at the time (Browser pane was hidden) and turned out not to work at all —
+  reported live post-deploy on a real device: all three labels wrapped
+  ("Lig/ht", "Dar/k", "Aut/o"), worse than before. Root cause confirmed:
+  `SegmentedButton` divides its parent's width evenly across segments regardless
+  of content — no label length fixes that. Replaced `SegmentedButton` entirely
+  with a custom Light/Dark/Auto row (`_ThemeOption`) using a `FittedBox` per
+  segment that scales icon+label down instead of ever wrapping. Verified live
+  this time. **Lesson recorded**: don't mark a fix done from a diff/analyzer pass
+  alone when live verification was skipped for an external reason (hidden pane)
+  — say so explicitly rather than letting the ledger imply it was checked.
+  Was: the theme `SegmentedButton`'s
   "System" label wraps to "Syste"/"m" at 375px width — `SegmentedButton` divides its
   parent's full width evenly across all 3 segments regardless of content, so at this
   width there isn't enough room for icon+"System" on one line. Tried three fixes
@@ -363,6 +374,26 @@ Kevin configuring the app himself so screenshots of real data can be reviewed.
   approach Errors/Services use, and it doesn't fail cleanly for a genuinely-never-
   configured user (which Logs did fail on) — worth aligning to the same pattern as a
   robustness improvement, not urgent.
+- ~~**KL-2609-findsimilar**~~ — **fixed 2026-09-14** (`8a39957`). Was: "Find
+  Similar" (`errors_page.dart`, `error_tab.dart`) always returned "No Logs Found"
+  even after CLS-12 fixed the `search`/`q` mismatch — confirmed live post-deploy.
+  Root cause: it searched a **composed** display message
+  (`group.message`/`log.displayError`, which CLS's error-groups extraction can
+  build from `response.body` when `error` is null), but CLS's search only
+  regexes the raw stored `error.message`/`path`/`error.code` fields — a composed
+  message frequently isn't a substring of any of those. Fixed: `error_tab.dart`
+  now searches `log.path` (a real stored field it has directly); `errors_page.dart`
+  drops free-text search entirely for `ErrorGroup` (no raw `path` available there)
+  in favor of `statusCode` + `service`, both real exact-match fields — broader
+  than a message match but never a false negative. Verified live: 102 results.
+- ~~**KL-2609-tracepage**~~ — **fixed 2026-09-14** (`8a39957`). Was: "View Trace"
+  opened `TraceLogsPage`, a bare summary with **no tap target at all** — for a
+  trace with one log (the overwhelming majority; these producer apps don't
+  propagate one traceId across multiple internal log lines) this was a genuine
+  dead end, reported directly as "not very useful." Fixed: rows are now tappable
+  (open `LogDetailsPage`), and when there's exactly one log for the trace, the
+  page skips itself entirely via `pushReplacement` straight to that log's full
+  detail. Verified live.
 
 ## Next Steps
 
@@ -436,19 +467,17 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   reviewed against live data — see "Screen review, continued with live data" above.
   **Still not visually reviewed with live data**: Errors tab's full list view,
   Services catalog list + Service Detail page. Worth a follow-up pass.
-- **New — deploy central-logging-service.** CLS-12 (search) and CLS-13 (Dashboard
-  time range) are fixed and committed (`70a93f3`) but not deployed — LogPulse's
-  live app talks to production Cloud Run only. **The previous deploy attempt failed
-  because of the now-resolved CLS-02 private-registry blocker** (see CLS's
-  `PROGRESS.md`, commit `5c03118`) — `@bevingh/auth` is public now, the private-auth
-  wiring is removed, and `npm install`/the test suite both verify clean, so a
-  re-run of `./scripts/deploy.sh` should go through this time. Once deployed: smoke
-  test (search a real term; switch the Dashboard's time range and confirm the stat
-  cards move).
-- **New — verify the API key fix live.** Fixed (`1a080f1`), but this session can't
-  type a real API key into the app to confirm it — please edit the connection's
-  key, save, and confirm it now sticks (and survives navigating away/back).
-- ~~**KL-2609-segwrap**~~: resolved by renaming "System" → "Auto" (`1a080f1`).
+- ~~**Deploy central-logging-service.**~~ — **done**: Kevin redeployed after the
+  CLS-02 fix and confirmed it succeeded. CLS-12 (search) is now indirectly
+  confirmed working — "Find Similar" (which depends on the deployed
+  `statusCode`/`service` filtering, same route) returned 102 real results live.
+  **Still not explicitly re-checked**: typing a term directly into the Logs
+  page's own search bar, and switching the Dashboard's time-range pills to
+  confirm the stat cards actually move (CLS-13). Both should work now but
+  haven't been separately confirmed.
+- **New — verify the API key edit-save fix live.** Fixed (`1a080f1`), still not
+  explicitly confirmed — please edit the connection's key (not just the initial
+  add), save, and confirm it sticks (and survives navigating away/back).
 - ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
   script was added (`842b0ca`) and the gate failures it found were fixed (`fa277b6`).
   **Still open**: whether to add the CI workflow too.
@@ -576,3 +605,18 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   repo's established Phase-N convention. **Not fully verified**: CLS-12/CLS-13
   are committed but not deployed (this sandbox can't build/deploy CLS — see its
   ledger); the API key fix needs Kevin to confirm live. Commit: `1a080f1f2c5cd9aaca1b3ee92c1a755403f592e5`.
+- **2026-09-14 (same session, deploy failure + post-deploy bug reports)** — Kevin:
+  the deploy failed, correctly guessed it was the `@bevingh/*` private-registry
+  auth (no longer needed — he'd published the packages publicly). Confirmed,
+  removed the private-registry wiring from `.npmrc`/`Dockerfile`/`deploy.sh`/
+  `README.md`, regenerated `package-lock.json`, and — for the first time this
+  session — actually ran `npm install` and the full Jest suite (48/48) in CLS.
+  This resolved CLS-02 entirely (`central-logging-service` commit `5c03118`).
+  Kevin then redeployed successfully and reported three new live bugs: the
+  "Auto" theme-label fix from the previous entry hadn't actually worked (never
+  verified live at the time — the Browser pane was hidden); "Find Similar" still
+  returned nothing even with CLS-12 deployed; "View Trace" opened a useless,
+  non-interactive dead-end page. Root-caused and fixed all three (`8a39957`) —
+  see KL-2609-segwrap, KL-2609-findsimilar, KL-2609-tracepage above — all
+  re-verified live this time before calling them done. Commit:
+  `8a399571e9f9d519131e23c8a244f4806e991378`.

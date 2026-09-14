@@ -1003,3 +1003,41 @@ then written up retrospectively as PHASE_24_SPEC.md per Kevin's request.
 ### Status
 DONE (code) — PENDING (CLS deploy, live verification of CLS fixes and the API key
 fix)
+
+## Phase 24 addendum — post-deploy bug reports
+Completed: 2026-09-14
+Commit: 8a399571e9f9d519131e23c8a244f4806e991378
+
+### What was done
+Kevin deployed central-logging-service (after the CLS-02 registry fix) and
+reported three live bugs from the real app:
+1. The "System"→"Auto" theme-label fix from earlier in Phase 24 had never
+   actually been verified live (Browser pane was hidden at the time) and did
+   not work — all three labels wrapped on a real device, worse than before.
+   Replaced SegmentedButton with a custom FittedBox-based toggle; verified live.
+2. "Find Similar" still returned nothing post-deploy. Root cause: it searched
+   a composed display message, not a field CLS's search actually regexes
+   against. error_tab.dart now uses log.path (real field); errors_page.dart
+   uses statusCode+service instead of free-text search. Verified live: 102
+   real results.
+3. "View Trace" opened a non-interactive dead-end summary. Made rows tappable
+   and auto-forward straight to Log Detail when there's exactly one log (the
+   common case, since these apps don't propagate one traceId across multiple
+   log lines). Verified live.
+
+### Key facts for next step
+- All three fixes verified against real production data this time, unlike the
+  earlier "Auto" rename which was committed without live verification and
+  turned out wrong — worth remembering not to skip that step even when the
+  Browser pane is temporarily unavailable.
+- CLS-02 (private @bevingh/auth registry) is fully resolved; see
+  central-logging-service's own PROGRESS.md and log for that fix.
+- Still open: explicit re-confirmation of the Logs page's own search bar and
+  the Dashboard time-range selector against the now-deployed CLS-13 fix; the
+  API key edit-save fix (1a080f1) also still needs live confirmation.
+
+### Deviations from spec
+N/A — reactive bug-fix work, same as the rest of Phase 24.
+
+### Status
+DONE (all three reported bugs fixed and verified live)
