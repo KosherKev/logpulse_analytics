@@ -244,6 +244,47 @@ continues the review above with actual data instead of only empty/error states.
   directory). Flagging since it showed up in the data, not something I investigated
   further — worth a look if that IP isn't already known/blocked.
 
+## Screen review, Errors + Services with live data (2026-09-14)
+
+- **New — cross-repo, high impact (see `central-logging-service` CLS-13).**
+  Dashboard's stat cards (Total Logs, Error Rate, Avg Latency) and Service Health
+  list **completely ignore the Time Range selector** (1h/24h/7d/30d) — they always
+  show all-time aggregates because `GET /logs/stats/summary` never reads
+  `timeRange` server-side, and this client never computes `from`/`to` itself
+  (`ApiEndpoints.buildStatsQuery` only ever sends `timeRange`, which the server
+  drops). Confirmed live: switching to "1h" left Total Logs/Error Rate/Avg Latency
+  unchanged while the Traffic & Errors chart directly below correctly went to "No
+  data" for that window — the two halves of the same screen visibly disagree. This
+  also explains why the Dashboard's Service Health list showed `unified-voting-api`
+  (12 requests, apparently all-time) while the Services catalog tab — correctly
+  time-scoped — did not. The fix belongs in CLS (add the same `resolveTimeseriesWindow`
+  call its 3 sibling routes already use); nothing to change client-side once that
+  lands.
+- **Errors tab, live data — works well.** Summary cards, severity filter pills
+  (ALL/CRITICAL/HIGH/MEDIUM/LOW with live counts), the error-group list, and the
+  detail bottom sheet (First Seen/Last Seen/Services/Trace, Find Similar/View
+  Trace) all rendered correctly against 50 real error groups. `View Trace` (uses
+  the traceId lookup, not the broken `search` param) worked correctly — jumped
+  straight to the matching log. `Find Similar` reproduces KL-2609-search live (see
+  below).
+- **Services tab + Service Detail, live data — works well.** Catalog list,
+  per-service Overview/Top-Endpoints, and the metrics-reporting path (Health,
+  Custom Metrics as a raw free-form map, Instances list with per-instance status)
+  all rendered exactly as the data-layer audit predicted they should. One naming
+  observation: the catalog shows both `academicx-api` (from logs, 309 req) and
+  `Academicx` (from metrics/telemetry, 9 instances, 0 req) as two separate rows —
+  almost certainly the same underlying app reporting under two different
+  identifiers to the logs vs. metrics side. Not a LogPulse bug (it's correctly
+  rendering the union CLS's `/services` endpoint returns), but confusing for a
+  user; worth a naming-consistency fix on the producer side if that's feasible.
+- **Live-reproduced KL-2609-search via "Find Similar".** Tapping "Find Similar" on
+  a real error group built a request with `level=error&service=fyp-management-
+  backend&search=...` and returned "No Logs Found" — partly the already-documented
+  search-param bug, and partly because this particular log's own level was `WARN`
+  (not `error`), so "Find Similar" forcing `level: 'error'` was already going to
+  under-match even before the search bug. Not fixed — still gated on the
+  cross-repo decision in Next Steps.
+
 ## Screen review (2026-09-14)
 
 Ran the app for real (`flutter run -d web-server`, driven headlessly) at both desktop
@@ -305,6 +346,11 @@ Kevin configuring the app himself so screenshots of real data can be reviewed.
   robustness improvement, not urgent.
 
 ## Next Steps
+
+**0-cls. New, cross-repo, high impact — Dashboard time range is fake.** See
+`central-logging-service` CLS-13: `/logs/stats/summary` ignores `timeRange`
+entirely, so the stat cards and Service Health list never reflect the selected
+range. Fix belongs in CLS; nothing to do here once it lands.
 
 **0a. New, highest priority — fix KL-2609-search.** Log search is broken end-to-end
 (three UI entry points, zero functional effect). Needs a cross-repo decision: make
@@ -469,3 +515,16 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   `$group`) and an unrelated infra observation (vulnerability-scanner traffic
   against `fyp-management-backend`) for Kevin's awareness. Commit:
   `7fe527864f13d13ba80f34a5811d7e4ca9f5b098`.
+- **2026-09-14 (same session, Errors + Services with live data)** — Found the
+  session's most significant remaining bug: `/logs/stats/summary` ignores
+  `timeRange` entirely (documented as CLS-13 in `central-logging-service`'s
+  ledger), so the Dashboard's time-range selector is non-functional for 5 of its 6
+  data displays — confirmed by switching to "1h" and watching the stat cards not
+  move while the traffic chart correctly emptied out. Reviewed Errors tab (summary
+  cards, severity filters, detail sheet, View Trace/Find Similar) and Services tab
+  + Service Detail (catalog, endpoints, health/metrics/instances) against 50 real
+  error groups and 4 real services — both work well. Live-reproduced
+  KL-2609-search via "Find Similar". Noted a service-naming inconsistency
+  (`academicx-api` vs `Academicx` as separate catalog rows) and more
+  vulnerability-scanner traffic against two more services (detail in CLS's
+  ledger). Commit: pending.
