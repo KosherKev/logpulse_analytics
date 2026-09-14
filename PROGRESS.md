@@ -159,6 +159,31 @@ unless marked new:
   Logs, should list all services") is still listed open in §2.1, but Phase 23 Step 3
   (`goToServices()`, confirmed via `git show 1076640`) already fixed exactly this —
   the backlog row was never struck through.
+- **New — KL-2609-search (functional bug, verified 2026-09-14)** — **Log search is
+  completely non-functional in production.** `ApiEndpoints.buildLogsQuery()`
+  (`lib/core/constants/api_endpoints.dart:47`) sends the search term as
+  `?search=<term>`, but `central-logging-service`'s `GET /api/v1/logs` handler
+  (`src/routes/logs.js:65-116`) only ever reads `req.query.q` — `search` is silently
+  ignored, and the endpoint falls through to returning the default unfiltered
+  time-windowed log list. This is not a doc-staleness issue; it's a live parameter-
+  name mismatch between the two repos, confirmed by reading both sides' current code.
+  **Three separate UI entry points route through this broken path**: the Logs page's
+  own search bar, the Errors page "Find Similar" action (`errors_page.dart:368`,
+  literally the feature `d607640` just wired up), and Log Detail's "View Similar"
+  (`error_tab.dart:_viewSimilar`). All three silently degrade to "show the default
+  log list" instead of actually filtering — no error is thrown, so this is easy to
+  miss in casual use. No client-side fallback filtering exists to mask this (removed
+  at some point after the 2026-06-17 `_applyLocalSearch` investigation).
+- **New — KL-2609-statuscode (verified 2026-09-14)** — `ErrorGroup.fromApiJson`
+  (`lib/data/models/error_group.dart`) never reads the `sampleStatusCode` field that
+  `GET /api/v1/logs/errors/groups` already returns per group
+  (`central-logging-service/src/routes/logs.js:573-574`, sourced from the log's own
+  structured `statusCode` field via `extractErrorDisplay` — reliable, not guessed).
+  Instead, `d607640` added `inferredStatusCode`, a client-side heuristic (regex over
+  the message text, scanning `instances`, parsing `errorCode`) to reconstruct
+  something the server already hands over directly. Likely sequencing: `d607640`
+  (23:50:05 UTC) landed 5 minutes before the CLS commit that added `sampleStatusCode`
+  (`39de821`, 23:55:23 UTC) — the client was never updated afterward to just use it.
 - **New — KL-2609-wt** — Working tree has an uncommitted modification
   (`assets/app_icon.png`) and an untracked file
   (`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`) that predate this session and
@@ -167,8 +192,20 @@ unless marked new:
 
 ## Next Steps
 
-Unblocked, no CLS (server) dependency — per `BACKLOG.md` §2.5, in the order that document
-recommends:
+**0a. New, highest priority — fix KL-2609-search.** Log search is broken end-to-end
+(three UI entry points, zero functional effect). Needs a cross-repo decision: make
+`central-logging-service`'s `GET /api/v1/logs` accept `search` as an alias for `q`
+(safer — no client change, no risk to any other existing `q`-based caller), or change
+LogPulse to send `q` instead of `search` (simpler, but only fixes the client that's
+actually broken today). Recommend the server-side alias unless there's a reason to
+prefer `q` as the sole public param name.
+**0b. New — fix KL-2609-statuscode.** Update `ErrorGroup.fromApiJson` to read
+`json['sampleStatusCode']` and prefer it over the client-side `inferredStatusCode`
+heuristic (keep the heuristic only as a fallback for older server responses without
+the field, if backward compatibility with pre-`39de821` deployments matters).
+
+Below, per `BACKLOG.md` §2.5, in the order that document recommends (all unblocked, no
+further CLS dependency beyond what's already shipped):
 
 1. **LP-05 / LP-21** — Now that CLS P2 catalog routes have shipped and been consumed
    (`log.md` "LP P2 consumers" entry), confirm `service_details/` and the `Service`-family
