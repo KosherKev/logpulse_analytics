@@ -180,7 +180,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     onChanged: (_) => setState(() => _isEditing = true),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  Row(
+                  // Wrap (not Row+Spacer): on narrow screens "Configure API"/
+                  // "API Configured" plus "Add Connection" don't fit on one
+                  // line — Wrap drops the overflow to a second line instead
+                  // of overflowing the Row (was a confirmed layout overflow
+                  // at 375px-wide phone viewports).
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (!_isEditing && !apiConfig.isConfigured)
                         ElevatedButton.icon(
@@ -189,12 +197,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           label: const Text('Configure API'),
                         )
                       else if (!_isEditing)
-                        Row(
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             const Icon(Icons.check_circle, color: Colors.green),
-                            const SizedBox(width: AppSpacing.sm),
                             const Text('API Configured'),
-                            const SizedBox(width: AppSpacing.sm),
                             TextButton(
                               onPressed: () =>
                                   setState(() => _isEditing = true),
@@ -202,7 +210,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                           ],
                         ),
-                      const Spacer(),
                       TextButton.icon(
                         onPressed: _showAddConnectionDialog,
                         icon: const Icon(Icons.add),

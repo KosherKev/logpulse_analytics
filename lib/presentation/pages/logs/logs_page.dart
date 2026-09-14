@@ -30,6 +30,12 @@ class _LogsPageState extends ConsumerState<LogsPage> {
     _searchFocusNode.addListener(() {
       setState(() => _searchFocused = _searchFocusNode.hasFocus);
     });
+    // Matches ErrorsPage/ServicesPage: trigger the initial fetch on mount
+    // instead of relying solely on the configured-transition listener or the
+    // auto-refresh timer (which only fires after the full interval elapses).
+    Future.microtask(
+      () => ref.read(logsProvider.notifier).loadLogs(refresh: true),
+    );
   }
 
   @override
