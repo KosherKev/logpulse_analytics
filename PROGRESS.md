@@ -527,4 +527,4 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   KL-2609-search via "Find Similar". Noted a service-naming inconsistency
   (`academicx-api` vs `Academicx` as separate catalog rows) and more
   vulnerability-scanner traffic against two more services (detail in CLS's
-  ledger). Commit: pending.
+  ledger). Commit: `799a4bcddf27e7f1af7e58ee87d3fcab8b21df96`.
