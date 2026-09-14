@@ -63,24 +63,6 @@ class LogFilter {
     return count;
   }
 
-  /// Convert to query parameters
-  Map<String, String> toQueryParams() {
-    final params = <String, String>{};
-
-    if (service != null) params['service'] = service!;
-    if (level != null) params['level'] = level!;
-    if (statusCode != null) params['statusCode'] = statusCode.toString();
-    if (startDate != null) params['from'] = startDate!.toIso8601String();
-    if (endDate != null) params['to'] = endDate!.toIso8601String();
-    if (searchQuery != null && searchQuery!.isNotEmpty) {
-      params['search'] = searchQuery!;
-    }
-    params['limit'] = limit.toString();
-    params['skip'] = offset.toString();
-
-    return params;
-  }
-
   factory LogFilter.fromJson(Map<String, dynamic> json) {
     return LogFilter(
       service: json['service'] as String?,

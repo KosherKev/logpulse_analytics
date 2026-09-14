@@ -230,8 +230,16 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
         final index =
             currentProfiles.indexWhere((p) => p.id == state.activeProfileId);
         if (index >= 0) {
+          // apiKey must be included here: without it, editing an existing
+          // connection's key persisted the new value to secure storage (the
+          // write below) but kept the *old* in-memory apiKey on the profile
+          // object, which is what actually got used to configure the live
+          // ApiService and the returned state a few lines down — so the
+          // freshly-typed key silently never took effect this session
+          // (confirmed: reported as "re-add the key, save, it goes away").
           currentProfiles[index] = currentProfiles[index].copyWith(
             baseUrl: baseUrl,
+            apiKey: apiKey,
           );
           activeProfile = currentProfiles[index];
           await storage.setProfileApiKey(activeProfile.id, apiKey);

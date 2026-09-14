@@ -240,6 +240,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
+                  // SegmentedButton divides its parent's full width evenly
+                  // across all 3 segments regardless of content — at phone
+                  // widths (~375px) that left no room for "System" with its
+                  // icon, and it wrapped to "Syste"/"m". "Auto" is short
+                  // enough to reliably fit; the underlying value stays
+                  // 'system'.
                   SegmentedButton<String>(
                     segments: const <ButtonSegment<String>>[
                       ButtonSegment<String>(
@@ -252,7 +258,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           icon: Icon(Icons.nightlight_round)),
                       ButtonSegment<String>(
                           value: 'system',
-                          label: Text('System'),
+                          label: Text('Auto'),
                           icon: Icon(Icons.settings_suggest_outlined)),
                     ],
                     selected: <String>{settings.themeMode},
