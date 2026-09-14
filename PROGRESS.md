@@ -197,6 +197,53 @@ unless marked new:
   weren't explained by any doc read — flagged rather than committed or discarded (see
   Human pass queue).
 
+## Screen review, continued with live data (2026-09-14)
+
+Kevin connected the app to the real `central-logging-service` production instance
+("Bevin Production" / `central-logging-service-858865328729...run.app`), so this
+continues the review above with actual data instead of only empty/error states.
+
+- **Fixed — Log Detail page crashed on every single open (severity: high).**
+  Confirmed live: tapping any log card opened a page with a working AppBar but a
+  **permanently blank body** — no error message, no skeleton, nothing. Root cause:
+  `BoxDecoration(border: Border(left: BorderSide(color: X), top/right/bottom:
+  BorderSide(color: Y)), borderRadius: ...)` — Flutter throws `"A borderRadius can
+  only be given on borders with uniform colors"` when a Border has different
+  per-side colors and a radius is also set. This exact anti-pattern existed in
+  **three places**: `log_details_page.dart`'s header, the shared `DetailSection`
+  widget (`detail_widgets.dart`, used by every tab — Overview/Request/Response/
+  Error/Timeline), and `response_tab.dart`'s status card. All three fixed the same
+  way `error_group_card.dart` already did it correctly: `Border.all()` (uniform) +
+  `borderRadius` on the outer `Container`, with the colored accent rendered as an
+  actual `Container` child clipped by the rounded corners
+  (`IntrinsicHeight` + a stretched `Row`) instead of baked into the border. First
+  attempt at the header fix (`8dd8966`) omitted `IntrinsicHeight` and introduced a
+  **second** real bug (a `performLayout()` assertion, page still blank) — caught by
+  re-testing against live data rather than trusting the diff, then corrected in
+  `7fe5278` along with the other two instances. Verified all 5 tabs render
+  correctly end-to-end against real production data after the fix.
+- **Live-confirmed KL-2609-search (still open, not fixed).** Used the Error tab's
+  "View Similar" action against a real error log — it built a request with
+  `service=fyp-management-backend&level=error&...&search=%7Bmessage%3A...` (the
+  literal query Dio sent, captured from the request log), got `200 OK`, and showed
+  "No Logs Found" despite thousands of matching log entries existing for that
+  service. This is the exact bug KL-2609-search documented from code reading alone;
+  now confirmed against a live production backend rather than just inferred.
+- **Observation, not a bug** — Service Health list order on the Dashboard changes
+  between auto-refreshes (e.g. `payment-gateway-api, academicx-api,
+  unified-voting-api` on one load, `academicx-api, payment-gateway-api, ...` on the
+  next). Root cause is almost certainly server-side: `GET /logs/stats/summary`'s
+  `byService` aggregation (`central-logging-service/src/routes/logs.js`) has no
+  `$sort` stage before `$group`, so MongoDB doesn't guarantee row order. Cosmetic —
+  a 3-item list re-sorting itself every 30s is a minor polish issue, not correctness.
+- **Heads-up, unrelated to the app itself**: while reviewing real log data,
+  `fyp-management-backend` (one of the services behind this same collector) is
+  getting repeated automated 404 probes for `/api/.git/config` and
+  `/api/session/properties` from `161.97.108.244`, spaced minutes apart — looks
+  like routine vulnerability-scanner reconnaissance (checking for an exposed `.git`
+  directory). Flagging since it showed up in the data, not something I investigated
+  further — worth a look if that IP isn't already known/blocked.
+
 ## Screen review (2026-09-14)
 
 Ran the app for real (`flutter run -d web-server`, driven headlessly) at both desktop
@@ -313,12 +360,11 @@ items 7-10 above as ready to spec.
 
 Decisions this ledger surfaced that are Kevin's to make, not the planner's:
 
-- **Configure the app with real credentials so the screen review can continue.**
-  I won't type an API key into any field myself (hard rule), so Dashboard's charts,
-  a populated Logs list, real Errors groups, the Services catalog, Log Detail, and
-  Service Detail have not been visually reviewed yet — only their unconfigured/error
-  states have. Whenever you open Settings and connect it, say so and I'll pick the
-  review back up on the data-populated screens.
+- ~~Configure the app with real credentials so the screen review can continue.~~ —
+  done: Kevin connected "Bevin Production". Dashboard, Logs, Log Detail (all 5 tabs)
+  reviewed against live data — see "Screen review, continued with live data" above.
+  **Still not visually reviewed with live data**: Errors tab's full list view,
+  Services catalog list + Service Detail page. Worth a follow-up pass.
 - **KL-2609-segwrap**: rename "System" → "Auto" in the theme picker (quick, but a
   copy decision), or invest in a proper custom segmented control that doesn't force
   equal-thirds width? Currently reverted to the original (known-wrapping) code rather
@@ -411,3 +457,15 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   data-populated screens — entering the API key myself is against a hard rule, so
   that needs Kevin to configure the app before the review can continue there.
   Commit: `8dd8966dbfa5690bad40dc3a809d2b8f6fe7129b`.
+- **2026-09-14 (same session, live-data review)** — Kevin connected the app to
+  production. Found and fixed the session's most severe bug: Log Detail's page body
+  was permanently blank on every open (a `Border`+`borderRadius` combination Flutter
+  explicitly disallows), in three separate widgets including one shared across all
+  5 detail tabs. My first fix attempt introduced a second real bug (missing
+  `IntrinsicHeight`) that I only caught by re-testing against live data instead of
+  trusting the diff — corrected before calling it done. Live-confirmed the
+  already-documented KL-2609-search bug by capturing the actual broken request URL.
+  Noted a minor Service Health list re-ordering (server-side, no `$sort` before
+  `$group`) and an unrelated infra observation (vulnerability-scanner traffic
+  against `fyp-management-backend`) for Kevin's awareness. Commit:
+  `7fe527864f13d13ba80f34a5811d7e4ca9f5b098`.
