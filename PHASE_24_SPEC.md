@@ -117,7 +117,8 @@ zero matches despite thousands of matching entries existing.
 **Root cause:** `GET /api/v1/logs` only ever read a `q` query param; LogPulse
 Analytics has always sent `search`.
 **Fix:** `search` now aliases `q` (additive; `q` stays canonical for any other
-caller). **Not yet deployed** — see Next Steps.
+caller). **Deployed and confirmed live 2026-09-14** — Kevin verified both the
+Logs page search bar and "Find Similar" (item 11 below) return real results.
 **Commit:** `70a93f382095b52256d39a6adb32f57c0a9ff35d` (central-logging-service)
 
 ### 9. `central-logging-service`: Dashboard's time-range selector was fake
@@ -136,9 +137,56 @@ entire history, unconditionally.
 **Fix:** the route now calls `resolveTimeseriesWindow(req.query)`, matching its
 siblings. Also added `$sort: {totalRequests: -1}` to the `byService` facet —
 `$group` has no ordering guarantee, which was visibly reshuffling the Dashboard's
-Service Health list between identical-window refreshes. **Not yet deployed** —
-see Next Steps.
+Service Health list between identical-window refreshes. **Deployed and
+confirmed live 2026-09-14** — Kevin verified the Dashboard's stat cards now
+actually move when switching time ranges.
 **Commit:** `70a93f382095b52256d39a6adb32f57c0a9ff35d` (central-logging-service)
+
+### 10. Theme picker's "System"/"Auto" label wrap — actual fix
+**File:** `lib/presentation/pages/settings/settings_page.dart`
+**Symptom:** item 6's "Auto" rename was committed without live verification
+(the Browser pane was hidden at the time) and turned out not to work — reported
+live post-deploy on a real device: "Light", "Dark", and "Auto" **all** wrapped
+("Lig/ht", "Dar/k", "Aut/o"), worse than before the rename.
+**Root cause:** `SegmentedButton` divides its parent's width evenly across
+segments regardless of content — no label length fixes that.
+**Fix:** replaced `SegmentedButton` entirely with a custom `_ThemeOption` row;
+each segment's icon+label sit in a `FittedBox` that scales down instead of ever
+wrapping. Verified live this time.
+**Lesson recorded:** don't mark a fix done from a diff/analyzer pass alone when
+live verification was skipped for an external reason — say so explicitly.
+**Commit:** `8a399571e9f9d519131e23c8a244f4806e991378`
+
+### 11. "Find Similar" still returned nothing after CLS-12 deployed
+**Files:** `lib/presentation/pages/errors/errors_page.dart`,
+`lib/presentation/pages/log_details/tabs/error_tab.dart`
+**Symptom:** reported live post-deploy — "Find Similar" always came back "No
+Logs Found" even with the search/q fix live in production.
+**Root cause:** it searched a *composed* display message
+(`group.message`/`log.displayError`, which CLS's error-groups extraction can
+build from `response.body` when `error` is null), but CLS's search only
+regexes the raw stored `error.message`/`path`/`error.code` fields — a composed
+message frequently isn't a substring of any of those. Combining that
+unreliable search with a `statusCode` filter would have made it worse (AND
+semantics turn a search miss into a false zero even when `statusCode` alone
+would match).
+**Fix:** `error_tab.dart` now searches `log.path` (a real field it has
+directly); `errors_page.dart` drops free-text search entirely for `ErrorGroup`
+(no raw `path` available there) in favor of `statusCode` + `service`, both
+real exact-match fields. Verified live: 102 real results.
+**Commit:** `8a399571e9f9d519131e23c8a244f4806e991378`
+
+### 12. "View Trace" opened a non-interactive dead end
+**File:** `lib/presentation/pages/log_details/trace_logs_page.dart`
+**Symptom:** reported directly — "shows the trace logs page which is not very
+useful." The page had no tap target at all, and for the overwhelming majority
+of traces there's only one log anyway (these producer apps don't propagate one
+traceId across multiple internal log lines per request).
+**Fix:** rows are now tappable (open `LogDetailsPage`), and when there's
+exactly one log for the trace, the page skips itself entirely via
+`pushReplacement` straight to that log's full detail instead of a dead end.
+Verified live.
+**Commit:** `8a399571e9f9d519131e23c8a244f4806e991378`
 
 ## Explicitly not fixed in this phase (tracked separately, not bugs in the
 ## same sense)
@@ -157,19 +205,19 @@ see Next Steps.
 
 ## Next Steps (carried into Human pass queue / PROGRESS.md)
 
-1. **Deploy `central-logging-service` to production and smoke-test.** CLS-12 and
-   CLS-13 are committed but this sandbox has no way to build, run, or deploy the
-   service (`node_modules` needs a private-registry PAT it doesn't have — see
-   CLS-02) — LogPulse's live app only talks to production Cloud Run, so neither
-   fix takes effect until deployed. Verify after deploy: (a) typing a search term
-   in the Logs page actually filters, (b) switching the Dashboard's time-range
-   pills actually changes the stat cards and Service Health list.
-2. **Kevin to verify the API key fix** by editing the existing connection's key
-   and saving — this needs a real key typed into the app, which is outside what
-   this session can do itself.
-3. Everything else from the pre-existing backlog (LP-05/LP-06/LP-14/LP-24/LP-25,
-   CLS P3 stage timings, etc.) is unaffected by this phase — see `BACKLOG.md`
-   and `PROGRESS.md`'s Next Steps for that queue.
+All phase-specific verification is done:
+1. ~~Deploy `central-logging-service` and smoke-test~~ — done. Kevin hit an
+   unplanned blocker first (the deploy failed on the now-obsolete
+   `@bevingh/auth` private-registry auth — resolved as CLS-02, see
+   `central-logging-service`'s own `PROGRESS.md`), then redeployed successfully
+   and confirmed both CLS-12 and CLS-13 live.
+2. ~~Kevin to verify the API key fix~~ — done, confirmed 2026-09-14.
+3. That confirmation also surfaced three more live bugs (items 10-12 above),
+   all fixed and re-verified live the same day.
+
+Everything else from the pre-existing backlog (LP-05/LP-06/LP-14/LP-24/LP-25,
+CLS P3 stage timings, etc.) is unaffected by this phase — see `BACKLOG.md`
+and `PROGRESS.md`'s Next Steps for that queue.
 
 ## log.md update instruction
 
@@ -206,3 +254,9 @@ N/A — this phase had no upfront spec; bugs were fixed as found during review.
 DONE (code), PENDING (CLS deploy + live verification of both CLS fixes and the
 API key fix).
 ```
+
+**Update, 2026-09-14 (final):** deploy happened, surfaced 3 more live bugs
+(items 10-12 above), all fixed and verified live; then Kevin separately
+confirmed the API key fix, the Logs search bar, and the Dashboard time-range
+selector all work. A second `log.md` addendum entry was appended covering
+items 10-12. **Phase 24 status: DONE — fully verified, nothing outstanding.**

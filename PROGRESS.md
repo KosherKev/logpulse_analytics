@@ -7,14 +7,16 @@
 
 ## Status Snapshot
 
-- **Phase**: **Phase 24 ("Cross-repo bug-fix pass") complete** as of 2026-09-14 —
-  see `PHASE_24_SPEC.md` and `log.md`. Nine bugs fixed across both repos (Log
-  Detail crash, Logs never loading, Settings overflow, ErrorGroup status code, API
-  key persistence, theme label wrap, dead code, plus CLS-12/CLS-13 server-side).
-  **Not fully verified**: the two `central-logging-service` fixes (CLS-12, CLS-13)
-  are committed but not deployed to production — LogPulse's live app only talks to
-  Cloud Run, so they have no effect yet; the API key fix needs Kevin to verify live
-  (typing a real key isn't something this session does itself). Before Phase 24:
+- **Phase**: **Phase 24 ("Cross-repo bug-fix pass") complete and fully verified**
+  as of 2026-09-14 — see `PHASE_24_SPEC.md` and `log.md`. Twelve bugs fixed across
+  both repos in total (Log Detail crash, Logs never loading, Settings overflow,
+  ErrorGroup status code, API key persistence, theme label wrap ×2 attempts, dead
+  code, Find Similar false-zero, View Trace dead end, plus CLS-12/CLS-13
+  server-side). `central-logging-service` was deployed (after also resolving
+  CLS-02, an unplanned but necessary detour — see that repo's `PROGRESS.md`) and
+  Kevin has now confirmed live: the API key edit-save fix sticks, the Logs page's
+  own search bar works, and the Dashboard's time-range selector actually changes
+  the stat cards. Nothing from this phase is still unverified. Before Phase 24:
   the last *specced* unit of work was Phase 23 ("Dedicated Services tab" —
   `PHASE_23_SPEC.md`, `log.md` lines 939-960), landed 2026-07-21 (commit `1076640`),
   with two undocumented commits on top (`92e6706` asset regen, `d607640` client-side
@@ -36,16 +38,13 @@
     goes public, or both. **Not resolved by this session** — see Human pass queue.
   - No CI workflow (`.github/workflows/` absent) — nothing runs the gate automatically
     on push.
-- **Next action**: Deploy `central-logging-service` with the CLS-12/CLS-13 fixes and
-  smoke-test search + the Dashboard time-range selector against production; Kevin to
-  verify the API key edit-save fix live. After that: decide whether to continue with
+- **Next action**: Phase 24 is closed out. Decide whether to continue with
   remaining P2 backlog items (`BACKLOG.md` §2.5) or move to the "does the app need
   more features" discussion Kevin flagged next.
 - **Repo state**: All ledger and Phase 24 work pushed to `origin/main` through
-  commit `e487814`, plus one more local commit (`1a080f1`, the API key/Auto-label/
-  dead-code fix) still to push this round. Working tree still has the same
-  pre-existing, untouched items: `assets/app_icon.png` (uncommitted modification)
-  and `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — neither explained
+  commit `6d35da0`. Working tree still has the same pre-existing, untouched items:
+  `assets/app_icon.png` (uncommitted modification) and
+  `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — neither explained
   yet (see Human pass queue).
 - **Verified running**: `./scripts/green-gate.sh` green after every fix this session
   (`flutter test` 77/77 across 12 files; `flutter analyze`/`dart format` clean except
@@ -414,10 +413,11 @@ recommended here, not a client change.
 now reads `sampleStatusCode` and `inferredStatusCode` prefers it, falling back to the
 heuristic only when it's absent. Added a regression test locking in the precedence.
 
-**New — verify Phase 24's CLS-side fixes and the API key fix.** The only real
-remaining work from Phase 24: (1) deploy `central-logging-service` and confirm
-search + the Dashboard time-range selector actually work against production, (2)
-Kevin to verify the API key edit-save fix live.
+~~**Verify Phase 24's CLS-side fixes and the API key fix.**~~ — **done
+2026-09-14**: Kevin deployed `central-logging-service` and confirmed live that
+both the Logs page search bar and the Dashboard time-range selector work
+correctly, and separately confirmed the API key edit-save fix sticks. Phase 24
+is fully closed out — nothing from it remains unverified.
 
 Below, per `BACKLOG.md` §2.5, in the order that document recommends (all unblocked, no
 further CLS dependency beyond what's already shipped):
@@ -468,16 +468,12 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   **Still not visually reviewed with live data**: Errors tab's full list view,
   Services catalog list + Service Detail page. Worth a follow-up pass.
 - ~~**Deploy central-logging-service.**~~ — **done**: Kevin redeployed after the
-  CLS-02 fix and confirmed it succeeded. CLS-12 (search) is now indirectly
-  confirmed working — "Find Similar" (which depends on the deployed
-  `statusCode`/`service` filtering, same route) returned 102 real results live.
-  **Still not explicitly re-checked**: typing a term directly into the Logs
-  page's own search bar, and switching the Dashboard's time-range pills to
-  confirm the stat cards actually move (CLS-13). Both should work now but
-  haven't been separately confirmed.
-- **New — verify the API key edit-save fix live.** Fixed (`1a080f1`), still not
-  explicitly confirmed — please edit the connection's key (not just the initial
-  add), save, and confirm it sticks (and survives navigating away/back).
+  CLS-02 fix and confirmed it succeeded. CLS-12 (search) confirmed two ways: live
+  via "Find Similar" (102 real results) and directly via the Logs page's own
+  search bar (Kevin confirmed 2026-09-14). CLS-13 (Dashboard time-range selector)
+  also confirmed live — the stat cards now actually move when switching ranges.
+- ~~**Verify the API key edit-save fix live.**~~ — **done**: Kevin confirmed
+  2026-09-14 that editing an existing connection's key and saving now sticks.
 - ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
   script was added (`842b0ca`) and the gate failures it found were fixed (`fa277b6`).
   **Still open**: whether to add the CI workflow too.
@@ -620,3 +616,10 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   see KL-2609-segwrap, KL-2609-findsimilar, KL-2609-tracepage above — all
   re-verified live this time before calling them done. Commit:
   `8a399571e9f9d519131e23c8a244f4806e991378`.
+- **2026-09-14 (same session, final Phase 24 verification)** — Kevin: "Just
+  tested those two — both work now." Confirms the two remaining open items from
+  Phase 24: the API key edit-save fix (`1a080f1`) sticks, and both CLS-12
+  (Logs page search bar) and CLS-13 (Dashboard time-range selector) work
+  correctly against the deployed `central-logging-service`. Phase 24 is now
+  fully closed out with everything verified live — no doc-only changes, no
+  code changes this entry, just recording the confirmation.
