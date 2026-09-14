@@ -7,31 +7,40 @@
 
 ## Status Snapshot
 
-- **Phase**: No phase is in progress. The last completed unit of work is Phase 23
+- **Phase**: No phase is in progress. The last *specced* unit of work is Phase 23
   ("Dedicated Services tab" — `PHASE_23_SPEC.md`, `log.md` lines 939-960), landed
-  2026-07-21 10:06 UTC (commit `1076640`). One commit sits on top of it
-  (`92e6706`, "update application launcher icons and assets", 2026-07-21 16:08 UTC) —
-  an asset-only regen not described in `log.md` or any phase spec.
+  2026-07-21 10:06 UTC (commit `1076640`). Two commits sit on top of it, neither
+  documented in `log.md` or any phase spec (see Known Limitations KL-2609-k7):
+  `92e6706` (asset-only launcher-icon regen, 2026-07-21 16:08 UTC) and `d607640`
+  (client-side error-group status inference + working "Find Similar"/"View Trace"
+  actions, 2026-07-21 23:50:05 UTC — see Decisions log for what this actually does
+  and why it may now be partly redundant).
 - **Blocking issues**:
-  - No `./scripts/green-gate.sh` (or any `scripts/` directory) exists — there is no
-    single gate command for this project yet.
-  - No CI workflow (`.github/workflows/` absent) — nothing runs tests/analyze automatically
+  - ~~No `./scripts/green-gate.sh` exists~~ — **resolved 2026-09-14**: `842b0ca`
+    added `scripts/green-gate.sh`. It was run for the first time this session and
+    currently **fails**: `flutter analyze --no-fatal-infos` reports 3 real warnings,
+    and `dart format --output=none --set-exit-if-changed .` flags 46 files as
+    unformatted. `flutter test` passes clean (76/76 across 12 files). See Known
+    Limitations KL-2609-a3 (updated) for the concrete list.
+  - No CI workflow (`.github/workflows/` absent) — nothing runs the gate automatically
     on push.
-  - This session's sandbox has no Flutter/Dart toolchain (`flutter`/`dart` not on `PATH`),
-    so `flutter test` / `flutter analyze` could not be executed to verify current state
-    against the 11 test files under `test/`. Test suite existence and shape were confirmed
-    by reading, not by running.
-- **Next action**: Per `BACKLOG.md` §2.5 ("Suggested LogPulse implementation order"), the
-  remaining unblocked work is P2 cleanup — see Next Steps below. No CLS (server-side)
-  work is currently specced beyond the already-shipped P0/P1/P2 routes.
-- **Repo state**: Clean working tree. Branch `claude/serene-fermi-jij7zo` at `92e6706`
-  (50 commits total, first commit 2026-02-16, most recent 2026-07-21 — no commits in the
-  6 weeks since, until this ledger).
-- **Verified running**: Not verified this session — no toolchain available to build/run the
-  app or execute its test suite (see Blocking issues).
-- **Machine**: Ephemeral remote execution container for this session; no Flutter SDK
-  installed. Not the developer's regular machine — no assumptions about local toolchain
-  availability should be inherited from this entry.
+- **Next action**: Docs are now unified into this ledger across both repos (LogPulse +
+  `central-logging-service`, which now has its own `PROGRESS.md`). Per `BACKLOG.md` §2.5,
+  remaining unblocked client work is P2 cleanup — see Next Steps below — plus the newly
+  surfaced gate failures and cross-repo bug-status question.
+- **Repo state**: Local `main` merged `origin/main`'s bootstrapped ledger this session
+  (merge commit `cda3bea`) and is now **3 commits ahead of `origin/main`, not pushed**
+  (`d607640`, `842b0ca`, `cda3bea`). Working tree has one uncommitted modification
+  (`assets/app_icon.png`) and one untracked file (`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`)
+  — both pre-existing when this session started, neither touched by ledger work, not
+  yet explained (see Human pass queue).
+- **Verified running**: **Verified this session** (2026-09-14) via `./scripts/green-gate.sh`
+  on Kevin's local machine: `flutter test` — 76/76 pass, 12 test files (up from the
+  11 the bootstrap ledger could only confirm by reading). `flutter analyze` and
+  `dart format` both fail — see Blocking issues above.
+- **Machine**: Kevin's local MacBook (Flutter SDK at `~/flutter/bin`, confirmed
+  working) — not the ephemeral sandbox the bootstrap ledger ran in. Toolchain
+  availability can now be assumed normal for future sessions on this machine.
 
 ## Decisions log
 
@@ -67,6 +76,25 @@ today.
   a `.g.dart` for it.
 - **2026-03-03 (Phase 6)** — "Neo-Terminal" design token system adopted as the app's visual
   language (`d6272ae`), replacing ad hoc inline text styles across all screens by Phase 14.
+- **2026-08-31 (green-gate policy)** — Recorded in `scripts/green-gate.sh`'s own header:
+  the gate "runs whatever verification the repo actually has, never invents a step";
+  missing test/lint/format is a **gap** (still passes) but an existing step that fails
+  is a hard **failure**; `flutter analyze` warnings/errors fail the gate but *infos*
+  are reported non-blocking, because on this repo 114 style infos were burying 3 real
+  warnings and "a gate that is red for reasons nobody will act on trains you to ignore
+  it." `--strict` promotes gaps to failures for repos expected to have none left.
+- **2026-07-21 (d607640, client-side error-group workaround)** — `ErrorGroup` gained
+  client-inferred `inferredStatusCode`/`isClientErrorGroup`/`isServerErrorGroup`
+  heuristics (parsed from message/instance data, since the CLS groups API doesn't
+  return a status code), and the previously-dead "Find Similar"/"View Trace" actions
+  were wired up. The code explicitly skips the literal string `"unknown error"` as a
+  placeholder — direct evidence the CLS "Unknown error" megagroup bug
+  (`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`) was still live when this landed.
+  **New finding this session**: `central-logging-service` commit `39de821` — "switch
+  error grouping to application-side aggregation with improved message extraction" —
+  landed 5 minutes later (23:55:23 UTC same day) and appears to be the actual
+  server-side fix for that exact bug. Whether the client's `"unknown error"` skip
+  logic is now dead weight (server no longer emits it) is unverified — see Next Steps.
 
 ## Known Limitations
 
@@ -87,21 +115,45 @@ unless marked new:
   since related model changes; `.g.dart` files may be stale relative to hand-edited models.
   `flutter analyze` has known remaining info-level noise (e.g. deprecated `Radio` usage),
   partially cleaned but not finished.
-- **New — KL-2609-a3** — No automated verification gate exists in this repo: no
-  `scripts/green-gate.sh`, no CI workflow. Nothing currently runs `flutter analyze` or
-  `flutter test` automatically on a change. This session additionally had no Flutter/Dart
-  toolchain available at all, so even manual verification wasn't possible here — that part
-  is a sandbox constraint, not a repo defect, but the absence of any gate is a repo defect.
-- **New — KL-2609-k7** — `log.md`, the project's execution log, is one commit behind `HEAD`:
-  it documents Phase 23 as the last completed unit of work but has no entry for the
-  subsequent launcher-icon asset commit (`92e6706`). Low risk (asset-only change) but the
-  ledger discipline described in this document's own process was not followed for that
-  commit.
+- ~~**KL-2609-a3** — No automated verification gate exists~~ — **partially resolved
+  2026-09-14**: `scripts/green-gate.sh` now exists (`842b0ca`) and was actually run
+  this session. It currently **fails**: `flutter analyze --no-fatal-infos` reports 3
+  warnings — unused `_selectedProfileId` field (`settings_page.dart:21`), and unused
+  imports in the root-level scratch scripts `test_api.dart:1` (`dart:io`) and
+  `test_api_2.dart:2` (`dart:convert`) — and `dart format --output=none
+  --set-exit-if-changed .` flags **46 files** as unformatted (mostly across
+  `lib/presentation/`). `flutter test` passes clean (76/76, 12 files). No CI workflow
+  still exists to run this automatically.
+- **KL-2609-k7 (updated)** — `log.md` is now **two** commits behind `HEAD`, not one:
+  still missing `92e6706` (asset-only, low risk) and now also missing `d607640`
+  (error-group status inference + Find Similar/View Trace — a real feature commit,
+  higher risk to leave undocumented than the asset regen was).
 - **New — KL-2609-p2** — `PHASES.md` only documents Phases 1-14 and has not been touched
   since 2026-03-03. Phases 15+ exist only across `TELEMETRY_PATCH_PLAN.md` (phases ~16-21),
   `PHASE_20_SPEC.md`-`PHASE_23_SPEC.md`, and `log.md`'s prose entries, with no single index
   reconciling phase numbering across those documents. A reader relying on `PHASES.md` alone
   would believe the project stopped at Phase 14.
+- **New — KL-2609-p15** — Phase 15 (animation/micro-interactions) status is
+  contradictory across docs: `PHASES.md` and `log.md`'s own status table both say
+  `⬜ Not Started`, but `handoff_context.md` (line 11) claims "partial 15 animations"
+  were done. No `log.md` entry exists for any Phase-15 work either way. Unresolved —
+  needs a direct look at `service_health_card.dart`/`dashboard_page.dart` for
+  pulse/stagger animation code before this can be marked done, partial, or not started.
+- **New — KL-2609-b1** — `BACKLOG.md` contradicts itself within the same document:
+  §1's status table (line 30) says the Services tab is "Wired (Phase 23 catalog tab +
+  existing detail)," but §4's cross-repo board (line 958) still lists "Optional:
+  dedicated Services tab" as **future** work. The doc's own footer (line 996) is dated
+  2026-07-21, "after Phases 16-21" — i.e. it predates Phase 23 entirely and was only
+  ever partially hand-patched afterward.
+- **New — KL-2609-lp04** — `BACKLOG.md` LP-04 ("view all → on Service Health goes to
+  Logs, should list all services") is still listed open in §2.1, but Phase 23 Step 3
+  (`goToServices()`, confirmed via `git show 1076640`) already fixed exactly this —
+  the backlog row was never struck through.
+- **New — KL-2609-wt** — Working tree has an uncommitted modification
+  (`assets/app_icon.png`) and an untracked file
+  (`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`) that predate this session and
+  weren't explained by any doc read — flagged rather than committed or discarded (see
+  Human pass queue).
 
 ## Next Steps
 
@@ -120,29 +172,53 @@ recommends:
 4. **LP-25** — Clear remaining `flutter analyze` info-level noise (deprecated `Radio`, etc.).
 5. **LP-14** — Add a "metrics unavailable" chip on the dashboard for the existing silent
    soft-fail path, or explicitly decide it's not worth the UI surface.
-6. **Process** — Add a `scripts/green-gate.sh` (or equivalent) that runs `flutter analyze`
-   and `flutter test` in one command, so future ledger entries have a real signal to check
-   per this document's own Step 3 gate requirement (see Human pass queue — this is a
-   process decision, not a unilateral one).
+6. ~~**Process** — Add a `scripts/green-gate.sh`~~ — **done 2026-09-14** (`842b0ca`).
+7. **New — fix the gate.** 3 analyzer warnings (2 of which are the root-level
+   `test_api.dart`/`test_api_2.dart` scratch scripts — candidates for deletion rather
+   than fixing, per KL-2609-wt-adjacent cleanup) and 46 files need `dart format`. Purely
+   mechanical; not done as part of this docs-unification session since fixing code was
+   out of scope for it, but it's now a concretely-sized, ready-to-do task.
+8. **New — verify cross-repo bug status.** Confirm whether `central-logging-service`
+   commit `39de821` actually fixed the "Unknown error" megagroup bug that `d607640`'s
+   `isClientErrorGroup`/`"unknown error"` skip logic works around, and if so, whether
+   that client-side special-case can be simplified or removed.
+9. **New — resolve KL-2609-p15** (Phase 15 status ambiguity) by checking the actual
+   animation code, and KL-2609-b1/KL-2609-lp04 (`BACKLOG.md` self-contradiction and
+   stale LP-04 row) by editing `BACKLOG.md` directly.
+10. **New — log.md catch-up.** Add entries for `92e6706` and `d607640` (KL-2609-k7) so
+    the execution log isn't further behind `HEAD`, or formally retire `log.md` in favor
+    of this ledger's Changelog going forward (see Human pass queue — process decision).
 
-No `TASK_SPEC` was produced this run — this is a bootstrap (ledger-creation) run, which by
-its own process definition does not produce one. The next planner run should treat item 6
-above as worth specing before or alongside any feature-shaped task, since without a gate
-script every future "Step 3" will have to fall back to "no verification signal available."
+No `TASK_SPEC` was produced for the 2026-09-01 bootstrap run (a ledger-creation run does
+not produce one by its own process definition). This 2026-09-14 update is a doc-only
+maintenance pass, also without a `TASK_SPEC` — the next planner/feature run should treat
+items 7-10 above as ready to spec.
 
 ## Human pass queue
 
 Decisions this ledger surfaced that are Kevin's to make, not the planner's:
 
-- Whether to invest in a `scripts/green-gate.sh` + CI workflow now (KL-2609-a3), or continue
-  relying on manual `flutter test`/`analyze` runs — this materially changes how much future
-  planner runs can trust "done" claims in specs.
+- ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
+  script was added (`842b0ca`). **Still open**: whether to add the CI workflow too, and
+  whether to fix the 3 warnings + 46-file format drift now or defer until after the
+  API/data-layer and app-screen review pass this ledger unification is a prerequisite
+  for.
+- What `assets/app_icon.png` (uncommitted modification) and
+  `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) sitting in the working
+  tree are for — both predate this session; not touched, but should be committed,
+  discarded, or explained rather than left in limbo.
+- Whether to push local `main` (3 commits ahead of `origin/main`: `d607640`, `842b0ca`,
+  and this session's merge `cda3bea`) now, or hold until more of the docs/API/app pass
+  is done.
 - Whether CLS P3 (stage-timing/timeline spans, called out in `BACKLOG.md` LP-18 as
   something the client must **not** fabricate in the meantime) is worth pursuing, or stays
   parked indefinitely.
 - Whether the `PHASES.md` / `TELEMETRY_PATCH_PLAN.md` / `PHASE_2x_SPEC.md` split
   (KL-2609-p2) should be consolidated into one phase index, or left as historical record
   with this `PROGRESS.md` as the only forward-looking document from here on.
+- Whether `log.md` should keep being hand-maintained going forward or be formally
+  retired in favor of this ledger's Changelog (KL-2609-k7 keeps recurring because two
+  parallel logs are being kept).
 
 ## Changelog
 
@@ -155,3 +231,22 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   (KL-2609-p2: `PHASES.md` frozen at Phase 14 since 2026-03-03) in doing so. Could not
   verify: current `flutter analyze`/`flutter test` pass/fail state — no toolchain in this
   sandbox (KL-2609-a3). Commit: `a5c4d08d906f34c47968e16095c99b090aa1e222`.
+- **2026-09-14** — `ledger:` Pulled origin's bootstrapped ledger into local `main`
+  (merge `cda3bea`), which had diverged (2 local-only commits, 2 origin-only commits)
+  — reconciled by merge per Kevin's choice, not force-resolved. Extended the ledger
+  forward past the bootstrap: documented `92e6706` and `d607640` (KL-2609-k7),
+  recorded the green-gate policy decision now that `842b0ca` actually landed it, and
+  **ran the gate for real for the first time** (`flutter test` 76/76 pass across 12
+  files; `flutter analyze`/`dart format` both fail — KL-2609-a3 updated with the
+  concrete list). Cross-referenced against `central-logging-service`'s git history and
+  found its commit `39de821` (5 minutes after this repo's `d607640`) likely fixes the
+  "Unknown error" megagroup bug that `d607640`'s client-side workaround exists for —
+  flagged for verification, not resolved here. Found three new doc inconsistencies:
+  Phase 15 status ambiguity (KL-2609-p15), a self-contradiction inside `BACKLOG.md`
+  (KL-2609-b1), and a stale LP-04 backlog row (KL-2609-lp04). Also bootstrapped a
+  parallel `PROGRESS.md` for `central-logging-service` (the API this app consumes),
+  using the same ledger format, so both halves of the project now share one
+  documentation method. Did not touch `assets/app_icon.png` (uncommitted) or
+  `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — pre-existing,
+  unrelated to this pass, flagged in Human pass queue instead. Did not push to
+  `origin` — local `main` is 3 commits ahead. Commit: pending (see next entry).
