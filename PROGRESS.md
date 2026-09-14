@@ -438,9 +438,13 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   Services catalog list + Service Detail page. Worth a follow-up pass.
 - **New — deploy central-logging-service.** CLS-12 (search) and CLS-13 (Dashboard
   time range) are fixed and committed (`70a93f3`) but not deployed — LogPulse's
-  live app talks to production Cloud Run only. Needs someone with deploy access to
-  ship it, then a quick smoke test (search a real term; switch the Dashboard's time
-  range and confirm the stat cards move).
+  live app talks to production Cloud Run only. **The previous deploy attempt failed
+  because of the now-resolved CLS-02 private-registry blocker** (see CLS's
+  `PROGRESS.md`, commit `5c03118`) — `@bevingh/auth` is public now, the private-auth
+  wiring is removed, and `npm install`/the test suite both verify clean, so a
+  re-run of `./scripts/deploy.sh` should go through this time. Once deployed: smoke
+  test (search a real term; switch the Dashboard's time range and confirm the stat
+  cards move).
 - **New — verify the API key fix live.** Fixed (`1a080f1`), but this session can't
   type a real API key into the app to confirm it — please edit the connection's
   key, save, and confirm it now sticks (and survives navigating away/back).
