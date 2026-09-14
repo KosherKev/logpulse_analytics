@@ -8,7 +8,7 @@ class LogFilter {
   final String? searchQuery;
   final int limit;
   final int offset;
-  
+
   LogFilter({
     this.service,
     this.level,
@@ -19,7 +19,7 @@ class LogFilter {
     this.limit = 20,
     this.offset = 0,
   });
-  
+
   LogFilter copyWith({
     String? service,
     String? level,
@@ -41,7 +41,7 @@ class LogFilter {
       offset: offset ?? this.offset,
     );
   }
-  
+
   /// Check if any filters are active
   bool get hasActiveFilters {
     return service != null ||
@@ -51,7 +51,7 @@ class LogFilter {
         endDate != null ||
         (searchQuery != null && searchQuery!.isNotEmpty);
   }
-  
+
   /// Get count of active filters
   int get activeFilterCount {
     int count = 0;
@@ -62,11 +62,11 @@ class LogFilter {
     if (searchQuery != null && searchQuery!.isNotEmpty) count++;
     return count;
   }
-  
+
   /// Convert to query parameters
   Map<String, String> toQueryParams() {
     final params = <String, String>{};
-    
+
     if (service != null) params['service'] = service!;
     if (level != null) params['level'] = level!;
     if (statusCode != null) params['statusCode'] = statusCode.toString();
@@ -77,7 +77,7 @@ class LogFilter {
     }
     params['limit'] = limit.toString();
     params['skip'] = offset.toString();
-    
+
     return params;
   }
 
@@ -86,10 +86,12 @@ class LogFilter {
       service: json['service'] as String?,
       level: json['level'] as String?,
       statusCode: json['statusCode'] as int?,
-      startDate:
-          json['startDate'] != null ? DateTime.parse(json['startDate'] as String) : null,
-      endDate:
-          json['endDate'] != null ? DateTime.parse(json['endDate'] as String) : null,
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate'] as String)
+          : null,
+      endDate: json['endDate'] != null
+          ? DateTime.parse(json['endDate'] as String)
+          : null,
       searchQuery: json['searchQuery'] as String?,
       limit: json['limit'] as int? ?? 20,
       offset: json['offset'] as int? ?? 0,

@@ -16,4 +16,3 @@ class TimeSeriesPoint {
     return (errorCount / totalCount) * 100.0;
   }
 }
-

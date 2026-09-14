@@ -52,9 +52,10 @@ class ServiceSummary {
         json['avgLatency'] ?? json['avg_latency'] ?? json['avgDuration'],
       ),
       lastSeen: readDate(json['lastSeen'] ?? json['last_seen']),
-      instanceCount: json['instanceCount'] != null || json['instance_count'] != null
-          ? readInt(json['instanceCount'] ?? json['instance_count'])
-          : null,
+      instanceCount:
+          json['instanceCount'] != null || json['instance_count'] != null
+              ? readInt(json['instanceCount'] ?? json['instance_count'])
+              : null,
     );
   }
 }
@@ -176,7 +177,8 @@ class ServiceDetail {
     if (epRaw is List) {
       for (final e in epRaw) {
         if (e is Map) {
-          endpoints.add(EndpointStats.fromApiJson(Map<String, dynamic>.from(e)));
+          endpoints
+              .add(EndpointStats.fromApiJson(Map<String, dynamic>.from(e)));
         }
       }
     }

@@ -62,7 +62,8 @@ class StatCard extends StatelessWidget {
                   children: [
                     Text(
                       label.toUpperCase(),
-                      style: AppTextStyles.label.copyWith(color: c.textTertiary),
+                      style:
+                          AppTextStyles.label.copyWith(color: c.textTertiary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

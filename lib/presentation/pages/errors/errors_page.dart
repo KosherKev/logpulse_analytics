@@ -53,7 +53,8 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
         children: [
           _PulseDot(color: c.error),
           const SizedBox(width: 8),
-          Text('Errors', style: AppTextStyles.h1.copyWith(color: c.textPrimary)),
+          Text('Errors',
+              style: AppTextStyles.h1.copyWith(color: c.textPrimary)),
         ],
       ),
       actions: [
@@ -293,8 +294,8 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
               children: [
                 if (group.errorCode != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: c.errorBg,
                       borderRadius: BorderRadius.circular(6),
@@ -303,8 +304,7 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
                     ),
                     child: Text(
                       group.errorCode!,
-                      style:
-                          AppTextStyles.label.copyWith(color: c.error),
+                      style: AppTextStyles.label.copyWith(color: c.error),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -313,16 +313,16 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
                 const Spacer(),
                 // Count pill
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: c.surface2,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     '${group.count}×',
-                    style: AppTextStyles.monoSm
-                        .copyWith(color: c.textSecondary),
+                    style:
+                        AppTextStyles.monoSm.copyWith(color: c.textSecondary),
                   ),
                 ),
               ],
@@ -392,8 +392,7 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
                 decoration: BoxDecoration(
                   color: AppColors.darkSurface,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: AppColors.darkBorder, width: 1),
+                  border: Border.all(color: AppColors.darkBorder, width: 1),
                 ),
                 child: SelectableText(
                   group.stackTrace!,
@@ -420,12 +419,10 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
                     icon: Icon(Icons.search, size: 16, color: c.accent),
                     label: Text(
                       'Find Similar',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: c.accent),
+                      style: AppTextStyles.bodySmall.copyWith(color: c.accent),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: c.accent.withValues(alpha: 0.4)),
+                      side: BorderSide(color: c.accent.withValues(alpha: 0.4)),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -442,24 +439,19 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
                     icon: Icon(
                       Icons.timeline,
                       size: 16,
-                      color: _canViewTrace(group)
-                          ? c.accent
-                          : c.textTertiary,
+                      color: _canViewTrace(group) ? c.accent : c.textTertiary,
                     ),
                     label: Text(
                       'View Trace',
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: _canViewTrace(group)
-                            ? c.accent
-                            : c.textTertiary,
+                        color: _canViewTrace(group) ? c.accent : c.textTertiary,
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: (_canViewTrace(group)
-                                ? c.accent
-                                : c.textTertiary)
-                            .withValues(alpha: 0.4),
+                        color:
+                            (_canViewTrace(group) ? c.accent : c.textTertiary)
+                                .withValues(alpha: 0.4),
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -495,8 +487,7 @@ class _ErrorsPageState extends ConsumerState<ErrorsPage> {
       query = group.errorCode!.trim();
     }
 
-    final service =
-        group.services.length == 1 ? group.services.first : null;
+    final service = group.services.length == 1 ? group.services.first : null;
 
     Navigator.of(sheetContext).pop();
     ref.read(logsProvider.notifier).applyFilter(
@@ -635,8 +626,7 @@ class _SeverityTab extends StatelessWidget {
             if (count > 0) ...[
               const SizedBox(width: 5),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
                   color: _selected
                       ? activeColor.withValues(alpha: 0.2)

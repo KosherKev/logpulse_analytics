@@ -54,8 +54,9 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
     if (raw is! Map) continue;
     final m = Map<String, dynamic>.from(raw);
 
-    final appId = (m['appId'] ?? m['app_id'] ?? m['serviceName'] ?? m['service'])
-        ?.toString();
+    final appId =
+        (m['appId'] ?? m['app_id'] ?? m['serviceName'] ?? m['service'])
+            ?.toString();
     if (appId == null || appId.isEmpty) continue;
 
     final serviceName = (m['serviceName'] ?? m['service'])?.toString();
@@ -89,7 +90,8 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
       if (statusRaw is String && statusRaw.isNotEmpty) {
         reportedHealthStatus = statusRaw;
       }
-      uptimeSeconds = readInt(health['uptimeSeconds'] ?? health['uptime_seconds']);
+      uptimeSeconds =
+          readInt(health['uptimeSeconds'] ?? health['uptime_seconds']);
       healthTimestamp = readDate(health['timestamp']);
       // health.instanceId is a single latest instance — never invent a count
       // from it. Only the top-level server field `instanceCount` is used.
@@ -110,8 +112,7 @@ List<ServiceMetricsEntry> parseServiceMetricsResponse(dynamic data) {
         healthTimestamp;
 
     // Explicit server-computed distinct count (P0 multi-instance).
-    final instanceCount =
-        readInt(m['instanceCount'] ?? m['instance_count']);
+    final instanceCount = readInt(m['instanceCount'] ?? m['instance_count']);
 
     entries.add(ServiceMetricsEntry(
       appId: appId,
@@ -264,12 +265,14 @@ List<TimeSeriesPoint> parseTimeSeriesResponse(dynamic data) {
     final tsStr = m['timestamp'] as String?;
     final ts =
         tsStr != null ? DateTime.parse(tsStr).toUtc() : DateTime.now().toUtc();
-    final total =
-        (m['totalCount'] as num?)?.toInt() ?? (m['total'] as num?)?.toInt() ?? 0;
+    final total = (m['totalCount'] as num?)?.toInt() ??
+        (m['total'] as num?)?.toInt() ??
+        0;
     final errors = (m['errorCount'] as num?)?.toInt() ??
         (m['errors'] as num?)?.toInt() ??
         0;
-    return TimeSeriesPoint(timestamp: ts, totalCount: total, errorCount: errors);
+    return TimeSeriesPoint(
+        timestamp: ts, totalCount: total, errorCount: errors);
   }).toList();
 }
 
@@ -306,7 +309,8 @@ class ApiService {
             _logger.w('Request cancelled: ${error.requestOptions.uri}');
           } else {
             final rt = error.error?.runtimeType;
-            _logger.e('Error (${error.type}${rt != null ? ' $rt' : ''}): ${error.message ?? error.error}');
+            _logger.e(
+                'Error (${error.type}${rt != null ? ' $rt' : ''}): ${error.message ?? error.error}');
           }
           return handler.next(error);
         },
@@ -315,8 +319,9 @@ class ApiService {
   }
 
   void configure({required String baseUrl, String? apiKey}) {
-    final normalizedBaseUrl =
-        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final normalizedBaseUrl = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
 
     _baseUrl = normalizedBaseUrl;
 
@@ -331,14 +336,14 @@ class ApiService {
   bool get isConfigured => _baseUrl != null && _baseUrl!.isNotEmpty;
 
   String get _apiRoot => '$_baseUrl${AppConstants.apiBasePath}';
-  
+
   void cancelRequest(String key) {
     final token = _activeTokens.remove(key);
     if (token != null && !token.isCancelled) {
       token.cancel('Cancelled: $key');
     }
   }
-  
+
   CancelToken _issueToken(String key) {
     final existing = _activeTokens[key];
     if (existing != null && !existing.isCancelled) {
@@ -348,7 +353,7 @@ class ApiService {
     _activeTokens[key] = token;
     return token;
   }
-  
+
   /// Fetch logs with filters. Prefer envelope with `total` / `pagination`.
   Future<LogsPageResult> getLogs(LogFilter filter) async {
     try {
@@ -366,13 +371,14 @@ class ApiService {
       );
 
       final cancelToken = _issueToken(ApiEndpoints.logs);
-      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return parseLogsPageResponse(response.data);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
-  
+
   /// Fetch logs by trace ID
   Future<List<LogEntry>> getLogsByTraceId(String traceId) async {
     try {
@@ -380,7 +386,8 @@ class ApiService {
 
       final endpoint = ApiEndpoints.logsByTraceId(traceId);
       final cancelToken = _issueToken(endpoint);
-      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       final body = response.data;
 
       List<dynamic>? items;
@@ -421,7 +428,7 @@ class ApiService {
 
     return fallback;
   }
-  
+
   /// Fetch dashboard statistics
   Future<DashboardStats> getDashboardStats({String? timeRange}) async {
     try {
@@ -429,19 +436,21 @@ class ApiService {
 
       final endpoint = ApiEndpoints.buildStatsQuery(timeRange: timeRange);
       final cancelToken = _issueToken(ApiEndpoints.stats);
-      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return DashboardStats.fromApiJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
   }
-  
+
   Future<List<TimeSeriesPoint>> getTimeSeries({String? timeRange}) async {
     try {
       _ensureConfigured();
       final endpoint = ApiEndpoints.buildTimeseriesQuery(timeRange: timeRange);
       final cancelToken = _issueToken(ApiEndpoints.timeseries);
-      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return parseTimeSeriesResponse(response.data);
     } on DioException catch (e) {
       // Keep client fallback until the real endpoint is stable in prod.
@@ -463,7 +472,8 @@ class ApiService {
       _ensureConfigured();
       final endpoint = ApiEndpoints.buildMetricsSummaryQuery(appId: appId);
       final cancelToken = _issueToken(ApiEndpoints.metricsSummary);
-      final response = await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
+      final response =
+          await _dio.get('$_apiRoot$endpoint', cancelToken: cancelToken);
       return parseServiceMetricsResponse(response.data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
@@ -526,13 +536,15 @@ class ApiService {
       throw _handleDioError(e);
     }
   }
-  
-  Future<List<TimeSeriesPoint>> _getTimeSeriesFromLogs({String? timeRange}) async {
+
+  Future<List<TimeSeriesPoint>> _getTimeSeriesFromLogs(
+      {String? timeRange}) async {
     final now = DateTime.now().toUtc();
     final range = timeRange ?? AppConstants.rangeLast24Hours;
     final from = _calculateFrom(now, range);
     final bucket = _bucketDurationForRange(range);
-    _logger.w('Time-series fallback: fetching 200 logs. Consider adding /logs/stats/timeseries endpoint.');
+    _logger.w(
+        'Time-series fallback: fetching 200 logs. Consider adding /logs/stats/timeseries endpoint.');
     final filter = LogFilter(
       startDate: from,
       endDate: now,
@@ -542,7 +554,8 @@ class ApiService {
     final page = await getLogs(filter);
     final logs = page.logs;
     if (logs.isEmpty) return [];
-    final totalMillis = now.millisecondsSinceEpoch - from.millisecondsSinceEpoch;
+    final totalMillis =
+        now.millisecondsSinceEpoch - from.millisecondsSinceEpoch;
     final bucketMillis = bucket.inMilliseconds;
     final bucketCount = (totalMillis / bucketMillis).ceil().clamp(1, 100);
     final totals = List<int>.filled(bucketCount, 0);
@@ -552,7 +565,9 @@ class ApiService {
       if (ts < from.millisecondsSinceEpoch || ts > now.millisecondsSinceEpoch) {
         continue;
       }
-      final index = ((ts - from.millisecondsSinceEpoch) / bucketMillis).floor().clamp(0, bucketCount - 1);
+      final index = ((ts - from.millisecondsSinceEpoch) / bucketMillis)
+          .floor()
+          .clamp(0, bucketCount - 1);
       totals[index] += 1;
       if (log.isError) {
         errors[index] += 1;
@@ -561,11 +576,14 @@ class ApiService {
     final points = <TimeSeriesPoint>[];
     for (var i = 0; i < bucketCount; i++) {
       final bucketStart = from.add(Duration(milliseconds: bucketMillis * i));
-      points.add(TimeSeriesPoint(timestamp: bucketStart, totalCount: totals[i], errorCount: errors[i]));
+      points.add(TimeSeriesPoint(
+          timestamp: bucketStart,
+          totalCount: totals[i],
+          errorCount: errors[i]));
     }
     return points;
   }
-  
+
   DateTime _calculateFrom(DateTime now, String timeRange) {
     switch (timeRange) {
       case AppConstants.rangeLastHour:
@@ -579,7 +597,7 @@ class ApiService {
         return now.subtract(const Duration(hours: 24));
     }
   }
-  
+
   Duration _bucketDurationForRange(String timeRange) {
     switch (timeRange) {
       case AppConstants.rangeLastHour:
@@ -593,8 +611,7 @@ class ApiService {
         return const Duration(hours: 1);
     }
   }
-  
-  
+
   /// Check service health
   Future<bool> checkHealth() async {
     try {
@@ -608,13 +625,14 @@ class ApiService {
       return false;
     }
   }
-  
+
   void _ensureConfigured() {
     if (!isConfigured) {
-      throw AuthException('API not configured. Please set base URL in Settings.');
+      throw AuthException(
+          'API not configured. Please set base URL in Settings.');
     }
   }
-  
+
   AppException _handleDioError(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
@@ -635,7 +653,7 @@ class ApiService {
           code: AppConstants.errCodeRecvTimeout,
           details: error.message,
         );
-        
+
       case DioExceptionType.badResponse:
         final response = error.response;
         final statusCode = response?.statusCode;
@@ -665,13 +683,13 @@ class ApiService {
           statusCode: statusCode,
           details: response?.data,
         );
-        
+
       case DioExceptionType.cancel:
         return NetworkException(
           'Request cancelled',
           code: AppConstants.errCodeCancelled,
         );
-        
+
       default:
         final underlying = error.error;
         if (underlying is SocketException) {

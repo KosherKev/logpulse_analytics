@@ -12,7 +12,7 @@ class DashboardStats {
   final Map<String, ServiceStats>? serviceStats;
   final Map<String, int>? errorsByLevel;
   final Map<String, int>? requestsByStatus;
-  
+
   DashboardStats({
     required this.totalLogs,
     required this.errorRate,
@@ -22,8 +22,9 @@ class DashboardStats {
     this.errorsByLevel,
     this.requestsByStatus,
   });
-  
-  factory DashboardStats.fromJson(Map<String, dynamic> json) => _$DashboardStatsFromJson(json);
+
+  factory DashboardStats.fromJson(Map<String, dynamic> json) =>
+      _$DashboardStatsFromJson(json);
   Map<String, dynamic> toJson() => _$DashboardStatsToJson(this);
 
   /// Create dashboard stats from the central logging API summary response
@@ -40,7 +41,9 @@ class DashboardStats {
   ///   }
   /// }
   factory DashboardStats.fromApiJson(Map<String, dynamic> json) {
-    final root = json['data'] is Map<String, dynamic> ? json['data'] as Map<String, dynamic> : json;
+    final root = json['data'] is Map<String, dynamic>
+        ? json['data'] as Map<String, dynamic>
+        : json;
 
     int readInt(dynamic value, {int fallback = 0}) {
       if (value is num) return value.toInt();
@@ -88,14 +91,13 @@ class DashboardStats {
           final double? err = m['errorRate'] != null || m['error_rate'] != null
               ? readDouble(m['errorRate'] ?? m['error_rate'])
               : null;
-          final double? latency =
-              m['avgDuration'] != null ||
-                      m['avgLatency'] != null ||
-                      m['avg_latency'] != null
-                  ? readDouble(
-                      m['avgDuration'] ?? m['avgLatency'] ?? m['avg_latency'],
-                    )
-                  : null;
+          final double? latency = m['avgDuration'] != null ||
+                  m['avgLatency'] != null ||
+                  m['avg_latency'] != null
+              ? readDouble(
+                  m['avgDuration'] ?? m['avgLatency'] ?? m['avg_latency'],
+                )
+              : null;
           final int? errCount =
               m['errorCount'] != null || m['error_count'] != null
                   ? readInt(m['errorCount'] ?? m['error_count'])
@@ -138,10 +140,10 @@ class DashboardStats {
       requestsByStatus: requestsByStatus,
     );
   }
-  
+
   /// Get formatted error rate as percentage
   String get formattedErrorRate => '${errorRate.toStringAsFixed(1)}%';
-  
+
   /// Get formatted average latency
   String get formattedAvgLatency => '${avgLatency.toStringAsFixed(0)}ms';
 }
@@ -177,7 +179,7 @@ class ServiceStats {
   /// Raw wire value of `health.uptimeSeconds`. Not a percentage — see
   /// [formattedUptimeDuration]. Never alias into [uptime].
   final int? uptimeSeconds;
-  
+
   ServiceStats({
     required this.serviceName,
     required this.totalRequests,
@@ -191,8 +193,9 @@ class ServiceStats {
     this.reportedHealthStatus,
     this.uptimeSeconds,
   });
-  
-  factory ServiceStats.fromJson(Map<String, dynamic> json) => _$ServiceStatsFromJson(json);
+
+  factory ServiceStats.fromJson(Map<String, dynamic> json) =>
+      _$ServiceStatsFromJson(json);
   Map<String, dynamic> toJson() => _$ServiceStatsToJson(this);
 
   /// Whether log-derived per-service numerics are present (CLS P1 summary
@@ -208,7 +211,7 @@ class ServiceStats {
   /// Whether free-form custom metrics exist and are non-empty.
   bool get hasCustomMetrics =>
       customMetrics != null && customMetrics!.isNotEmpty;
-  
+
   /// Display health for the card dot/pulse.
   ///
   /// Priority:
@@ -254,10 +257,11 @@ class ServiceStats {
         return HealthStatus.degraded;
     }
   }
-  
+
   /// Formatted uptime **percentage**, or an em dash when not reporting.
   /// Do not use for PR-24's seconds-based uptime.
-  String get formattedUptime => uptime == null ? '—' : '${uptime!.toStringAsFixed(1)}%';
+  String get formattedUptime =>
+      uptime == null ? '—' : '${uptime!.toStringAsFixed(1)}%';
 
   /// Human-readable duration from [uptimeSeconds] (e.g. `2h 15m`, `45m`, `12s`).
   /// Em dash when [uptimeSeconds] is null.
@@ -308,18 +312,15 @@ class ServiceStats {
       errorCount: errorCount ?? this.errorCount,
       customMetrics:
           clearCustomMetrics ? null : (customMetrics ?? this.customMetrics),
-      lastReportedAt: clearLastReportedAt
-          ? null
-          : (lastReportedAt ?? this.lastReportedAt),
-      instanceCount: clearInstanceCount
-          ? null
-          : (instanceCount ?? this.instanceCount),
+      lastReportedAt:
+          clearLastReportedAt ? null : (lastReportedAt ?? this.lastReportedAt),
+      instanceCount:
+          clearInstanceCount ? null : (instanceCount ?? this.instanceCount),
       reportedHealthStatus: clearReportedHealthStatus
           ? null
           : (reportedHealthStatus ?? this.reportedHealthStatus),
-      uptimeSeconds: clearUptimeSeconds
-          ? null
-          : (uptimeSeconds ?? this.uptimeSeconds),
+      uptimeSeconds:
+          clearUptimeSeconds ? null : (uptimeSeconds ?? this.uptimeSeconds),
     );
   }
 }

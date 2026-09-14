@@ -69,7 +69,8 @@ class ErrorGroup {
     return ErrorGroup(
       id: (json['id'] ?? '').toString(),
       message: (json['message'] ?? '').toString(),
-      errorCode: json['errorCode']?.toString() ?? json['error_code']?.toString(),
+      errorCode:
+          json['errorCode']?.toString() ?? json['error_code']?.toString(),
       count: readInt(json['count']),
       services: services,
       firstSeen: first,

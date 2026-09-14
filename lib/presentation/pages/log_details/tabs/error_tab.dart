@@ -84,7 +84,6 @@ class ErrorTab extends ConsumerWidget {
             ),
           ],
         ),
-
         if (log.error?.stack != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -157,7 +156,6 @@ class ErrorTab extends ConsumerWidget {
             ),
           ),
         ],
-
         const SizedBox(height: 12),
         DetailSection(
           title: 'ACTIONS',
@@ -171,8 +169,7 @@ class ErrorTab extends ConsumerWidget {
                     icon: Icon(Icons.search, size: 16, color: c.accent),
                     label: Text(
                       'View Similar',
-                      style:
-                          AppTextStyles.bodySmall.copyWith(color: c.accent),
+                      style: AppTextStyles.bodySmall.copyWith(color: c.accent),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: c.accent.withValues(alpha: 0.4)),

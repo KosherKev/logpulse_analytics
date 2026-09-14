@@ -15,7 +15,7 @@ class FormatUtils {
       return '${minutes}m ${seconds}s';
     }
   }
-  
+
   /// Format bytes to human-readable size
   static String formatBytes(int bytes) {
     if (bytes < 1024) {
@@ -28,7 +28,7 @@ class FormatUtils {
       return '${(bytes / 1073741824).toStringAsFixed(2)} GB';
     }
   }
-  
+
   /// Format number with thousand separators
   static String formatNumber(num number) {
     if (number >= 1000000) {
@@ -39,12 +39,12 @@ class FormatUtils {
       return number.toString();
     }
   }
-  
+
   /// Format percentage
   static String formatPercentage(double value, {int decimals = 1}) {
     return '${value.toStringAsFixed(decimals)}%';
   }
-  
+
   /// Pretty print JSON
   static String prettyPrintJson(dynamic json) {
     try {
@@ -66,13 +66,13 @@ class FormatUtils {
       return json.toString();
     }
   }
-  
+
   /// Truncate string with ellipsis
   static String truncate(String text, int maxLength) {
     if (text.length <= maxLength) return text;
     return '${text.substring(0, maxLength)}...';
   }
-  
+
   /// Extract domain from URL
   static String? extractDomain(String? url) {
     if (url == null || url.isEmpty) return null;
@@ -83,13 +83,13 @@ class FormatUtils {
       return null;
     }
   }
-  
+
   /// Format HTTP status code with text
   static String formatStatusCode(int statusCode) {
     final statusText = _getStatusText(statusCode);
     return '$statusCode $statusText';
   }
-  
+
   static String _getStatusText(int code) {
     if (code >= 200 && code < 300) return 'Success';
     if (code >= 300 && code < 400) return 'Redirect';

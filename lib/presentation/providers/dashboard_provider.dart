@@ -7,7 +7,8 @@ import '../../core/errors/exceptions.dart';
 import 'service_providers.dart';
 
 /// Dashboard State Provider
-final dashboardProvider = StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
+final dashboardProvider =
+    StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
   final repository = ref.watch(dashboardRepositoryProvider);
   return DashboardNotifier(repository);
 });

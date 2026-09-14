@@ -382,7 +382,8 @@ class _MetricChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface2,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: colors.border.withValues(alpha: 0.6), width: 1),
+        border:
+            Border.all(color: colors.border.withValues(alpha: 0.6), width: 1),
       ),
       child: Text(
         label,

@@ -23,7 +23,7 @@ class ApiEndpoints {
   // Health
   static const String health = '/health';
   static const String ready = '/ready';
-  
+
   // Query Builders
   static String buildLogsQuery({
     String? service,
@@ -36,7 +36,7 @@ class ApiEndpoints {
     String? search,
   }) {
     final params = <String, String>{};
-    
+
     if (service != null) params['service'] = service;
     if (level != null) params['level'] = level;
     if (statusCode != null) params['statusCode'] = statusCode.toString();
@@ -45,34 +45,34 @@ class ApiEndpoints {
     if (limit != null) params['limit'] = limit.toString();
     if (offset != null) params['skip'] = offset.toString();
     if (search != null) params['search'] = search;
-    
+
     if (params.isEmpty) return logs;
-    
+
     final query = params.entries
         .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
         .join('&');
-    
+
     return '$logs?$query';
   }
-  
+
   static String buildStatsQuery({
     String? service,
     String? timeRange,
   }) {
     final params = <String, String>{};
-    
+
     if (service != null) params['service'] = service;
     if (timeRange != null) params['timeRange'] = timeRange;
-    
+
     if (params.isEmpty) return stats;
-    
+
     final query = params.entries
         .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
         .join('&');
-    
+
     return '$stats?$query';
   }
-  
+
   static String buildTimeseriesQuery({
     String? service,
     String? timeRange,

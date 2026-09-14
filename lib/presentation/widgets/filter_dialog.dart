@@ -56,7 +56,8 @@ class _FilterDialogState extends State<FilterDialog> {
               items: const [
                 DropdownMenuItem(value: null, child: Text('All')),
                 DropdownMenuItem(value: 'user-api', child: Text('user-api')),
-                DropdownMenuItem(value: 'payment-api', child: Text('payment-api')),
+                DropdownMenuItem(
+                    value: 'payment-api', child: Text('payment-api')),
                 DropdownMenuItem(value: 'order-api', child: Text('order-api')),
               ],
               onChanged: (value) => setState(() => selectedService = value),
@@ -74,10 +75,14 @@ class _FilterDialogState extends State<FilterDialog> {
               ),
               items: const [
                 DropdownMenuItem(value: null, child: Text('All')),
-                DropdownMenuItem(value: AppConstants.levelError, child: Text('Error')),
-                DropdownMenuItem(value: AppConstants.levelWarn, child: Text('Warning')),
-                DropdownMenuItem(value: AppConstants.levelInfo, child: Text('Info')),
-                DropdownMenuItem(value: AppConstants.levelDebug, child: Text('Debug')),
+                DropdownMenuItem(
+                    value: AppConstants.levelError, child: Text('Error')),
+                DropdownMenuItem(
+                    value: AppConstants.levelWarn, child: Text('Warning')),
+                DropdownMenuItem(
+                    value: AppConstants.levelInfo, child: Text('Info')),
+                DropdownMenuItem(
+                    value: AppConstants.levelDebug, child: Text('Debug')),
               ],
               onChanged: (value) => setState(() => selectedLevel = value),
             ),
@@ -168,7 +173,8 @@ class _FilterDialogState extends State<FilterDialog> {
     final date = await showDatePicker(
       context: context,
       initialDate: endDate ?? DateTime.now(),
-      firstDate: startDate ?? DateTime.now().subtract(const Duration(days: 365)),
+      firstDate:
+          startDate ?? DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now(),
     );
     if (date != null) {

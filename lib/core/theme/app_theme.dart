@@ -125,7 +125,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: tokens.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: tokens.border, width: 1),
@@ -143,7 +144,8 @@ class AppTheme {
           borderSide: BorderSide(color: tokens.error, width: 1),
         ),
         hintStyle: AppTextStyles.body.copyWith(color: tokens.textTertiary),
-        labelStyle: AppTextStyles.bodySmall.copyWith(color: tokens.textSecondary),
+        labelStyle:
+            AppTextStyles.bodySmall.copyWith(color: tokens.textSecondary),
         prefixIconColor: tokens.textTertiary,
         suffixIconColor: tokens.textTertiary,
       ),
@@ -201,7 +203,8 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         titleTextStyle: AppTextStyles.h3.copyWith(color: tokens.textPrimary),
-        contentTextStyle: AppTextStyles.body.copyWith(color: tokens.textSecondary),
+        contentTextStyle:
+            AppTextStyles.body.copyWith(color: tokens.textSecondary),
         elevation: 0,
       ),
 
@@ -226,7 +229,8 @@ class AppTheme {
           foregroundColor: tokens.textInverse,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           textStyle: AppTextStyles.labelMd,
         ),
       ),
@@ -237,7 +241,8 @@ class AppTheme {
           foregroundColor: tokens.textPrimary,
           side: BorderSide(color: tokens.border, width: 1),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           textStyle: AppTextStyles.labelMd,
         ),
       ),
@@ -276,7 +281,8 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         titleTextStyle: AppTextStyles.body.copyWith(color: tokens.textPrimary),
-        subtitleTextStyle: AppTextStyles.bodySmall.copyWith(color: tokens.textSecondary),
+        subtitleTextStyle:
+            AppTextStyles.bodySmall.copyWith(color: tokens.textSecondary),
       ),
 
       // ── Progress Indicator ────────────────────────────────
@@ -292,7 +298,8 @@ class AppTheme {
         labelColor: tokens.accent,
         unselectedLabelColor: tokens.textTertiary,
         labelStyle: AppTextStyles.label.copyWith(color: tokens.accent),
-        unselectedLabelStyle: AppTextStyles.label.copyWith(color: tokens.textTertiary),
+        unselectedLabelStyle:
+            AppTextStyles.label.copyWith(color: tokens.textTertiary),
         indicatorColor: tokens.accent,
         indicatorSize: TabBarIndicatorSize.label,
         dividerColor: tokens.borderSoft,
@@ -301,17 +308,20 @@ class AppTheme {
       // ── Text Theme ────────────────────────────────────────
       textTheme: TextTheme(
         displayLarge: AppTextStyles.display.copyWith(color: tokens.textPrimary),
-        displayMedium: AppTextStyles.displaySm.copyWith(color: tokens.textPrimary),
+        displayMedium:
+            AppTextStyles.displaySm.copyWith(color: tokens.textPrimary),
         displaySmall: AppTextStyles.h1.copyWith(color: tokens.textPrimary),
         headlineLarge: AppTextStyles.h1.copyWith(color: tokens.textPrimary),
         headlineMedium: AppTextStyles.h2.copyWith(color: tokens.textPrimary),
         headlineSmall: AppTextStyles.h3.copyWith(color: tokens.textPrimary),
         titleLarge: AppTextStyles.h3.copyWith(color: tokens.textPrimary),
         titleMedium: AppTextStyles.h4.copyWith(color: tokens.textPrimary),
-        titleSmall: AppTextStyles.bodyMedium.copyWith(color: tokens.textPrimary),
+        titleSmall:
+            AppTextStyles.bodyMedium.copyWith(color: tokens.textPrimary),
         bodyLarge: AppTextStyles.bodyLarge.copyWith(color: tokens.textPrimary),
         bodyMedium: AppTextStyles.body.copyWith(color: tokens.textPrimary),
-        bodySmall: AppTextStyles.bodySmall.copyWith(color: tokens.textSecondary),
+        bodySmall:
+            AppTextStyles.bodySmall.copyWith(color: tokens.textSecondary),
         labelLarge: AppTextStyles.labelMd.copyWith(color: tokens.textPrimary),
         labelMedium: AppTextStyles.label.copyWith(color: tokens.textSecondary),
         labelSmall: AppTextStyles.overline.copyWith(color: tokens.textTertiary),

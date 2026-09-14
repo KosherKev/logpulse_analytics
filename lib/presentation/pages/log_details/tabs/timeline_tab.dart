@@ -76,7 +76,6 @@ class TimelineTab extends StatelessWidget {
             c: c,
           );
         }),
-
       ],
     );
   }
@@ -221,8 +220,8 @@ class _TimelineEventRow extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       event.detail!,
-                      style: AppTextStyles.monoSm
-                          .copyWith(color: c.textTertiary),
+                      style:
+                          AppTextStyles.monoSm.copyWith(color: c.textTertiary),
                     ),
                   ],
                 ],

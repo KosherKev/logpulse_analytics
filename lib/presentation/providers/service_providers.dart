@@ -45,7 +45,8 @@ final servicesRepositoryProvider = Provider<ServicesRepository>((ref) {
 });
 
 /// API Configuration State Provider
-final apiConfigProvider = StateNotifierProvider<ApiConfigNotifier, ApiConfigState>((ref) {
+final apiConfigProvider =
+    StateNotifierProvider<ApiConfigNotifier, ApiConfigState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
   return ApiConfigNotifier(apiService);
 });
@@ -103,14 +104,13 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
 
   Future<void> loadConfig() async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final storage = await LocalStorageService.getInstance();
-      final storageVersion = storage.getInt(AppConstants.keyStorageVersion) ?? 0;
-      final profilesJson =
-          storage.getString(AppConstants.keyApiProfiles);
-      final activeId =
-          storage.getString(AppConstants.keyActiveApiProfileId);
+      final storageVersion =
+          storage.getInt(AppConstants.keyStorageVersion) ?? 0;
+      final profilesJson = storage.getString(AppConstants.keyApiProfiles);
+      final activeId = storage.getString(AppConstants.keyActiveApiProfileId);
 
       List<ApiConnectionProfile> profiles = [];
       ApiConnectionProfile? activeProfile;
@@ -118,8 +118,8 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
       if (profilesJson != null && profilesJson.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(profilesJson) as List<dynamic>;
         profiles = decoded
-            .map((e) =>
-                ApiConnectionProfile.fromJson(e as Map<String, dynamic>))
+            .map(
+                (e) => ApiConnectionProfile.fromJson(e as Map<String, dynamic>))
             .toList();
         if (profiles.isNotEmpty) {
           activeProfile = profiles.firstWhere(
@@ -157,7 +157,8 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
               await storage.setProfileApiKey(profile.id, legacyApiKey!);
             }
           }
-          await storage.setInt(AppConstants.keyStorageVersion, AppConstants.currentStorageVersion);
+          await storage.setInt(AppConstants.keyStorageVersion,
+              AppConstants.currentStorageVersion);
         }
 
         const envApiKey =
@@ -178,7 +179,9 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
             await storage.setProfileApiKey(profile.id, envApiKey);
             activeProfile = activeProfile.copyWith(apiKey: envApiKey);
           }
-        } else if (activeProfile != null && (activeProfile.apiKey.isEmpty) && envApiKey.isNotEmpty) {
+        } else if (activeProfile != null &&
+            (activeProfile.apiKey.isEmpty) &&
+            envApiKey.isNotEmpty) {
           await storage.setProfileApiKey(activeProfile.id, envApiKey);
           activeProfile = activeProfile.copyWith(apiKey: envApiKey);
         }
@@ -214,17 +217,18 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     }
   }
 
-  Future<void> configure({required String baseUrl, required String apiKey}) async {
+  Future<void> configure(
+      {required String baseUrl, required String apiKey}) async {
     state = state.copyWith(isLoading: true, error: null);
-    
+
     try {
       final storage = await LocalStorageService.getInstance();
       final currentProfiles = [...state.profiles];
       ApiConnectionProfile? activeProfile;
 
       if (state.activeProfileId != null) {
-        final index = currentProfiles
-            .indexWhere((p) => p.id == state.activeProfileId);
+        final index =
+            currentProfiles.indexWhere((p) => p.id == state.activeProfileId);
         if (index >= 0) {
           currentProfiles[index] = currentProfiles[index].copyWith(
             baseUrl: baseUrl,
@@ -278,7 +282,7 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
       for (final p in state.profiles) {
         await storage.removeProfileApiKey(p.id);
       }
-      
+
       state = ApiConfigState();
     } catch (e) {
       state = state.copyWith(error: e.toString());
@@ -379,7 +383,7 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
       await _persistProfiles(storage, profiles, null);
       state = ApiConfigState();
     }
-    
+
     await storage.removeProfileApiKey(profileId);
   }
 
@@ -388,8 +392,7 @@ class ApiConfigNotifier extends StateNotifier<ApiConfigState> {
     List<ApiConnectionProfile> profiles,
     String? activeId,
   ) async {
-    final encoded =
-        jsonEncode(profiles.map((p) => p.toJson()).toList());
+    final encoded = jsonEncode(profiles.map((p) => p.toJson()).toList());
     await storage.setString(AppConstants.keyApiProfiles, encoded);
     if (activeId != null) {
       await storage.setString(AppConstants.keyActiveApiProfileId, activeId);

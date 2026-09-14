@@ -114,7 +114,8 @@ void main() {
         expect(result.errorsByLevel, {'error': 5});
         // Merge with empty metrics: serviceStats unchanged from log-derived.
         expect(result.serviceStats, isNotNull);
-        expect(result.serviceStats!.keys, containsAll(['academicx', 'other-svc']));
+        expect(
+            result.serviceStats!.keys, containsAll(['academicx', 'other-svc']));
         expect(result.serviceStats!['academicx']!.totalRequests, 80);
         expect(result.serviceStats!['academicx']!.reportedHealthStatus, isNull);
         expect(result.serviceStats!['academicx']!.customMetrics, isNull);

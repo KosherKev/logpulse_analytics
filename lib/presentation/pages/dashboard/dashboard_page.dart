@@ -45,24 +45,36 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _envFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.0, 0.2));
+    _envFade =
+        CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.0, 0.2));
     _envSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.0, 0.2)));
-    _rangeFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.1, 0.3));
+        .animate(CurvedAnimation(
+            parent: _staggerCtrl, curve: const Interval(0.0, 0.2)));
+    _rangeFade =
+        CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.1, 0.3));
     _rangeSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.1, 0.3)));
-    _statsFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.2, 0.4));
+        .animate(CurvedAnimation(
+            parent: _staggerCtrl, curve: const Interval(0.1, 0.3)));
+    _statsFade =
+        CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.2, 0.4));
     _statsSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.2, 0.4)));
-    _chartFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.3, 0.5));
+        .animate(CurvedAnimation(
+            parent: _staggerCtrl, curve: const Interval(0.2, 0.4)));
+    _chartFade =
+        CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.3, 0.5));
     _chartSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.3, 0.5)));
-    _healthFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.4, 0.6));
+        .animate(CurvedAnimation(
+            parent: _staggerCtrl, curve: const Interval(0.3, 0.5)));
+    _healthFade =
+        CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.4, 0.6));
     _healthSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.4, 0.6)));
-    _errorsFade = CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.5, 0.7));
+        .animate(CurvedAnimation(
+            parent: _staggerCtrl, curve: const Interval(0.4, 0.6)));
+    _errorsFade =
+        CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.5, 0.7));
     _errorsSlide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _staggerCtrl, curve: const Interval(0.5, 0.7)));
+        .animate(CurvedAnimation(
+            parent: _staggerCtrl, curve: const Interval(0.5, 0.7)));
   }
 
   @override
@@ -209,8 +221,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () =>
-                  ref.read(dashboardProvider.notifier).refresh(),
+              onPressed: () => ref.read(dashboardProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
             ),
@@ -261,7 +272,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             ),
           ),
           const SizedBox(height: 16),
-
           FadeTransition(
             opacity: _rangeFade,
             child: SlideTransition(
@@ -274,7 +284,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             ),
           ),
           const SizedBox(height: 16),
-
           FadeTransition(
             opacity: _statsFade,
             child: SlideTransition(
@@ -283,7 +292,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             ),
           ),
           const SizedBox(height: 16),
-
           FadeTransition(
             opacity: _chartFade,
             child: SlideTransition(
@@ -296,7 +304,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             ),
           ),
           const SizedBox(height: 24),
-
           FadeTransition(
             opacity: _healthFade,
             child: SlideTransition(
@@ -305,7 +312,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage>
             ),
           ),
           const SizedBox(height: 24),
-
           if (criticalErrors.isNotEmpty)
             FadeTransition(
               opacity: _errorsFade,

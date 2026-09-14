@@ -6,22 +6,22 @@ class DateUtils {
   static String formatFull(DateTime dateTime) {
     return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
   }
-  
+
   /// Format datetime to short format: "Feb 14, 2026"
   static String formatShort(DateTime dateTime) {
     return DateFormat('MMM dd, yyyy').format(dateTime);
   }
-  
+
   /// Format time only: "10:30:45"
   static String formatTime(DateTime dateTime) {
     return DateFormat('HH:mm:ss').format(dateTime);
   }
-  
+
   /// Format datetime to relative time: "2 minutes ago"
   static String formatRelative(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
+
     if (difference.inSeconds < 60) {
       return '${difference.inSeconds} seconds ago';
     } else if (difference.inMinutes < 60) {
@@ -57,7 +57,7 @@ class DateUtils {
     }
     return '${difference.inDays}d ago';
   }
-  
+
   /// Parse ISO 8601 string to DateTime
   static DateTime? parseIso8601(String? dateString) {
     if (dateString == null || dateString.isEmpty) return null;
@@ -67,11 +67,11 @@ class DateUtils {
       return null;
     }
   }
-  
+
   /// Get start and end dates for time range
   static (DateTime start, DateTime end) getTimeRange(String range) {
     final now = DateTime.now();
-    
+
     switch (range) {
       case 'last_hour':
         return (now.subtract(const Duration(hours: 1)), now);
@@ -85,7 +85,7 @@ class DateUtils {
         return (now.subtract(const Duration(hours: 24)), now);
     }
   }
-  
+
   /// Convert DateTime to ISO 8601 string
   static String toIso8601(DateTime dateTime) {
     return dateTime.toUtc().toIso8601String();

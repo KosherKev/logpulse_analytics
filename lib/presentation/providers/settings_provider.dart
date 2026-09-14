@@ -3,7 +3,8 @@ import '../../data/services/local_storage_service.dart';
 import '../../core/constants/app_constants.dart';
 
 /// Settings State Provider
-final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
+final settingsProvider =
+    StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
   return SettingsNotifier();
 });
 

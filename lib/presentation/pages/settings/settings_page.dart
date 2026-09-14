@@ -18,7 +18,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final _apiUrlController = TextEditingController();
   final _apiKeyController = TextEditingController();
   bool _isEditing = false;
-  String? _selectedProfileId;
 
   @override
   void initState() {
@@ -28,7 +27,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   void _loadCurrentSettings() {
     final apiConfig = ref.read(apiConfigProvider);
-    _selectedProfileId = apiConfig.activeProfileId;
     _apiUrlController.text = apiConfig.baseUrl ?? '';
     _apiKeyController.text = apiConfig.apiKey ?? '';
   }
@@ -77,19 +75,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           itemCount: apiConfig.profiles.length,
                           itemBuilder: (context, index) {
                             final profile = apiConfig.profiles[index];
-                            final isActive = profile.id == apiConfig.activeProfileId;
+                            final isActive =
+                                profile.id == apiConfig.activeProfileId;
                             return GestureDetector(
                               onTap: () async {
-                                await ref.read(apiConfigProvider.notifier).setActiveProfile(profile.id);
+                                await ref
+                                    .read(apiConfigProvider.notifier)
+                                    .setActiveProfile(profile.id);
                                 setState(() {
-                                  _selectedProfileId = profile.id;
                                   _apiUrlController.text = profile.baseUrl;
                                   _apiKeyController.text = profile.apiKey;
                                   _isEditing = false;
                                 });
                               },
                               child: Container(
-                                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                margin: const EdgeInsets.only(
+                                    bottom: AppSpacing.sm),
                                 padding: const EdgeInsets.all(AppSpacing.md),
                                 decoration: BoxDecoration(
                                   color: c.surface,
@@ -109,7 +110,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                     const SizedBox(width: AppSpacing.md),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             profile.name,
@@ -121,7 +123,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                           const SizedBox(height: 4),
                                           Text(
                                             _truncateUrl(profile.baseUrl),
-                                            style: AppTextStyles.bodySmall.copyWith(color: c.textSecondary),
+                                            style: AppTextStyles.bodySmall
+                                                .copyWith(
+                                                    color: c.textSecondary),
                                           ),
                                         ],
                                       ),
@@ -130,12 +134,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       icon: const Icon(Icons.delete_outline),
                                       color: c.textSecondary,
                                       onPressed: () async {
-                                        await ref.read(apiConfigProvider.notifier).removeProfile(profile.id);
-                                        final updated = ref.read(apiConfigProvider);
+                                        await ref
+                                            .read(apiConfigProvider.notifier)
+                                            .removeProfile(profile.id);
+                                        final updated =
+                                            ref.read(apiConfigProvider);
                                         setState(() {
-                                          _selectedProfileId = updated.activeProfileId;
-                                          _apiUrlController.text = updated.baseUrl ?? '';
-                                          _apiKeyController.text = updated.apiKey ?? '';
+                                          _apiUrlController.text =
+                                              updated.baseUrl ?? '';
+                                          _apiKeyController.text =
+                                              updated.apiKey ?? '';
                                           _isEditing = false;
                                         });
                                       },
@@ -176,16 +184,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     children: [
                       if (!_isEditing && !apiConfig.isConfigured)
                         ElevatedButton.icon(
-                          onPressed: () =>
-                              setState(() => _isEditing = true),
+                          onPressed: () => setState(() => _isEditing = true),
                           icon: const Icon(Icons.edit),
                           label: const Text('Configure API'),
                         )
                       else if (!_isEditing)
                         Row(
                           children: [
-                            const Icon(Icons.check_circle,
-                                color: Colors.green),
+                            const Icon(Icons.check_circle, color: Colors.green),
                             const SizedBox(width: AppSpacing.sm),
                             const Text('API Configured'),
                             const SizedBox(width: AppSpacing.sm),
@@ -221,15 +227,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Text(
                     'Theme',
                     style: AppTextStyles.body.copyWith(
-                      color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   SegmentedButton<String>(
                     segments: const <ButtonSegment<String>>[
-                      ButtonSegment<String>(value: 'light', label: Text('Light'), icon: Icon(Icons.wb_sunny_outlined)),
-                      ButtonSegment<String>(value: 'dark', label: Text('Dark'), icon: Icon(Icons.nightlight_round)),
-                      ButtonSegment<String>(value: 'system', label: Text('System'), icon: Icon(Icons.settings_suggest_outlined)),
+                      ButtonSegment<String>(
+                          value: 'light',
+                          label: Text('Light'),
+                          icon: Icon(Icons.wb_sunny_outlined)),
+                      ButtonSegment<String>(
+                          value: 'dark',
+                          label: Text('Dark'),
+                          icon: Icon(Icons.nightlight_round)),
+                      ButtonSegment<String>(
+                          value: 'system',
+                          label: Text('System'),
+                          icon: Icon(Icons.settings_suggest_outlined)),
                     ],
                     selected: <String>{settings.themeMode},
                     showSelectedIcon: false,
@@ -340,7 +357,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                    leading: const Icon(Icons.delete_outline,
+                        color: AppColors.error),
                     title: Text(
                       'Clear Cache',
                       style: AppTextStyles.body.copyWith(
@@ -396,7 +414,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-
   void _showIntervalPicker() {
     showDialog(
       context: context,
@@ -441,7 +458,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SnackBar(content: Text('Cache cleared')),
               );
             },
-            child: Text('Clear', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
+            child: Text('Clear',
+                style:
+                    AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
           ),
         ],
       ),
@@ -470,7 +489,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 const SnackBar(content: Text('Configuration cleared')),
               );
             },
-            child: Text('Clear', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
+            child: Text('Clear',
+                style:
+                    AppTextStyles.bodyMedium.copyWith(color: AppColors.error)),
           ),
         ],
       ),
@@ -574,7 +595,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   const SizedBox(width: AppSpacing.sm),
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final name = nameController.text.trim().isEmpty ? 'Connection' : nameController.text.trim();
+                      final name = nameController.text.trim().isEmpty
+                          ? 'Connection'
+                          : nameController.text.trim();
                       final url = urlController.text.trim();
                       final key = keyController.text.trim();
                       if (url.isEmpty || key.isEmpty) return;
@@ -585,7 +608,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           );
                       final updated = ref.read(apiConfigProvider);
                       setState(() {
-                        _selectedProfileId = updated.activeProfileId;
                         _apiUrlController.text = updated.baseUrl ?? '';
                         _apiKeyController.text = updated.apiKey ?? '';
                         _isEditing = false;

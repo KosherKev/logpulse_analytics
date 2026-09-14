@@ -318,9 +318,9 @@ class _LogsPageState extends ConsumerState<LogsPage> {
   Future<void> _applyLevel(String? levelValue) async {
     final notifier = ref.read(logsProvider.notifier);
     final filter = ref.read(logsProvider).filter.copyWith(
-      level: levelValue,
-      offset: 0,
-    );
+          level: levelValue,
+          offset: 0,
+        );
     await notifier.applyFilter(filter);
   }
 
@@ -536,8 +536,7 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                                 final summary = [
                                   if (f.level != null) f.level!.toUpperCase(),
                                   if (f.service != null) f.service!,
-                                  if (f.statusCode != null)
-                                    '${f.statusCode}',
+                                  if (f.statusCode != null) '${f.statusCode}',
                                   if (f.searchQuery != null &&
                                       f.searchQuery!.isNotEmpty)
                                     '"${f.searchQuery}"',
@@ -550,8 +549,8 @@ class _LogsPageState extends ConsumerState<LogsPage> {
                                     alignment: Alignment.centerRight,
                                     padding: const EdgeInsets.only(right: 20),
                                     color: c.errorBg,
-                                    child:
-                                        Icon(Icons.delete_outline, color: c.error),
+                                    child: Icon(Icons.delete_outline,
+                                        color: c.error),
                                   ),
                                   onDismissed: (_) {
                                     ref
@@ -692,9 +691,7 @@ class _LevelPill extends StatelessWidget {
           color: _selected ? activeBg : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: _selected
-                ? activeColor.withValues(alpha: 0.5)
-                : c.border,
+            color: _selected ? activeColor.withValues(alpha: 0.5) : c.border,
             width: 1,
           ),
         ),
@@ -761,7 +758,8 @@ class _ScrollTopFab extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(Icons.arrow_upward_rounded, size: 18, color: c.textSecondary),
+        child:
+            Icon(Icons.arrow_upward_rounded, size: 18, color: c.textSecondary),
       ),
     );
   }

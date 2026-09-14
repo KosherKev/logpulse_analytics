@@ -123,7 +123,8 @@ class _DetailHeadersSectionState extends State<DetailHeadersSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: isEmpty ? null : () => setState(() => _expanded = !_expanded),
+            onTap:
+                isEmpty ? null : () => setState(() => _expanded = !_expanded),
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -143,8 +144,8 @@ class _DetailHeadersSectionState extends State<DetailHeadersSection> {
                       ),
                       child: Text(
                         '${widget.content!.length}',
-                        style: AppTextStyles.monoSm.copyWith(
-                            color: c.textTertiary, fontSize: 10),
+                        style: AppTextStyles.monoSm
+                            .copyWith(color: c.textTertiary, fontSize: 10),
                       ),
                     ),
                   const SizedBox(width: 6),
@@ -246,8 +247,7 @@ class DetailBodySection extends StatelessWidget {
             child: Row(
               children: [
                 Text(title,
-                    style:
-                        AppTextStyles.label.copyWith(color: c.textTertiary)),
+                    style: AppTextStyles.label.copyWith(color: c.textTertiary)),
                 const Spacer(),
                 DetailActionChip(
                   label: prettyPrint ? 'RAW' : 'PRETTY',
@@ -259,8 +259,7 @@ class DetailBodySection extends StatelessWidget {
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: bodyText));
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content:
-                          Text('Copied', style: AppTextStyles.monoSm),
+                      content: Text('Copied', style: AppTextStyles.monoSm),
                       duration: const Duration(seconds: 2),
                       behavior: SnackBarBehavior.floating,
                     ));

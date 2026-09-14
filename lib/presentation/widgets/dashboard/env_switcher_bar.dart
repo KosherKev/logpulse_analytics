@@ -183,9 +183,7 @@ class _EnvSwitcherBarState extends ConsumerState<EnvSwitcherBar>
                                 left: BorderSide(color: c.accent, width: 3),
                               )
                             : null,
-                        color: isActive
-                            ? c.accentGlow
-                            : Colors.transparent,
+                        color: isActive ? c.accentGlow : Colors.transparent,
                       ),
                       child: Row(
                         children: [

@@ -88,7 +88,8 @@ class TraceLogsPage extends ConsumerWidget {
                                   ),
                                 ],
                               ),
-                              if (entry.method != null && entry.path != null) ...[
+                              if (entry.method != null &&
+                                  entry.path != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
                                   '${entry.method} ${entry.path}',
@@ -100,7 +101,8 @@ class TraceLogsPage extends ConsumerWidget {
                               ],
                               const SizedBox(height: 4),
                               Text(
-                                date_utils.DateUtils.formatFull(entry.timestamp),
+                                date_utils.DateUtils.formatFull(
+                                    entry.timestamp),
                                 style: AppTextStyles.monoSm
                                     .copyWith(color: c.textTertiary),
                               ),

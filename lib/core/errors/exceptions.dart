@@ -3,11 +3,12 @@ class AppException implements Exception {
   final String message;
   final String? code;
   final dynamic details;
-  
+
   AppException(this.message, {this.code, this.details});
-  
+
   @override
-  String toString() => 'AppException: $message${code != null ? ' ($code)' : ''}';
+  String toString() =>
+      'AppException: $message${code != null ? ' ($code)' : ''}';
 }
 
 /// Network-related exceptions
@@ -18,16 +19,17 @@ class NetworkException extends AppException {
 /// API-related exceptions
 class ApiException extends AppException {
   final int? statusCode;
-  
+
   ApiException(
     super.message, {
     this.statusCode,
     super.code,
     super.details,
   });
-  
+
   @override
-  String toString() => 'ApiException: $message${statusCode != null ? ' (HTTP $statusCode)' : ''}';
+  String toString() =>
+      'ApiException: $message${statusCode != null ? ' (HTTP $statusCode)' : ''}';
 }
 
 /// Authentication exceptions

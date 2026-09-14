@@ -123,4 +123,3 @@ final savedFiltersProvider =
   notifier.load();
   return notifier;
 });
-

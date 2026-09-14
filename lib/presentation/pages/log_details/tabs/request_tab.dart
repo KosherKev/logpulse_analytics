@@ -45,8 +45,7 @@ class _RequestTabState extends State<RequestTab> {
             title: 'REQUEST BODY',
             body: widget.log.request!.body,
             prettyPrint: _prettyPrint,
-            onTogglePretty: () =>
-                setState(() => _prettyPrint = !_prettyPrint),
+            onTogglePretty: () => setState(() => _prettyPrint = !_prettyPrint),
             c: c,
           )
         else

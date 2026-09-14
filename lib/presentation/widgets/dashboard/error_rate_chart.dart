@@ -158,8 +158,7 @@ class ErrorRateChart extends StatelessWidget {
     final traffic = trafficPoints ?? points ?? [];
     final trueErrors = errorPoints ?? const <FlSpot>[];
     final isDualSeries = trafficPoints != null || errorPoints != null;
-    final isLegacyOnly =
-        !isDualSeries && points != null && points!.isNotEmpty;
+    final isLegacyOnly = !isDualSeries && points != null && points!.isNotEmpty;
 
     // Colours
     final trafficColor = c.accent;
@@ -392,7 +391,9 @@ class ErrorRateChart extends StatelessWidget {
                               ),
                             ),
                           ),
-                        if (!isDualSeries && points != null && points!.isNotEmpty)
+                        if (!isDualSeries &&
+                            points != null &&
+                            points!.isNotEmpty)
                           LineChartBarData(
                             spots: points!,
                             isCurved: true,
@@ -442,7 +443,6 @@ class ErrorRateChart extends StatelessWidget {
     if (maxY <= 500) return 100;
     return (maxY / 5).ceilToDouble();
   }
-
 }
 
 /// Count tick label (left axis).

@@ -47,7 +47,6 @@ class OverviewTab extends ConsumerWidget {
               DetailKVRow(label: 'IP Address', value: log.request!.ip!, c: c),
           ],
         ),
-
         if (log.isError) ...[
           const SizedBox(height: 12),
           DetailSection(
@@ -57,8 +56,8 @@ class OverviewTab extends ConsumerWidget {
             children: [
               if (log.displayError.isNotEmpty)
                 DetailKVRow(
-                  label: 'Message',
-                  value: log.displayError,
+                    label: 'Message',
+                    value: log.displayError,
                     valueColor: c.error,
                     c: c),
               if (log.error?.code != null)
@@ -66,7 +65,6 @@ class OverviewTab extends ConsumerWidget {
             ],
           ),
         ],
-
         if (log.traceId != null) ...[
           const SizedBox(height: 12),
           DetailSection(
@@ -87,7 +85,8 @@ class OverviewTab extends ConsumerWidget {
                     builder: (_) => TraceLogsPage(traceId: log.traceId!),
                   ),
                 ),
-                icon: Icon(Icons.account_tree_rounded, size: 16, color: c.accent),
+                icon:
+                    Icon(Icons.account_tree_rounded, size: 16, color: c.accent),
                 label: Text('View Related Logs',
                     style: AppTextStyles.bodySmall.copyWith(color: c.accent)),
                 style: OutlinedButton.styleFrom(
@@ -99,7 +98,6 @@ class OverviewTab extends ConsumerWidget {
             ],
           ),
         ],
-
         if (log.metadata != null && log.metadata!.isNotEmpty) ...[
           const SizedBox(height: 12),
           DetailSection(
@@ -123,4 +121,3 @@ class OverviewTab extends ConsumerWidget {
     return c.textPrimary;
   }
 }
-

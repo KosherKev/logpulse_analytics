@@ -153,7 +153,8 @@ class DashboardRepository {
   }
 
   /// Fetch time-series data using dedicated endpoint with fallback
-  Future<List<TimeSeriesPoint>> getErrorTrafficSeries({String? timeRange}) async {
+  Future<List<TimeSeriesPoint>> getErrorTrafficSeries(
+      {String? timeRange}) async {
     try {
       return await _apiService.getTimeSeries(timeRange: timeRange);
     } catch (e) {

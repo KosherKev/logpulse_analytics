@@ -57,8 +57,7 @@ void main() {
   });
 
   group('StatsGrid', () {
-    testWidgets('displays dashboard stat values',
-        (WidgetTester tester) async {
+    testWidgets('displays dashboard stat values', (WidgetTester tester) async {
       final stats = DashboardStats(
         totalLogs: 1000,
         errorRate: 2.5,

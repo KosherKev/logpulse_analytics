@@ -52,14 +52,16 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               title,
-              style: AppTextStyles.h3.copyWith(color: AppColors.of(context).textSecondary),
+              style: AppTextStyles.h3
+                  .copyWith(color: AppColors.of(context).textSecondary),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
               const SizedBox(height: 8),
               Text(
                 message!,
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.of(context).textTertiary),
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.of(context).textTertiary),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -95,17 +97,20 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.of(context).error),
+            Icon(Icons.error_outline,
+                size: 64, color: AppColors.of(context).error),
             const SizedBox(height: 16),
             Text(
               title,
-              style: AppTextStyles.h3.copyWith(color: AppColors.of(context).textPrimary),
+              style: AppTextStyles.h3
+                  .copyWith(color: AppColors.of(context).textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.of(context).textTertiary),
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.of(context).textTertiary),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[

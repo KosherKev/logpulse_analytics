@@ -33,8 +33,8 @@ class LogsRepository {
   /// Search logs
   Future<LogsPageResult> searchLogs(String query, {LogFilter? filter}) async {
     try {
-      final searchFilter = filter?.copyWith(searchQuery: query) ??
-          LogFilter(searchQuery: query);
+      final searchFilter =
+          filter?.copyWith(searchQuery: query) ?? LogFilter(searchQuery: query);
       return await _apiService.getLogs(searchFilter);
     } catch (e) {
       if (e is AppException) rethrow;

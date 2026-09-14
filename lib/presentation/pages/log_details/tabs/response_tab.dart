@@ -83,8 +83,7 @@ class _ResponseTabState extends State<ResponseTab> {
             title: 'RESPONSE BODY',
             body: widget.log.response!.body,
             prettyPrint: _prettyPrint,
-            onTogglePretty: () =>
-                setState(() => _prettyPrint = !_prettyPrint),
+            onTogglePretty: () => setState(() => _prettyPrint = !_prettyPrint),
             c: c,
           )
         else

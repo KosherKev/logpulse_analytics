@@ -18,6 +18,7 @@ class LogsState {
   final bool isLoading;
   final bool hasMore;
   final String? error;
+
   /// Server-reported total when available; otherwise page-derived estimate.
   final int totalCount;
 

@@ -123,7 +123,8 @@ class _DetailBody extends StatelessWidget {
   }
 
   Widget _sectionLabel(String text, AppColorTokens c) {
-    return Text(text, style: AppTextStyles.label.copyWith(color: c.textTertiary));
+    return Text(text,
+        style: AppTextStyles.label.copyWith(color: c.textTertiary));
   }
 }
 
@@ -171,7 +172,8 @@ class _OverviewCard extends StatelessWidget {
               if (summary.errorRate != null)
                 _kv('err', '${summary.errorRate!.toStringAsFixed(1)}%', c),
               if (summary.avgLatency != null)
-                _kv('latency', '${summary.avgLatency!.toStringAsFixed(0)}ms', c),
+                _kv('latency', '${summary.avgLatency!.toStringAsFixed(0)}ms',
+                    c),
               if (summary.instanceCount != null)
                 _kv('instances', '${summary.instanceCount}', c),
               if (summary.lastSeen != null)
