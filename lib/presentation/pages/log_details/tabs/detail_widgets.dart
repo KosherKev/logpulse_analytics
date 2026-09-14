@@ -22,26 +22,41 @@ class DetailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A Border with a distinct left-side color plus a borderRadius throws
+    // "A borderRadius can only be given on borders with uniform colors." at
+    // paint time (confirmed: every tab using this shared widget rendered a
+    // blank section). Uniform border on the outer Container instead, with
+    // the accent as an actual clipped stripe — same fix as the page header
+    // in log_details_page.dart, which hit the identical bug.
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: accentBorder ?? c.accent, width: 3),
-          top: BorderSide(color: c.border),
-          right: BorderSide(color: c.border),
-          bottom: BorderSide(color: c.border),
-        ),
+        border: Border.all(color: c.border, width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: AppTextStyles.label.copyWith(color: c.textTertiary)),
-          const SizedBox(height: 10),
-          ...children,
-        ],
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 3, color: accentBorder ?? c.accent),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: AppTextStyles.label
+                            .copyWith(color: c.textTertiary)),
+                    const SizedBox(height: 10),
+                    ...children,
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

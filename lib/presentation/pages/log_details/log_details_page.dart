@@ -119,165 +119,196 @@ class _LogDetailsPageState extends State<LogDetailsPage>
     final levelBg = c.levelBg(log.level);
     final statusColor = _statusColor(log.statusCode, c);
 
+    // A Border with a distinct left-side color plus a borderRadius throws
+    // "A borderRadius can only be given on borders with uniform colors." at
+    // paint time (confirmed: crashed every open of this page). Matches
+    // error_group_card.dart's working pattern instead: a uniform border on
+    // the outer Container, with the colored accent as an actual clipped
+    // child stripe rather than part of the border itself.
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(color: levelColor, width: 3),
-          top: BorderSide(color: c.border, width: 1),
-          right: BorderSide(color: c.border, width: 1),
-          bottom: BorderSide(color: c.border, width: 1),
-        ),
+        border: Border.all(color: c.border, width: 1),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: level chip · service name · status badge
-          Row(
-            children: [
-              // Level chip
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: levelBg,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                      color: levelColor.withValues(alpha: 0.4), width: 1),
-                ),
-                child: Text(
-                  log.level.toUpperCase(),
-                  style: AppTextStyles.label.copyWith(color: levelColor),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Service name
-              Expanded(
-                child: Text(
-                  log.service,
-                  style: AppTextStyles.monoMd.copyWith(
-                      color: c.textPrimary, fontWeight: FontWeight.w600),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              // Status badge
-              if (log.statusCode != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    '${log.statusCode}',
-                    style: AppTextStyles.monoSm.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
+      clipBehavior: Clip.antiAlias,
+      // IntrinsicHeight is load-bearing: without it, CrossAxisAlignment.stretch
+      // has no concrete height to stretch the width-only accent Container
+      // against, which threw a performLayout() assertion (confirmed — the
+      // page rendered as a blank body). Matches error_group_card.dart's
+      // working pattern, which wraps the same Row/stretch/accent-stripe
+      // combination in IntrinsicHeight for exactly this reason.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 3, color: levelColor),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Row 1: level chip · service name · status badge
+                    Row(
+                      children: [
+                        // Level chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: levelBg,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: levelColor.withValues(alpha: 0.4),
+                                width: 1),
+                          ),
+                          child: Text(
+                            log.level.toUpperCase(),
+                            style:
+                                AppTextStyles.label.copyWith(color: levelColor),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        // Service name
+                        Expanded(
+                          child: Text(
+                            log.service,
+                            style: AppTextStyles.monoMd.copyWith(
+                                color: c.textPrimary,
+                                fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Status badge
+                        if (log.statusCode != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${log.statusCode}',
+                              style: AppTextStyles.monoSm.copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                ),
-              ],
-            ],
-          ),
 
-          const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-          // Row 2: method + path — dark terminal container
-          if (log.method != null && log.path != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: c.surface2,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    log.method!,
-                    style: AppTextStyles.monoSm.copyWith(
-                      color: c.accent,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      log.path!,
-                      style:
-                          AppTextStyles.monoSm.copyWith(color: c.textPrimary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 10),
-
-          // Row 3: timestamp · duration
-          Row(
-            children: [
-              Icon(Icons.schedule_rounded, size: 13, color: c.textTertiary),
-              const SizedBox(width: 4),
-              Text(
-                date_utils.DateUtils.formatFull(log.timestamp),
-                style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
-              ),
-              if (log.duration != null) ...[
-                const SizedBox(width: 12),
-                Icon(Icons.bolt_rounded, size: 13, color: c.textTertiary),
-                const SizedBox(width: 4),
-                Text(
-                  FormatUtils.formatDuration(log.duration!),
-                  style: AppTextStyles.monoSm.copyWith(color: c.textTertiary),
-                ),
-              ],
-            ],
-          ),
-
-          // Row 4: trace ID — accent link style with copy tap
-          if (log.traceId != null) ...[
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: log.traceId!));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content:
-                        Text('Trace ID copied', style: AppTextStyles.monoSm),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              child: Row(
-                children: [
-                  Icon(Icons.account_tree_rounded, size: 13, color: c.accent),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      log.traceId!,
-                      style: AppTextStyles.monoSm.copyWith(
-                        color: c.accent,
-                        decoration: TextDecoration.underline,
-                        decorationColor: c.accent.withValues(alpha: 0.5),
+                    // Row 2: method + path — dark terminal container
+                    if (log.method != null && log.path != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: c.surface2,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              log.method!,
+                              style: AppTextStyles.monoSm.copyWith(
+                                color: c.accent,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                log.path!,
+                                style: AppTextStyles.monoSm
+                                    .copyWith(color: c.textPrimary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+
+                    const SizedBox(height: 10),
+
+                    // Row 3: timestamp · duration
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded,
+                            size: 13, color: c.textTertiary),
+                        const SizedBox(width: 4),
+                        Text(
+                          date_utils.DateUtils.formatFull(log.timestamp),
+                          style: AppTextStyles.monoSm
+                              .copyWith(color: c.textTertiary),
+                        ),
+                        if (log.duration != null) ...[
+                          const SizedBox(width: 12),
+                          Icon(Icons.bolt_rounded,
+                              size: 13, color: c.textTertiary),
+                          const SizedBox(width: 4),
+                          Text(
+                            FormatUtils.formatDuration(log.duration!),
+                            style: AppTextStyles.monoSm
+                                .copyWith(color: c.textTertiary),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  Icon(Icons.copy_rounded, size: 12, color: c.accent),
-                ],
+
+                    // Row 4: trace ID — accent link style with copy tap
+                    if (log.traceId != null) ...[
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: log.traceId!));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Trace ID copied',
+                                  style: AppTextStyles.monoSm),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            Icon(Icons.account_tree_rounded,
+                                size: 13, color: c.accent),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                log.traceId!,
+                                style: AppTextStyles.monoSm.copyWith(
+                                  color: c.accent,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor:
+                                      c.accent.withValues(alpha: 0.5),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Icon(Icons.copy_rounded, size: 12, color: c.accent),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }

@@ -31,42 +31,57 @@ class _ResponseTabState extends State<ResponseTab> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        // Status card — left-border coloured by status
+        // Status card — left-border coloured by status.
+        // A Border with a distinct left-side color plus a borderRadius
+        // throws "A borderRadius can only be given on borders with uniform
+        // colors." at paint time (confirmed: this card rendered blank) —
+        // same bug as log_details_page.dart's header and DetailSection.
+        // Uniform border + a clipped accent stripe instead.
         Container(
-          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: c.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border(
-              left: BorderSide(color: statusColor, width: 3),
-              top: BorderSide(color: c.border),
-              right: BorderSide(color: c.border),
-              bottom: BorderSide(color: c.border),
-            ),
+            border: Border.all(color: c.border, width: 1),
           ),
-          child: Row(
-            children: [
-              Text('STATUS',
-                  style: AppTextStyles.label.copyWith(color: c.textTertiary)),
-              const SizedBox(width: 14),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  widget.log.statusCode != null
-                      ? FormatUtils.formatStatusCode(widget.log.statusCode!)
-                      : 'Unknown',
-                  style: AppTextStyles.monoMd.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.w600,
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 3, color: statusColor),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Text('STATUS',
+                            style: AppTextStyles.label
+                                .copyWith(color: c.textTertiary)),
+                        const SizedBox(width: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            widget.log.statusCode != null
+                                ? FormatUtils.formatStatusCode(
+                                    widget.log.statusCode!)
+                                : 'Unknown',
+                            style: AppTextStyles.monoMd.copyWith(
+                              color: statusColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 12),
