@@ -329,4 +329,4 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   omitting the `id` virtual, with a regression test already covering it
   (`logs_page_parser_test.dart`); `/health` and `/jobs/purge-logs` have no client
   consumer in this repo (health is infra-only, purge is CLS-internal) so nothing to
-  conform. Commit: pending.
+  conform. Commit: `6ab940fc3e00698c00b5b74685fad8b32d81c8d0`.
