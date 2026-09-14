@@ -197,6 +197,66 @@ unless marked new:
   weren't explained by any doc read — flagged rather than committed or discarded (see
   Human pass queue).
 
+## Screen review (2026-09-14)
+
+Ran the app for real (`flutter run -d web-server`, driven headlessly) at both desktop
+and iPhone (375×812) widths, per Kevin's plan to check the app against the API before
+reviewing screens for visual/functional issues. Could not configure a live API
+connection myself — entering API keys/tokens into any field is a hard rule regardless
+of source, even a key already exposed in this repo — so this pass covers the
+unconfigured/error states of all 5 tabs plus Settings; the data-populated states
+(Dashboard charts, populated Logs list, Errors list with real groups, Services
+catalog, Log Detail, Service Detail) still need a live-credentialed pass, ideally with
+Kevin configuring the app himself so screenshots of real data can be reviewed.
+
+- **Fixed — Logs tab never loaded on mount.** `LogsPage.initState()` had no fetch
+  call at all (`ErrorsPage`/`ServicesPage` both call their load function via
+  `Future.microtask` in `initState`; `LogsPage` relied solely on a
+  configured-transition `ref.listen`, which never fires for a first-time user with
+  nothing to transition from). Result, confirmed via network trace showing zero API
+  calls: Logs showed a misleading generic **"No Logs Found — Try adjusting your
+  filters"** instead of the "API not configured" message every sibling tab shows.
+  Fixed in `8dd8966` by adding the same `initState` fetch. Verified: Logs now shows
+  "Failed to Load Logs — API not configured..." with Retry, matching Errors/Services.
+- **Fixed — Settings row overflow at phone width.** The "Configure API"/"API
+  Configured" + "Add Connection" `Row` (no wrap handling, just `Spacer()`) produced a
+  confirmed Flutter `RenderFlex` overflow ("RIGHT OVERFLOWED BY 32 PIXELS") at
+  375px-wide viewports. Fixed in `8dd8966` by switching to `Wrap`, which drops
+  "Add Connection" to a second line instead of overflowing. Verified clean at mobile
+  width.
+- **New — KL-2609-segwrap (open, unresolved).** The theme `SegmentedButton`'s
+  "System" label wraps to "Syste"/"m" at 375px width — `SegmentedButton` divides its
+  parent's full width evenly across all 3 segments regardless of content, so at this
+  width there isn't enough room for icon+"System" on one line. Tried three fixes
+  (`SingleChildScrollView` wrapper, `styleFrom` padding + smaller icons, renaming to
+  "Auto") — the first two didn't help or made it worse (all three labels wrapped),
+  the third would have worked but felt like sidestepping a layout bug with a copy
+  change without checking first. **Reverted to the original code** rather than ship
+  a half-working fix; this needs either a deliberate copy decision ("Auto" vs
+  "System") or a proper custom-width segmented control, not a quick patch.
+- **Doc-staleness found — LP-07 is actually already fixed.** `BACKLOG.md` §2.1 lists
+  LP-07 ("Errors nav badge — planned red count badge... not wired") as open, but
+  `home_page.dart` lines 20/57/76 already show a red dot on the Errors nav icon when
+  `errorsState.errorGroups.length > 0` — real, wired, working. Not a numeric count
+  (just a dot), which may be what the backlog row still means, but the "not wired"
+  claim is false as of current code.
+- **Confirmed still open — LP-06.** `stats_grid.dart` lines 29/36/43/50 hardcode
+  `delta: null` for all four stat cards — matches `BACKLOG.md`'s claim exactly, still
+  accurate.
+- **Code-quality observation (not an active bug) — Dashboard's reload pattern is
+  more fragile than its siblings.** `DashboardPage` has no `initState` fetch either;
+  it relies entirely on the same configured-transition `ref.listen` pattern Logs used
+  to. Unlike Logs, this doesn't currently manifest as a bug: `app.dart` calls
+  `apiConfigProvider.loadConfig()` in a microtask on app boot, which (for a user with
+  saved credentials) always produces a genuine false→true `isConfigured` transition
+  shortly after boot, and `IndexedStack` keeps `DashboardPage` mounted and listening
+  from the very start — so the transition-driven reload does fire in practice, and
+  `_buildDashboard`'s `state.stats!` doesn't currently hit a null case. Still, this is
+  an implicit, timing-dependent pattern rather than the simpler "always try on mount"
+  approach Errors/Services use, and it doesn't fail cleanly for a genuinely-never-
+  configured user (which Logs did fail on) — worth aligning to the same pattern as a
+  robustness improvement, not urgent.
+
 ## Next Steps
 
 **0a. New, highest priority — fix KL-2609-search.** Log search is broken end-to-end
@@ -253,6 +313,16 @@ items 7-10 above as ready to spec.
 
 Decisions this ledger surfaced that are Kevin's to make, not the planner's:
 
+- **Configure the app with real credentials so the screen review can continue.**
+  I won't type an API key into any field myself (hard rule), so Dashboard's charts,
+  a populated Logs list, real Errors groups, the Services catalog, Log Detail, and
+  Service Detail have not been visually reviewed yet — only their unconfigured/error
+  states have. Whenever you open Settings and connect it, say so and I'll pick the
+  review back up on the data-populated screens.
+- **KL-2609-segwrap**: rename "System" → "Auto" in the theme picker (quick, but a
+  copy decision), or invest in a proper custom segmented control that doesn't force
+  equal-thirds width? Currently reverted to the original (known-wrapping) code rather
+  than deciding this unilaterally.
 - ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
   script was added (`842b0ca`) and the gate failures it found were fixed (`fa277b6`).
   **Still open**: whether to add the CI workflow too.
@@ -330,3 +400,14 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   (`logs_page_parser_test.dart`); `/health` and `/jobs/purge-logs` have no client
   consumer in this repo (health is infra-only, purge is CLS-internal) so nothing to
   conform. Commit: `6ab940fc3e00698c00b5b74685fad8b32d81c8d0`.
+- **2026-09-14 (same session, screen review)** — Ran the app for real via
+  `flutter run -d web-server`, checked all 5 tabs + Settings at desktop and 375px
+  phone width. Found and fixed two real bugs (Logs never loading on mount; a
+  confirmed layout overflow on the Settings API-config row) — see "Screen review"
+  section above for full detail. Left the `SegmentedButton` "System"-label wrap
+  unresolved after three failed fix attempts rather than ship something half-working.
+  Found one doc-staleness item (LP-07 already fixed, `BACKLOG.md` still says open)
+  and confirmed one still-accurate one (LP-06 still open). Could not review
+  data-populated screens — entering the API key myself is against a hard rule, so
+  that needs Kevin to configure the app before the review can continue there.
+  Commit: `8dd8966dbfa5690bad40dc3a809d2b8f6fe7129b`.
