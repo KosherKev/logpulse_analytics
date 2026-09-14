@@ -17,6 +17,12 @@ class ErrorGroup {
   /// Representative trace from server groups API (deep-link to logs).
   final String? sampleTraceId;
 
+  /// Authoritative status code from the server's `GET /logs/errors/groups`
+  /// response (`sampleStatusCode`, added in CLS `39de821`), derived there from
+  /// the sample log's real `statusCode` field. Prefer this over
+  /// [inferredStatusCode]'s client-side guess whenever present.
+  final int? sampleStatusCode;
+
   ErrorGroup({
     required this.id,
     required this.message,
@@ -30,6 +36,7 @@ class ErrorGroup {
     this.trend = TrendDirection.stable,
     this.instances,
     this.sampleTraceId,
+    this.sampleStatusCode,
   });
 
   /// CLS `GET /logs/errors/groups` row shape.
@@ -47,6 +54,12 @@ class ErrorGroup {
       if (v is num) return v.toInt();
       if (v is String) return int.tryParse(v) ?? fallback;
       return fallback;
+    }
+
+    int? readNullableInt(dynamic v) {
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v);
+      return null;
     }
 
     final servicesRaw = json['services'];
@@ -79,6 +92,8 @@ class ErrorGroup {
           json['sampleStack']?.toString() ?? json['stackTrace']?.toString(),
       sampleTraceId: json['sampleTraceId']?.toString() ??
           json['sample_trace_id']?.toString(),
+      sampleStatusCode: readNullableInt(
+          json['sampleStatusCode'] ?? json['sample_status_code']),
       trend: trend,
     );
   }
@@ -104,9 +119,12 @@ class ErrorGroup {
     return '${services.take(2).join(', ')}, +${services.length - 2} more';
   }
 
-  /// Best-effort HTTP status from client-side [instances] or code/message.
-  /// Server groups API does not ship per-group status codes.
+  /// HTTP status for this group. Prefers the server's authoritative
+  /// [sampleStatusCode] (CLS `39de821`+); falls back to a client-side guess
+  /// from [instances]/code/message for older server responses that predate it.
   int? get inferredStatusCode {
+    if (sampleStatusCode != null) return sampleStatusCode;
+
     final fromInstances = instances
         ?.map((i) => i.statusCode)
         .whereType<int>()

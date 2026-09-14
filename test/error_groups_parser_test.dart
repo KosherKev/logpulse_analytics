@@ -102,5 +102,26 @@ void main() {
       expect(groups[2].isServerErrorGroup, isTrue);
       expect(groups[2].inferredStatusCode, 502);
     });
+
+    test('prefers server sampleStatusCode over the message/code heuristic', () {
+      final groups = parseErrorGroupsResponse({
+        'data': [
+          {
+            'id': 'd',
+            'message': 'Upstream failed', // heuristic alone would say 502
+            'errorCode': '502',
+            'sampleStatusCode': 404, // authoritative value from the server
+            'count': 1,
+            'services': ['api'],
+            'firstSeen': '2026-07-21T08:00:00.000Z',
+            'lastSeen': '2026-07-21T12:00:00.000Z',
+          },
+        ],
+      });
+
+      expect(groups[0].sampleStatusCode, 404);
+      expect(groups[0].inferredStatusCode, 404);
+      expect(groups[0].isClientErrorGroup, isTrue);
+    });
   });
 }
