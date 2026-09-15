@@ -11,10 +11,11 @@ same trust model as self-hosting today), just wants standing one up to be
 as close to zero-terminal as possible, and asked whether that's worth
 building versus leaving hosting entirely to the user.
 
-**Status (2026-09-15): Built and committed — `render.yaml` parses cleanly
-and its `healthCheckPath` matches the real `/health` route. NOT live-verified
-(no Render account in this session) — Step 3 below is the one remaining
-piece, needs Kevin to actually click the button once.**
+**Status (2026-09-15): DONE — live-verified. Kevin clicked "Deploy to
+Render" for real; the form asked only for `MONGODB_URI` and the resulting
+instance worked end to end (Step 3 below, confirmed). A follow-up
+onboarding-doc smoothing pass (README/QUICKSTART/API_TESTING/DEPLOYMENT)
+is recorded in `central-logging-service/PROGRESS.md`.**
 
 ## Background (read this before Step 1)
 
