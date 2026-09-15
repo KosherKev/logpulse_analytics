@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "logpulse-web",
+      "runtimeExecutable": "/Users/kevinafenyo/flutter/bin/flutter",
+      "runtimeArgs": ["run", "-d", "web-server", "--web-port", "8765"],
+      "port": 8765
+    }
+  ]
+}
