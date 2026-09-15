@@ -10,12 +10,14 @@ mechanisms and a hand-run CLI script.
 **Do not deviate from this spec without noting the deviation in each repo's own
 log at completion (see the update instructions at the end of each part).**
 
-**Status (2026-09-14): Parts A and B implemented and test-verified, NOT yet
-deployed/published. Part C not started — gated on A/B's rollout. See each
-repo's own `PROGRESS.md`/`LOG.md` for the exact remaining rollout steps
-(migration script, `ADMIN_SETUP_TOKEN`, deploy, `npm publish`, then issuing
-LogPulse a real key) — none of it is a decision, just execution that needs
-Kevin's hands (deploy/publish access, typing a real key into the app).**
+**Status (2026-09-15): DONE — all three parts complete.** Part A deployed
+(scope migration run, `ADMIN_SETUP_TOKEN` set on Cloud Run). Part B
+published (`@bevingh/telemetry@0.2.0` live on the npm registry). Part C
+done: LogPulse's connection switched to a scoped key, and KL-2609-key (the
+exposed key this phase's Background section flags below) is fully closed —
+rotated **and** purged from `logpulse_analytics`' git history via
+`git filter-repo` (2026-09-15, see that repo's `PROGRESS.md`). See each
+repo's own `PROGRESS.md`/`LOG.md` for verification detail.
 
 ## Background (read this before Step 1)
 

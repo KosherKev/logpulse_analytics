@@ -24,38 +24,52 @@
 - **Blocking issues**:
   - ~~No `./scripts/green-gate.sh` exists~~ — **resolved 2026-09-14**: `842b0ca`
     added it. First run failed (3 analyzer warnings, 46 unformatted files); fixed in
-    `fa277b6` (removed dead `_selectedProfileId` state, ran `dart format`). Gate is
-    now green **except** 2 residual `unused_import` warnings in `test_api.dart`/
-    `test_api_2.dart` — deliberately not touched, see the item below.
-  - **New, higher severity — live API key committed to git, tracked, already
-    pushed.** `test_api.dart`/`test_api_2.dart` (repo root) hardcode a live-looking
-    key (prefix `cls_RBA8...` — full value deliberately not repeated here; see the
-    files directly, or `.env`'s `API_KEY`, which matches) for the production
-    `central-logging-service` Cloud Run instance. Both
-    files are tracked (`git ls-files` confirms) and have been on `origin/main` since
-    2026-06-17. Deleting the files does not remove the key from git history — this
-    needs either a key rotation on the CLS side, a history rewrite before the repo
-    goes public, or both. **Not resolved by this session** — see Human pass queue.
+    `fa277b6` (removed dead `_selectedProfileId` state, ran `dart format`). The 2
+    residual `unused_import` warnings tied to `test_api.dart`/`test_api_2.dart` no
+    longer apply — those files are gone (see below).
+  - ~~**Live API key committed to git, tracked, already pushed.**~~ —
+    **resolved 2026-09-15**: `test_api.dart`/`test_api_2.dart` removed from the
+    working tree **and purged from all git history** with `git filter-repo`
+    (`--path test_api.dart --path test_api_2.dart --invert-paths`), then
+    force-pushed to `origin/main` and to `origin/claude/serene-fermi-jij7zo`
+    (a stale branch that still carried the old, key-containing history and
+    would otherwise have undermined the purge). Verified: the leaked key
+    string (`cls_RBA8xoVM...`) returns zero matches across `git log --all -p`
+    after the rewrite, and both remote branch tips now match the rewritten
+    local history (`git ls-remote`). A full pre-rewrite `.git` backup was
+    taken first. **Every commit SHA in this repo changed as a result** —
+    commit hashes referenced in this ledger and `log.md` from before
+    2026-09-15 no longer resolve to real commits; they're accurate as
+    historical record of what was true when written, not as live pointers.
+    Key rotation (the other half of this fix) is covered separately below.
   - No CI workflow (`.github/workflows/` absent) — nothing runs the gate automatically
     on push.
-- **Next action**: Phase 25 ("unified API keys + easier onboarding" —
-  `PHASE_25_SPEC.md`) is implemented — Parts A (`central-logging-service`
-  auth unification) and B (`@bevingh/telemetry` logging capability) are
-  code-complete and test-verified (68/68 and 21/21 respectively) but
-  **neither is deployed/published yet**, and Part C (rotating LogPulse's own
-  key, closing KL-2609-key) needs Kevin to actually run the provisioning
-  against production — see that repo's own `PROGRESS.md` Next Steps/Human
-  pass queue for the deploy sequence. Once Part C lands, decide whether to
+- **Next action**: Phase 25 is fully rolled out — Parts A
+  (`central-logging-service` auth unification) and B (`@bevingh/telemetry`
+  logging) are deployed and published (`@bevingh/telemetry@0.2.0` confirmed
+  live on the npm registry), and Kevin confirms LogPulse's own connection
+  has been switched to a scoped key. KL-2609-key is now fully closed:
+  rotation (Kevin, app-side) + history purge (this session, see Blocking
+  issues above) both done. Note: this repo's root-level `.env` (a leftover
+  local dev artifact the now-deleted `test_api*.dart` scripts read from —
+  **not** the Flutter app's actual runtime connection, which lives in
+  secure storage per the Phase 24 `ApiConnectionProfile` work) still holds
+  the old flat key; it's gitignored and nothing in the repo reads it
+  anymore, so it's inert, but worth deleting locally next time you're in
+  this checkout. Decide whether to
   continue with remaining P2 backlog items (`BACKLOG.md` §2.5) or move to
   the "does the app need more features" discussion Kevin flagged next.
-- **Repo state**: All ledger and Phase 24 work pushed to `origin/main` through
-  commit `6d35da0`. Working tree still has the same pre-existing, untouched items:
-  `assets/app_icon.png` (uncommitted modification) and
-  `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) — neither explained
-  yet (see Human pass queue).
+- **Repo state**: `assets/app_icon.png` and
+  `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` — both flagged unexplained for
+  most of this session — were committed by a separate concurrent session
+  (`c523a42`, "add Claude launch config, error-groups fix documentation, and
+  update application icons"), found when the `test_api.dart` history purge
+  above required inspecting the repo's local HEAD. Nothing left unexplained
+  in the working tree as of 2026-09-15. History was rewritten (see above) —
+  every pre-2026-09-15 commit SHA in this doc is historical record only.
 - **Verified running**: `./scripts/green-gate.sh` green after every fix this session
-  (`flutter test` 77/77 across 12 files; `flutter analyze`/`dart format` clean except
-  the 2 warnings tied to the untouched, key-exposed `test_api*.dart` files). All
+  (`flutter test` 77/77 across 12 files; `flutter analyze`/`dart format` clean —
+  the 2 warnings tied to `test_api*.dart` no longer apply, those files are gone). All
   Phase 24 client-side fixes (items 1-7 in `PHASE_24_SPEC.md`) additionally verified
   live against real production data. The two CLS-side fixes (items 8-9) are **not**
   verified live — not deployed yet (see Next action).
@@ -138,14 +152,16 @@ unless marked new:
   partially cleaned but not finished.
 - ~~**KL-2609-a3** — No automated verification gate exists~~ — **resolved
   2026-09-14**: `scripts/green-gate.sh` added (`842b0ca`), run for the first time,
-  found 3 warnings + 46 unformatted files, fixed in `fa277b6`. Gate is green except
-  KL-2609-key below. No CI workflow still exists to run this automatically.
-- **New — KL-2609-key (security)** — `test_api.dart`/`test_api_2.dart` (repo root,
-  tracked in git, pushed since 2026-06-17) hardcode a live-looking production
-  `central-logging-service` API key (`cls_RBA8...`, matches `.env`'s `API_KEY`).
-  Deleting the files doesn't remove the key from git history. Needs a decision: rotate
-  the key on the CLS side, rewrite this repo's git history before it goes public, or
-  both. Left in place, not deleted, pending that decision — see Human pass queue.
+  found 3 warnings + 46 unformatted files, fixed in `fa277b6`. Gate is fully green
+  now — the 2 warnings once tied to KL-2609-key no longer apply. No CI workflow
+  still exists to run this automatically.
+- ~~**KL-2609-key (security)**~~ — **resolved 2026-09-15**: `test_api.dart`/
+  `test_api_2.dart` (the files hardcoding a live production
+  `central-logging-service` API key, tracked since 2026-06-17) removed from the
+  working tree **and purged from all git history** via `git filter-repo`,
+  force-pushed to every branch on `origin` that had them. The key itself was
+  separately rotated (Kevin, app-side). Both halves of the original decision
+  (rotate + history rewrite) done, not just one.
 - **KL-2609-k7 (updated)** — `log.md` is now **two** commits behind `HEAD`, not one:
   still missing `92e6706` (asset-only, low risk) and now also missing `d607640`
   (error-group status inference + Find Similar/View Trace — a real feature commit,
@@ -444,11 +460,14 @@ further CLS dependency beyond what's already shipped):
 6. ~~**Process** — Add a `scripts/green-gate.sh`~~ — **done 2026-09-14** (`842b0ca`).
 7. ~~**Fix the gate.**~~ — **done 2026-09-14** (`fa277b6`): removed dead
    `_selectedProfileId` state, ran `dart format` on the 46 flagged files. The 2
-   remaining warnings in `test_api.dart`/`test_api_2.dart` are intentionally left —
-   see KL-2609-key.
-7a. **New — resolve KL-2609-key.** Rotate the exposed CLS API key and/or rewrite git
-    history to remove it before this repo goes public. This blocks the open-source
-    push independently of the `@bevingh/auth` blocker already flagged in CLS's ledger.
+   warnings tied to `test_api.dart`/`test_api_2.dart` no longer apply — see
+   KL-2609-key, resolved below.
+7a. ~~**Resolve KL-2609-key.**~~ — **done 2026-09-15**: rotated the exposed CLS
+    API key (Kevin) and rewrote git history to remove it (`git filter-repo`,
+    this session) — both halves, not just one. This repo's open-source
+    readiness is now blocked only by the `@bevingh/auth` item already flagged
+    in CLS's ledger (itself already resolved there — see that repo's
+    `PROGRESS.md`).
 8. **New — verify cross-repo bug status.** Confirm whether `central-logging-service`
    commit `39de821` actually fixed the "Unknown error" megagroup bug that `d607640`'s
    `isClientErrorGroup`/`"unknown error"` skip logic works around, and if so, whether
@@ -484,27 +503,17 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
 - ~~Whether to invest in a `scripts/green-gate.sh` + CI workflow now~~ — decided: the
   script was added (`842b0ca`) and the gate failures it found were fixed (`fa277b6`).
   **Still open**: whether to add the CI workflow too.
-- **Security — needs a decision before open-sourcing**: `test_api.dart`/
-  `test_api_2.dart` have a live CLS API key committed and pushed (KL-2609-key). Rotate
-  the key, rewrite history, or both? **Phase 25 makes rotation possible without
-  redeploying CLS** (see below) — the history-rewrite half of the decision is
-  still open.
-- **New — deploy/publish Phase 25, then close out Part C.** Code for Parts A
-  and B is done and tested but sitting unreleased: `central-logging-service`
-  needs `scripts/migrate-scopes.js` run against production Mongo, an
-  `ADMIN_SETUP_TOKEN` set, and a deploy; `@bevingh/telemetry@0.2.0` needs
-  `npm publish` (needs the Automation-token/OTP flow Kevin already has from
-  publishing `0.1.0`). Only after both of those: issue LogPulse a real
-  `logs:read` key via `/admin/keys.html`, put it in Settings, and revoke the
-  old flat key — that's what actually closes KL-2609-key's rotation half.
-  None of this needs Kevin's *decision*, just his hands (deploy access,
-  npm publish, typing a real key into the app) — this session can't do any
-  of it. Full sequence: `central-logging-service/PROGRESS.md` Next Steps
-  item 0-phase25.
-- What `assets/app_icon.png` (uncommitted modification) and
-  `docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md` (untracked) sitting in the working
-  tree are for — both predate this session; not touched, but should be committed,
-  discarded, or explained rather than left in limbo.
+- ~~**Security — needs a decision before open-sourcing**: `test_api.dart`/
+  `test_api_2.dart`~~ — **resolved 2026-09-15, both halves**: key rotated
+  (Kevin) and history rewritten (`git filter-repo`, this session, pushed to
+  every branch on `origin`).
+- ~~**Deploy/publish Phase 25, then close out Part C.**~~ — **done**: CLS
+  deployed (scope migration run, `ADMIN_SETUP_TOKEN` set), `@bevingh/telemetry@0.2.0`
+  published (confirmed live on the npm registry), and Kevin confirms LogPulse's
+  connection is on a scoped key.
+- ~~What `assets/app_icon.png`/`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`
+  were for~~ — resolved: committed by a separate concurrent session (`c523a42`),
+  found while inspecting local HEAD for the history purge above.
 - Whether to push local `main` (3 commits ahead of `origin/main`: `d607640`, `842b0ca`,
   and this session's merge `cda3bea`) now, or hold until more of the docs/API/app pass
   is done.
@@ -663,3 +672,27 @@ Decisions this ledger surfaced that are Kevin's to make, not the planner's:
   typing a real key into LogPulse) rather than another decision. Part C
   (rotating LogPulse's own key, closing KL-2609-key) is explicitly gated on
   that rollout happening first.
+- **2026-09-15 — KL-2609-key closed (history purge)** — Kevin: "remove the
+  other docs we have [flagged as] outdated from the git repo and from the
+  history, and push... I want to clean up the repositories." Clarified
+  scope first (destructive, irreversible, needed a force-push) — Kevin
+  selected `test_api.dart`/`test_api_2.dart` here plus
+  `HANDOFF.md`/`PROJECT_SUMMARY.md` in `central-logging-service` (see that
+  repo's own `PROGRESS.md` for the latter). Backed up `.git` first, then
+  `git filter-repo --path test_api.dart --path test_api_2.dart
+  --invert-paths`. Verified zero occurrences of the leaked key string
+  across the entire rewritten history before pushing. Force-pushed both
+  `main` and a stale branch (`claude/serene-fermi-jij7zo`) that still
+  carried the old, key-containing history on `origin` — left un-purged,
+  that branch would have undermined the whole point of the rewrite.
+  Confirmed via `git ls-remote` that both branch tips on `origin` now match
+  the rewritten local history. While inspecting local HEAD for this,
+  found a separate concurrent session had already committed the
+  long-flagged `assets/app_icon.png`/`docs/CLS_ERROR_GROUPS_MESSAGE_FIX_PR_BRIEF.md`
+  loose ends (`c523a42`) — swept into the same rewrite, no separate action
+  needed. **Every commit SHA in this repo predating this entry changed** —
+  this ledger's own historical references to old SHAs are accurate as
+  record of what was true when written, not as resolvable commit pointers
+  going forward. Did not touch `BACKLOG.md`/`PHASES.md`/
+  `TELEMETRY_PATCH_PLAN.md` or any other historical doc — Kevin's answer
+  named these two file pairs specifically, not a broader doc cleanup.
